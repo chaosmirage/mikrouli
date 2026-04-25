@@ -8,5 +8,6 @@ import { SlugGeneratorService } from './slug-generator.service';
   imports: [ApiKeysModule],
   providers: [LinksService, SlugGeneratorService],
   controllers: [LinksController],
+  exports: [LinksService],
 })
 export class LinksModule {}

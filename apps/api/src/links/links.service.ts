@@ -77,6 +77,10 @@ export class LinksService {
     return this.dataSource.manager.find(Link, { where: { userId }, order: { createdAt: 'DESC' } });
   }
 
+  findBySlug(slug: string): Promise<Link | null> {
+    return this.dataSource.manager.findOne(Link, { where: { shortUrl: slug } });
+  }
+
   async delete(slug: string, userId: string): Promise<void> {
     const link = await this.dataSource.manager.findOne(Link, { where: { shortUrl: slug } });
     if (!link) throw new NotFoundException(`Link ${slug} not found`);
