@@ -6,6 +6,7 @@ import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
+import { LinksModule } from './links/links.module';
 
 const DEFAULT_DB_PORT = 5432;
 
@@ -41,6 +42,7 @@ const typeOrmModule = TypeOrmModule.forRootAsync({
     UsersModule,
     AuthModule,
     ApiKeysModule,
+    LinksModule,
   ],
 })
 export class AppModule {}
