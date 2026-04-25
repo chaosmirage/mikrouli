@@ -27,7 +27,7 @@ function buildTypeOrmOptions(configService: ConfigService): TypeOrmModuleOptions
     migrations: [__dirname + '/migrations/*{.ts,.js}'],
     synchronize: false,
     logging: configService.get<string>('NODE_ENV') !== 'production',
-    migrationsRun: true,
+    migrationsRun: configService.get<string>('MIGRATIONS_RUN', 'true') === 'true',
     migrationsTableName: 'typeorm_migrations',
   };
 }
