@@ -1,0 +1,38 @@
+# HTTPS redirect middleware — all HTTP requests are permanently redirected to HTTPS
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: redirect-https
+  namespace: mikrouli
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+# Main Ingress — TLS terminated by cert-manager + Let's Encrypt
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mikrouli
+  namespace: mikrouli
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.middlewares: mikrouli-redirect-https@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - mikrou.li
+      secretName: mikrouli-tls
+  rules:
+    - host: mikrou.li
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80

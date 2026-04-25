@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mikrouli
+  namespace: mikrouli
+  annotations:
+    # Production adds HSTS via the headers middleware (applied in addition to HTTPS redirect)
+    traefik.ingress.kubernetes.io/router.middlewares: >-
+      mikrouli-redirect-https@kubernetescrd,mikrouli-hsts-headers@kubernetescrd
+spec:
+  tls:
+    - hosts:
+        - mikrou.li
+      secretName: mikrouli-tls
+  rules:
+    - host: mikrou.li
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80

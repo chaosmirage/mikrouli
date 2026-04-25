@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mikrouli
+  namespace: mikrouli
+spec:
+  tls:
+    - hosts:
+        - staging.mikrou.li
+      secretName: mikrouli-staging-tls
+  rules:
+    - host: staging.mikrou.li
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80

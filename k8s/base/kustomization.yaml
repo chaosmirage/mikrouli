@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: mikrouli
+resources:
+  - namespace.yaml
+  - serviceaccounts.yaml
+  - network-policies.yaml
+  - secrets.sealed.yaml
+  - ingress.yaml
+  - api/deployment.yaml
+  - api/service.yaml
+  - api/pdb.yaml
+  - api/hpa.yaml
+  - api/migration-job.yaml
+  - web/deployment.yaml
+  - web/service.yaml
+  - web/pdb.yaml
+  - web/hpa.yaml
+  - web/configmap-nginx.yaml
+  - postgres/statefulset.yaml
+  - postgres/service.yaml
+  - postgres/backup-cronjob.yaml
+  - redis/statefulset.yaml
+  - redis/service.yaml
+  - clickhouse/statefulset.yaml
+  - clickhouse/service.yaml
+  - clickhouse/configmap-users.yaml
+  - clickhouse/backup-cronjob.yaml
