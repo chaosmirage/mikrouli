@@ -1,4 +1,13 @@
-import { Controller, Get, HttpException, HttpStatus, NotFoundException, Param, Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  Req,
+  Res,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { StatsService } from '../stats/stats.service';
 import { RedirectService, RedirectResolution } from './redirect.service';
@@ -21,7 +30,12 @@ function extractUa(req: Request): string | undefined {
   return Array.isArray(ua) ? ua[0] : ua;
 }
 
-function recordStatsIfActive(stats: StatsService, resolution: RedirectResolution, slug: string, req: Request): void {
+function recordStatsIfActive(
+  stats: StatsService,
+  resolution: RedirectResolution,
+  slug: string,
+  req: Request,
+): void {
   if (resolution.status !== 'active') return;
   void stats.record(slug, req.ip, extractUa(req));
 }
@@ -43,7 +57,11 @@ export class RedirectController {
   ) {}
 
   @Get()
-  async redirect(@Param('slug') slug: string, @Res() res: Response, @Req() req: Request): Promise<void> {
+  async redirect(
+    @Param('slug') slug: string,
+    @Res() res: Response,
+    @Req() req: Request,
+  ): Promise<void> {
     rejectInvalidSlug(slug);
     const resolution = await this.redirectService.resolve(slug);
     recordStatsIfActive(this.statsService, resolution, slug, req);

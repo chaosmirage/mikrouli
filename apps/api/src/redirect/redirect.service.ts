@@ -41,7 +41,11 @@ export class RedirectService {
   }
 
   private async backfillCache(slug: string, link: Link): Promise<void> {
-    await this.redisService.set(this.cacheKey(slug), link.originalUrl, ttlSecondsUntil(link.expiresAt));
+    await this.redisService.set(
+      this.cacheKey(slug),
+      link.originalUrl,
+      ttlSecondsUntil(link.expiresAt),
+    );
   }
 
   private async resolveFromDatabase(slug: string): Promise<RedirectResolution> {

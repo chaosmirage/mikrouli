@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { BearerOrApiKeyGuard } from '../api-keys/bearer-or-api-key.guard';
 import { RedisService } from '../redis/redis.service';
@@ -20,7 +31,12 @@ interface PublicLink {
 }
 
 function toPublicLink(link: Link): PublicLink {
-  return { shortUrl: link.shortUrl, originalUrl: link.originalUrl, createdAt: link.createdAt, expiresAt: link.expiresAt };
+  return {
+    shortUrl: link.shortUrl,
+    originalUrl: link.originalUrl,
+    createdAt: link.createdAt,
+    expiresAt: link.expiresAt,
+  };
 }
 
 function ttlSecondsUntil(expiresAt: Date | null): number | undefined {
@@ -42,7 +58,11 @@ export class LinksController {
   @HttpCode(HttpStatus.CREATED)
   async create(@Req() req: AuthenticatedRequest, @Body() dto: CreateLinkDto): Promise<PublicLink> {
     const link = await this.linksService.create(dto.url, req.user.id, dto.expiresAt);
-    await this.redisService.set(`link:${link.shortUrl}`, link.originalUrl, ttlSecondsUntil(link.expiresAt));
+    await this.redisService.set(
+      `link:${link.shortUrl}`,
+      link.originalUrl,
+      ttlSecondsUntil(link.expiresAt),
+    );
     return toPublicLink(link);
   }
 

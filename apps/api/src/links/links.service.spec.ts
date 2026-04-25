@@ -1,4 +1,9 @@
-import { ConflictException, ForbiddenException, ModuleMetadata, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  ModuleMetadata,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { LinksService } from './links.service';
@@ -35,7 +40,15 @@ const moduleMetadata: ModuleMetadata = {
 };
 
 function makeLink(overrides: Partial<Link> = {}): Link {
-  return { shortUrl: TEST_SLUG, originalUrl: TEST_URL, userId: TEST_USER_ID, createdAt: new Date(), expiresAt: null, user: undefined as never, ...overrides };
+  return {
+    shortUrl: TEST_SLUG,
+    originalUrl: TEST_URL,
+    userId: TEST_USER_ID,
+    createdAt: new Date(),
+    expiresAt: null,
+    user: undefined as never,
+    ...overrides,
+  };
 }
 
 function makeUniqueViolationError(): Error {
@@ -50,7 +63,9 @@ describe('LinksService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     mockSlugGenerator.generate.mockReturnValue(TEST_SLUG);
-    mockDataSource.transaction.mockImplementation((cb: (m: typeof mockManager) => Promise<Link>) => cb(mockManager));
+    mockDataSource.transaction.mockImplementation((cb: (m: typeof mockManager) => Promise<Link>) =>
+      cb(mockManager),
+    );
     mockManager.findOneOrFail.mockResolvedValue(makeLink());
     const module: TestingModule = await Test.createTestingModule(moduleMetadata).compile();
     service = module.get<LinksService>(LinksService);
@@ -58,8 +73,14 @@ describe('LinksService', () => {
 
   it('create() inserts link and writes outbox entry in one transaction', async () => {
     const link = await service.create(TEST_URL, TEST_USER_ID);
-    expect(mockManager.insert).toHaveBeenCalledWith(Link, expect.objectContaining({ shortUrl: TEST_SLUG, originalUrl: TEST_URL }));
-    expect(mockManager.save).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ aggregateType: 'link_created' }));
+    expect(mockManager.insert).toHaveBeenCalledWith(
+      Link,
+      expect.objectContaining({ shortUrl: TEST_SLUG, originalUrl: TEST_URL }),
+    );
+    expect(mockManager.save).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ aggregateType: 'link_created' }),
+    );
     expect(link.shortUrl).toBe(TEST_SLUG);
   });
 
@@ -86,7 +107,10 @@ describe('LinksService', () => {
     const links = [makeLink()];
     mockDataSource.manager.find.mockResolvedValue(links);
     const result = await service.listForUser(TEST_USER_ID);
-    expect(mockDataSource.manager.find).toHaveBeenCalledWith(Link, expect.objectContaining({ where: { userId: TEST_USER_ID } }));
+    expect(mockDataSource.manager.find).toHaveBeenCalledWith(
+      Link,
+      expect.objectContaining({ where: { userId: TEST_USER_ID } }),
+    );
     expect(result).toBe(links);
   });
 

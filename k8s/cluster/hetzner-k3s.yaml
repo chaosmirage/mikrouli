@@ -40,7 +40,7 @@ worker_node_pools:
 
 # k3s additional server args (passed to every control-plane node)
 k3s_server_args:
-  - "--disable=traefik"   # install traefik via Helm chart to control version
+  - '--disable=traefik' # install traefik via Helm chart to control version
 
 # Install these components via Helm after cluster creation
 additional_packages: []

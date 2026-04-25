@@ -57,21 +57,21 @@ pnpm --filter web test:e2e       # Playwright
 
 ## API Endpoints
 
-| Method | Path | Auth | Purpose |
-|--------|------|------|---------|
-| GET    | `/api/health`            | none           | Liveness probe |
-| POST   | `/api/auth/register`     | none           | Create user |
-| POST   | `/api/auth/login`        | none           | Issue JWT pair |
-| POST   | `/api/auth/refresh`      | refresh token  | Rotate access+refresh |
-| GET    | `/api/auth/me`           | Bearer JWT     | Current profile |
-| POST   | `/api/urls`              | Bearer or X-API-Key | Create short link |
-| GET    | `/api/urls`              | Bearer or X-API-Key | List own links |
-| DELETE | `/api/urls/:slug`        | Bearer or X-API-Key | Delete own link |
-| GET    | `/:slug`                 | none (public)  | 302 redirect |
-| GET    | `/api/stats/:slug`       | Bearer or X-API-Key | Per-link stats |
-| POST   | `/api/api-keys`          | Bearer JWT     | Issue API key |
-| GET    | `/api/api-keys`          | Bearer JWT     | List own keys |
-| DELETE | `/api/api-keys/:id`      | Bearer JWT     | Revoke key |
+| Method | Path                 | Auth                | Purpose                    |
+| ------ | -------------------- | ------------------- | -------------------------- |
+| GET    | `/api/health`        | none                | Liveness probe             |
+| POST   | `/api/auth/register` | none                | Create user           |
+| POST   | `/api/auth/login`    | none                | Issue JWT pair        |
+| POST   | `/api/auth/refresh`  | refresh token       | Rotate access+refresh |
+| GET    | `/api/auth/me`       | Bearer JWT          | Current profile       |
+| POST   | `/api/urls`          | Bearer or X-API-Key | Create short link     |
+| GET    | `/api/urls`          | Bearer or X-API-Key | List own links        |
+| DELETE | `/api/urls/:slug`    | Bearer or X-API-Key | Delete own link       |
+| GET    | `/:slug`             | none (public)       | 302 redirect          |
+| GET    | `/api/stats/:slug`   | Bearer or X-API-Key | Per-link stats        |
+| POST   | `/api/api-keys`      | Bearer JWT          | Issue API key         |
+| GET    | `/api/api-keys`      | Bearer JWT          | List own keys         |
+| DELETE | `/api/api-keys/:id`  | Bearer JWT          | Revoke key            |
 
 
 ## Auth Flow

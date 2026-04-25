@@ -10,10 +10,7 @@ const TEST_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120';
 const mockClickHouseService = { insert: jest.fn(), query: jest.fn() };
 
 const moduleMetadata: ModuleMetadata = {
-  providers: [
-    StatsService,
-    { provide: ClickHouseService, useValue: mockClickHouseService },
-  ],
+  providers: [StatsService, { provide: ClickHouseService, useValue: mockClickHouseService }],
 };
 
 function seedQueryMocks(): void {

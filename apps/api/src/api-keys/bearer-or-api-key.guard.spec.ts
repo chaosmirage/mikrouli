@@ -6,7 +6,9 @@ import { ApiKeyAuthGuard } from './api-key-auth.guard';
 import { BearerOrApiKeyGuard } from './bearer-or-api-key.guard';
 
 function buildMockContext(headers: Record<string, string>): ExecutionContext {
-  return { switchToHttp: () => ({ getRequest: () => ({ headers }) }) } as unknown as ExecutionContext;
+  return {
+    switchToHttp: () => ({ getRequest: () => ({ headers }) }),
+  } as unknown as ExecutionContext;
 }
 
 const mockJwtGuard = { canActivate: jest.fn() };

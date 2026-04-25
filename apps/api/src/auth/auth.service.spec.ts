@@ -66,7 +66,8 @@ describe('AuthService', () => {
     jest.spyOn(bcrypt, 'hash').mockResolvedValue('$2b$10$fakehash' as never);
     mockUsersService.create.mockResolvedValue(testUser);
     await service.register({ email: testUser.email, password: 'Password1' });
-    const passwordHashArg = (mockUsersService.create.mock.calls[0][0] as { passwordHash: string }).passwordHash;
+    const passwordHashArg = (mockUsersService.create.mock.calls[0][0] as { passwordHash: string })
+      .passwordHash;
     expect(passwordHashArg).toMatch(/^\$2/);
   });
 
@@ -85,7 +86,10 @@ describe('AuthService', () => {
 
   it('issueTokens access token expires in ≤ 900s', () => {
     const tokens = service.issueTokens(testUser);
-    const rawPayload = Buffer.from(tokens.accessToken.split('.')[JWT_PART_PAYLOAD_INDEX], 'base64').toString();
+    const rawPayload = Buffer.from(
+      tokens.accessToken.split('.')[JWT_PART_PAYLOAD_INDEX],
+      'base64',
+    ).toString();
     const payload = JSON.parse(rawPayload) as { iat: number; exp: number };
     expect(payload.exp - payload.iat).toBeLessThanOrEqual(ACCESS_TOKEN_MAX_TTL_SECONDS);
   });

@@ -55,7 +55,11 @@ const DICTIONARY_TABLES = [
 function buildClient(configService: ConfigService): ClickHouseClient {
   const host = configService.get<string>('CLICKHOUSE_HOST', 'localhost');
   const port = configService.get<number>('CLICKHOUSE_PORT', DEFAULT_CH_PORT);
-  return createClient({ url: `http://${host}:${port}`, database: 'default', request_timeout: REQUEST_TIMEOUT_MS });
+  return createClient({
+    url: `http://${host}:${port}`,
+    database: 'default',
+    request_timeout: REQUEST_TIMEOUT_MS,
+  });
 }
 
 async function runDdlList(client: ClickHouseClient, ddls: readonly string[]): Promise<void> {
@@ -65,12 +69,20 @@ async function runDdlList(client: ClickHouseClient, ddls: readonly string[]): Pr
 }
 
 async function fetchRowCount(client: ClickHouseClient, table: string): Promise<number> {
-  const result = await client.query({ query: `SELECT count() AS total FROM ${table}`, format: 'JSONEachRow' });
+  const result = await client.query({
+    query: `SELECT count() AS total FROM ${table}`,
+    format: 'JSONEachRow',
+  });
   const rows = await result.json<{ total: string }>();
   return parseInt(rows[0]?.total ?? '0', COUNT_RADIX);
 }
 
-async function seedTableIfEmpty(client: ClickHouseClient, table: string, rows: Record<string, unknown>[], logger: Logger): Promise<void> {
+async function seedTableIfEmpty(
+  client: ClickHouseClient,
+  table: string,
+  rows: Record<string, unknown>[],
+  logger: Logger,
+): Promise<void> {
   const count = await fetchRowCount(client, table);
   if (count > 0) return;
   await client.insert({ table, values: rows, format: 'JSONEachRow' });

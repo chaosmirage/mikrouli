@@ -8,7 +8,11 @@ function makeResponse(data: unknown) {
 }
 
 function renderApiKeys() {
-  render(<MemoryRouter><ApiKeysPage /></MemoryRouter>);
+  render(
+    <MemoryRouter>
+      <ApiKeysPage />
+    </MemoryRouter>,
+  );
 }
 
 beforeEach(() => {
@@ -23,8 +27,21 @@ describe('ApiKeysPage', () => {
   });
 
   it('creates key and displays one-time secret alert', async () => {
-    const newKey = { id: 'k1', label: 'test', key: 'secret-value-xyz', keyPrefix: 'key_sec', createdAt: '2024-01-01T00:00:00Z' };
-    const summary = { id: 'k1', label: 'test', keyPrefix: 'key_sec', createdAt: '2024-01-01T00:00:00Z', lastUsedAt: null, revokedAt: null };
+    const newKey = {
+      id: 'k1',
+      label: 'test',
+      key: 'secret-value-xyz',
+      keyPrefix: 'key_sec',
+      createdAt: '2024-01-01T00:00:00Z',
+    };
+    const summary = {
+      id: 'k1',
+      label: 'test',
+      keyPrefix: 'key_sec',
+      createdAt: '2024-01-01T00:00:00Z',
+      lastUsedAt: null,
+      revokedAt: null,
+    };
     const mockFetch = vi.fn();
     mockFetch.mockResolvedValueOnce(makeResponse([]));
     mockFetch.mockResolvedValueOnce(makeResponse(newKey));

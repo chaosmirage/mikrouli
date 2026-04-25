@@ -6,18 +6,29 @@ import type { AuthContextValue } from '../auth/AuthContext';
 import AppShell from './AppShell';
 
 const guestAuth: AuthContextValue = {
-  user: null, bootstrapping: false,
-  login: vi.fn(), register: vi.fn(), logout: vi.fn(),
+  user: null,
+  bootstrapping: false,
+  login: vi.fn(),
+  register: vi.fn(),
+  logout: vi.fn(),
 };
 
 const authedAuth: AuthContextValue = {
   user: { id: '1', email: 'user@example.com', createdAt: '' },
   bootstrapping: false,
-  login: vi.fn(), register: vi.fn(), logout: vi.fn(),
+  login: vi.fn(),
+  register: vi.fn(),
+  logout: vi.fn(),
 };
 
 function renderShell(authValue: AuthContextValue) {
-  render(<MemoryRouter><AuthContext.Provider value={authValue}><AppShell /></AuthContext.Provider></MemoryRouter>);
+  render(
+    <MemoryRouter>
+      <AuthContext.Provider value={authValue}>
+        <AppShell />
+      </AuthContext.Provider>
+    </MemoryRouter>,
+  );
 }
 
 describe('AppShell', () => {

@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/part-of: mikrouli
 spec:
   # Daily at 02:00 UTC — well outside business hours
-  schedule: "0 2 * * *"
+  schedule: '0 2 * * *'
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 7
   failedJobsHistoryLimit: 3

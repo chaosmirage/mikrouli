@@ -22,7 +22,12 @@ async function safeGet(client: Redis, key: string, logger: Logger): Promise<stri
   }
 }
 
-async function setWithOptionalTtl(client: Redis, key: string, value: string, ttlSeconds?: number): Promise<void> {
+async function setWithOptionalTtl(
+  client: Redis,
+  key: string,
+  value: string,
+  ttlSeconds?: number,
+): Promise<void> {
   if (ttlSeconds !== undefined && ttlSeconds > 0) {
     await client.set(key, value, 'EX', ttlSeconds);
     return;
@@ -30,7 +35,13 @@ async function setWithOptionalTtl(client: Redis, key: string, value: string, ttl
   await client.set(key, value);
 }
 
-async function safeSet(client: Redis, key: string, value: string, ttlSeconds: number | undefined, logger: Logger): Promise<void> {
+async function safeSet(
+  client: Redis,
+  key: string,
+  value: string,
+  ttlSeconds: number | undefined,
+  logger: Logger,
+): Promise<void> {
   try {
     await setWithOptionalTtl(client, key, value, ttlSeconds);
   } catch (err) {
@@ -55,7 +66,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const host = this.configService.get<string>('REDIS_HOST', DEFAULT_REDIS_HOST);
     const port = this.configService.get<number>('REDIS_PORT', DEFAULT_REDIS_PORT);
     this.client = new Redis({ host, port, lazyConnect: true });
-    this.client.on('error', (err: Error) => this.logger.error(`Redis error: ${err.message}`, err.stack));
+    this.client.on('error', (err: Error) =>
+      this.logger.error(`Redis error: ${err.message}`, err.stack),
+    );
     this.client.on('connect', () => this.logger.log(`Connected to Redis at ${host}:${port}`));
     this.client.on('reconnecting', () => this.logger.warn('Redis reconnecting'));
   }

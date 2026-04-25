@@ -57,14 +57,23 @@ describe('LinksController', () => {
   it('POST returns shortUrl, originalUrl, createdAt, expiresAt without userId', async () => {
     mockLinksService.create.mockResolvedValue(makeLink());
     const result = await controller.create(makeRequest() as never, { url: TEST_URL });
-    expect(result).toEqual({ shortUrl: TEST_SLUG, originalUrl: TEST_URL, createdAt: expect.any(Date), expiresAt: FUTURE_DATE });
+    expect(result).toEqual({
+      shortUrl: TEST_SLUG,
+      originalUrl: TEST_URL,
+      createdAt: expect.any(Date),
+      expiresAt: FUTURE_DATE,
+    });
     expect(result).not.toHaveProperty('userId');
   });
 
   it('POST warms Redis cache with link key and TTL', async () => {
     mockLinksService.create.mockResolvedValue(makeLink());
     await controller.create(makeRequest() as never, { url: TEST_URL });
-    expect(mockRedisService.set).toHaveBeenCalledWith(`link:${TEST_SLUG}`, TEST_URL, expect.any(Number));
+    expect(mockRedisService.set).toHaveBeenCalledWith(
+      `link:${TEST_SLUG}`,
+      TEST_URL,
+      expect.any(Number),
+    );
   });
 
   it('GET returns sanitized list (only own user links via service)', async () => {

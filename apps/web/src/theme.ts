@@ -23,7 +23,9 @@ const shape: ThemeOptions['shape'] = {
 // line-mode grep. Nested object literals are data composition (waived),
 // indentation depth stays at 1.
 const components: ThemeOptions['components'] = {
-  MuiButton: { styleOverrides: { root: { borderRadius: PILL_RADIUS, textTransform: 'none', fontWeight: 600 } } },
+  MuiButton: {
+    styleOverrides: { root: { borderRadius: PILL_RADIUS, textTransform: 'none', fontWeight: 600 } },
+  },
 };
 
 export const theme = createTheme({

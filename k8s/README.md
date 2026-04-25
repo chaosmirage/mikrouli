@@ -5,17 +5,18 @@ All manifests live under `k8s/` and are managed via Kustomize overlays.
 
 **Image registry placeholder**: every image reference uses `ghcr.io/OWNER/mikrouli-{api,web}`.
 Replace `OWNER` with your GitHub organization or username before the first deploy:
+
 ```bash
 grep -rl 'ghcr.io/OWNER' k8s/ | xargs sed -i 's|ghcr.io/OWNER|ghcr.io/your-org|g'
 ```
 
 **Required GitHub secrets** (Settings → Secrets and variables → Actions):
 
-| Secret | Description |
-|---|---|
-| `KUBECONFIG_STAGING` | Full kubeconfig YAML for the staging cluster |
+| Secret                  | Description                                     |
+| ----------------------- | ----------------------------------------------- |
+| `KUBECONFIG_STAGING`    | Full kubeconfig YAML for the staging cluster    |
 | `KUBECONFIG_PRODUCTION` | Full kubeconfig YAML for the production cluster |
-| `SEALED_SECRETS_CERT` | Public cert from `kubeseal --fetch-cert` |
+| `SEALED_SECRETS_CERT`   | Public cert from `kubeseal --fetch-cert`        |
 
 ---
 
@@ -38,6 +39,7 @@ hetzner-k3s create --config k8s/cluster/hetzner-k3s.yaml
 ```
 
 The kubeconfig is written to `~/.kube/mikrouli.yaml`. Export it:
+
 ```bash
 export KUBECONFIG=~/.kube/mikrouli.yaml
 kubectl get nodes
@@ -71,6 +73,7 @@ helm install traefik traefik/traefik \
 See `k8s/cluster/sealed-secrets-controller.md` for full instructions.
 
 Short version:
+
 ```bash
 helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
 helm install sealed-secrets sealed-secrets/sealed-secrets \
@@ -129,6 +132,7 @@ git commit -m "chore: update sealed secrets"
 ### Rotating the sealed-secrets controller certificate
 
 If the controller key is compromised:
+
 ```bash
 # Mark the active key as compromised
 kubectl label secret -n kube-system \
@@ -211,6 +215,7 @@ the GitHub commit log.
 ### StatefulSet (postgres, redis, clickhouse)
 
 StatefulSets do not support `rollout undo`. Roll back by editing the image tag:
+
 ```bash
 kubectl set image statefulset/postgres postgres=postgres:16-alpine -n mikrouli
 ```
@@ -221,9 +226,9 @@ kubectl set image statefulset/postgres postgres=postgres:16-alpine -n mikrouli
 
 ### Schedule
 
-| Job | Schedule | Destination |
-|---|---|---|
-| `postgres-backup` | Daily 02:00 UTC | `s3://$S3_BUCKET/postgres/YYYY/MM/DD/` |
+| Job                 | Schedule        | Destination                                   |
+| ------------------- | --------------- | --------------------------------------------- |
+| `postgres-backup`   | Daily 02:00 UTC | `s3://$S3_BUCKET/postgres/YYYY/MM/DD/`        |
 | `clickhouse-backup` | Daily 03:00 UTC | `s3://$S3_BUCKET/clickhouse/YYYYMMDD-HHmmss/` |
 
 **Retention**: configure a 30-day lifecycle policy on the S3 bucket. Use your provider's

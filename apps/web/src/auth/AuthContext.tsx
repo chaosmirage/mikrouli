@@ -73,7 +73,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    void bootstrapUser().then(setUser).finally(() => setBootstrapping(false));
+    void bootstrapUser()
+      .then(setUser)
+      .finally(() => setBootstrapping(false));
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

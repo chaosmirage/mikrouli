@@ -8,7 +8,11 @@ function makeResponse(data: unknown) {
 }
 
 function renderDashboard() {
-  render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+  render(
+    <MemoryRouter>
+      <DashboardPage />
+    </MemoryRouter>,
+  );
 }
 
 beforeEach(() => {
@@ -23,7 +27,12 @@ describe('DashboardPage', () => {
   });
 
   it('after shortening shows new link alert and table row', async () => {
-    const newLink = { shortUrl: 'http://s.io/abc', originalUrl: 'http://long.com', createdAt: '2024-01-01T00:00:00Z', expiresAt: null };
+    const newLink = {
+      shortUrl: 'http://s.io/abc',
+      originalUrl: 'http://long.com',
+      createdAt: '2024-01-01T00:00:00Z',
+      expiresAt: null,
+    };
     const mockFetch = vi.fn();
     mockFetch.mockResolvedValueOnce(makeResponse([]));
     mockFetch.mockResolvedValueOnce(makeResponse(newLink));
@@ -38,7 +47,12 @@ describe('DashboardPage', () => {
   });
 
   it('copy button is present on new link alert', async () => {
-    const newLink = { shortUrl: 'http://s.io/xyz', originalUrl: 'http://original.com', createdAt: '2024-01-01T00:00:00Z', expiresAt: null };
+    const newLink = {
+      shortUrl: 'http://s.io/xyz',
+      originalUrl: 'http://original.com',
+      createdAt: '2024-01-01T00:00:00Z',
+      expiresAt: null,
+    };
     const mockFetch = vi.fn();
     mockFetch.mockResolvedValueOnce(makeResponse([]));
     mockFetch.mockResolvedValueOnce(makeResponse(newLink));
@@ -46,14 +60,18 @@ describe('DashboardPage', () => {
     vi.stubGlobal('fetch', mockFetch);
     renderDashboard();
     await waitFor(() => expect(screen.getByTestId('shorten-url')).toBeInTheDocument());
-    fireEvent.change(screen.getByTestId('shorten-url'), { target: { value: 'http://original.com' } });
+    fireEvent.change(screen.getByTestId('shorten-url'), {
+      target: { value: 'http://original.com' },
+    });
     fireEvent.click(screen.getByTestId('shorten-submit'));
     await waitFor(() => expect(screen.getByTestId('copy-link')).toBeInTheDocument());
   });
 
   it('shows loading indicator while fetching links', async () => {
     let resolve: (v: unknown) => void = () => undefined;
-    const pending = new Promise(r => { resolve = r; });
+    const pending = new Promise((r) => {
+      resolve = r;
+    });
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(pending.then(() => makeResponse([]))));
     renderDashboard();
     expect(screen.getByTestId('dashboard-loading')).toBeInTheDocument();

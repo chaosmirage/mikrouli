@@ -14,10 +14,21 @@ export interface AggregatedStats {
   topBrowsers: Array<{ name: string; clicks: number }>;
 }
 
-interface TotalRow { total: string }
-interface DayRow { date: string; clicks: string }
-interface CountryRow { country_id: string; clicks: string }
-interface BrowserRow { browser_id: string; clicks: string }
+interface TotalRow {
+  total: string;
+}
+interface DayRow {
+  date: string;
+  clicks: string;
+}
+interface CountryRow {
+  country_id: string;
+  clicks: string;
+}
+interface BrowserRow {
+  browser_id: string;
+  clicks: string;
+}
 
 function escapeSlug(slug: string): string {
   return slug.replace(/'/g, "''");
@@ -39,7 +50,11 @@ function topBrowsersQuery(slug: string): string {
   return `SELECT browser_id, count() AS clicks FROM stats WHERE short_url = '${escapeSlug(slug)}' GROUP BY browser_id ORDER BY clicks DESC LIMIT ${TOP_LIMIT}`;
 }
 
-function buildStatRow(shortUrl: string, ip: string | undefined, ua: string | undefined): Record<string, unknown> {
+function buildStatRow(
+  shortUrl: string,
+  ip: string | undefined,
+  ua: string | undefined,
+): Record<string, unknown> {
   return {
     short_url: shortUrl,
     ip: ip ?? '',
@@ -59,11 +74,17 @@ function mapDayRows(rows: DayRow[]): Array<{ date: string; clicks: number }> {
 }
 
 function mapCountryRows(rows: CountryRow[]): Array<{ name: string; clicks: number }> {
-  return rows.map((r) => ({ name: COUNTRY_NAMES[toInt(r.country_id)] ?? 'Unknown', clicks: toInt(r.clicks) }));
+  return rows.map((r) => ({
+    name: COUNTRY_NAMES[toInt(r.country_id)] ?? 'Unknown',
+    clicks: toInt(r.clicks),
+  }));
 }
 
 function mapBrowserRows(rows: BrowserRow[]): Array<{ name: string; clicks: number }> {
-  return rows.map((r) => ({ name: BROWSER_NAMES[toInt(r.browser_id)] ?? 'Unknown', clicks: toInt(r.clicks) }));
+  return rows.map((r) => ({
+    name: BROWSER_NAMES[toInt(r.browser_id)] ?? 'Unknown',
+    clicks: toInt(r.clicks),
+  }));
 }
 
 function assembleStats(
@@ -80,7 +101,13 @@ function assembleStats(
   };
 }
 
-async function recordSafe(ch: ClickHouseService, shortUrl: string, ip: string | undefined, ua: string | undefined, logger: Logger): Promise<void> {
+async function recordSafe(
+  ch: ClickHouseService,
+  shortUrl: string,
+  ip: string | undefined,
+  ua: string | undefined,
+  logger: Logger,
+): Promise<void> {
   try {
     await ch.insert('stats_buffer', [buildStatRow(shortUrl, ip, ua)]);
   } catch (err) {
@@ -94,7 +121,11 @@ export class StatsService {
 
   constructor(private readonly clickHouseService: ClickHouseService) {}
 
-  async record(shortUrl: string, ip: string | undefined, userAgent: string | undefined): Promise<void> {
+  async record(
+    shortUrl: string,
+    ip: string | undefined,
+    userAgent: string | undefined,
+  ): Promise<void> {
     await recordSafe(this.clickHouseService, shortUrl, ip, userAgent, this.logger);
   }
 
@@ -103,7 +134,12 @@ export class StatsService {
     const byDayP = this.clickHouseService.query<DayRow>(byDayQuery(shortUrl));
     const countriesP = this.clickHouseService.query<CountryRow>(topCountriesQuery(shortUrl));
     const browsersP = this.clickHouseService.query<BrowserRow>(topBrowsersQuery(shortUrl));
-    const [total, byDay, countries, browsers] = await Promise.all([totalP, byDayP, countriesP, browsersP]);
+    const [total, byDay, countries, browsers] = await Promise.all([
+      totalP,
+      byDayP,
+      countriesP,
+      browsersP,
+    ]);
     return assembleStats(total, byDay, countries, browsers);
   }
 }

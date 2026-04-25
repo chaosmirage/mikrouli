@@ -67,13 +67,19 @@ export class ApiKeysService {
   }
 
   async revoke(userId: string, id: string): Promise<void> {
-    const result = await this.repo.update({ id, userId, revokedAt: IsNull() }, { revokedAt: new Date() });
+    const result = await this.repo.update(
+      { id, userId, revokedAt: IsNull() },
+      { revokedAt: new Date() },
+    );
     if (!result.affected) throw new NotFoundException(`API key ${id} not found`);
   }
 
   async validate(plaintext: string): Promise<{ userId: string } | null> {
     const prefix = this.parsePrefix(plaintext);
-    const key = await this.repo.findOne({ where: { keyPrefix: prefix, revokedAt: IsNull() }, relations: ['user'] });
+    const key = await this.repo.findOne({
+      where: { keyPrefix: prefix, revokedAt: IsNull() },
+      relations: ['user'],
+    });
     if (!key) return null;
     const match = await bcrypt.compare(plaintext, key.keyHash);
     if (!match) return null;
@@ -82,7 +88,9 @@ export class ApiKeysService {
   }
 
   private markUsed(id: string): void {
-    void this.repo.update(id, { lastUsedAt: new Date() }).catch((err: unknown) => this.logMarkUsedFailure(id, err));
+    void this.repo
+      .update(id, { lastUsedAt: new Date() })
+      .catch((err: unknown) => this.logMarkUsedFailure(id, err));
   }
 
   private logMarkUsedFailure(id: string, err: unknown): void {

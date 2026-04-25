@@ -1,4 +1,9 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
 import { Link } from './entities/link.entity';
@@ -64,7 +69,9 @@ export class LinksService {
 
   private tryCreate(originalUrl: string, userId: string, expiresAt: Date): Promise<Link> {
     const shortUrl = this.slugGenerator.generate();
-    return this.dataSource.transaction((manager) => this.insertLinkWithOutbox(manager, { shortUrl, originalUrl, userId, expiresAt }));
+    return this.dataSource.transaction((manager) =>
+      this.insertLinkWithOutbox(manager, { shortUrl, originalUrl, userId, expiresAt }),
+    );
   }
 
   async create(originalUrl: string, userId: string, explicitExpiry?: Date): Promise<Link> {

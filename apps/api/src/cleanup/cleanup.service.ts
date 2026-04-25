@@ -17,12 +17,21 @@ async function findExpiredLinks(ds: DataSource, now: Date): Promise<Link[]> {
   });
 }
 
-async function removeFromDbAndCache(ds: DataSource, redis: RedisService, slug: string): Promise<void> {
+async function removeFromDbAndCache(
+  ds: DataSource,
+  redis: RedisService,
+  slug: string,
+): Promise<void> {
   await ds.manager.delete(Link, { shortUrl: slug });
   await redis.del(`${REDIS_KEY_PREFIX}${slug.trim()}`);
 }
 
-async function deleteOneSafely(ds: DataSource, redis: RedisService, link: Link, logger: Logger): Promise<boolean> {
+async function deleteOneSafely(
+  ds: DataSource,
+  redis: RedisService,
+  link: Link,
+  logger: Logger,
+): Promise<boolean> {
   try {
     await removeFromDbAndCache(ds, redis, link.shortUrl);
     return true;
@@ -32,7 +41,12 @@ async function deleteOneSafely(ds: DataSource, redis: RedisService, link: Link, 
   }
 }
 
-async function processBatch(ds: DataSource, redis: RedisService, expired: Link[], logger: Logger): Promise<number> {
+async function processBatch(
+  ds: DataSource,
+  redis: RedisService,
+  expired: Link[],
+  logger: Logger,
+): Promise<number> {
   let count = 0;
   for (const link of expired) {
     const ok = await deleteOneSafely(ds, redis, link, logger);

@@ -33,7 +33,8 @@ function takeChars(buffer: Buffer, acc: string): string {
 /** Builds a SLUG_LENGTH-character slug via bias-free rejection sampling. */
 function buildSlug(): string {
   let slug = '';
-  while (slug.length < SLUG_LENGTH) slug = takeChars(randomBytes(SLUG_LENGTH - slug.length + REJECTION_BUFFER), slug);
+  while (slug.length < SLUG_LENGTH)
+    slug = takeChars(randomBytes(SLUG_LENGTH - slug.length + REJECTION_BUFFER), slug);
   return slug;
 }
 

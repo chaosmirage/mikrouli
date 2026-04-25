@@ -38,7 +38,7 @@ spec:
           command:
             - redis-server
             - --appendonly
-            - "yes"
+            - 'yes'
             - --maxmemory-policy
             - allkeys-lru
           ports:
@@ -128,9 +128,9 @@ spec:
             - redis-server
             - --replicaof
             - redis-primary
-            - "6379"
+            - '6379'
             - --appendonly
-            - "yes"
+            - 'yes'
             - --maxmemory-policy
             - allkeys-lru
           ports:

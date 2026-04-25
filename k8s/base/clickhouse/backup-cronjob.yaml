@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/part-of: mikrouli
 spec:
   # Daily at 03:00 UTC — staggered from the postgres backup at 02:00
-  schedule: "0 3 * * *"
+  schedule: '0 3 * * *'
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 7
   failedJobsHistoryLimit: 3

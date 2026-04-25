@@ -8,12 +8,21 @@ import RegisterPage from './RegisterPage';
 
 const mockRegister = vi.fn();
 const mockAuth: AuthContextValue = {
-  user: null, bootstrapping: false,
-  login: vi.fn(), register: mockRegister, logout: vi.fn(),
+  user: null,
+  bootstrapping: false,
+  login: vi.fn(),
+  register: mockRegister,
+  logout: vi.fn(),
 };
 
 function renderRegister() {
-  const tree = <MemoryRouter><AuthContext.Provider value={mockAuth}><RegisterPage /></AuthContext.Provider></MemoryRouter>;
+  const tree = (
+    <MemoryRouter>
+      <AuthContext.Provider value={mockAuth}>
+        <RegisterPage />
+      </AuthContext.Provider>
+    </MemoryRouter>
+  );
   render(tree);
 }
 

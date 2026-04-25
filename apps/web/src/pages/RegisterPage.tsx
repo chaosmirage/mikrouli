@@ -60,7 +60,10 @@ export default function RegisterPage() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const errors = validateRegisterForm(email, password);
-    if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
     setLoading(true);
     const error = await attemptRegister(register, email, password);
     setServerError(error);
@@ -68,12 +71,49 @@ export default function RegisterPage() {
     if (!error) navigate('/dashboard');
   };
 
-  return <Container maxWidth="sm" sx={{ py: 4 }} data-testid="register-page"><form onSubmit={handleSubmit} data-testid="register-form"><Stack spacing={2}>
-    <Typography variant="h4">Create account</Typography>
-    <TextField label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} inputProps={{ 'data-testid': 'register-email' }} required error={!!formErrors.email} helperText={formErrors.email} />
-    <TextField label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} inputProps={{ 'data-testid': 'register-password' }} required error={!!formErrors.password} helperText={formErrors.password ?? '≥8 chars, mixed case, digit'} />
-    <Button type="submit" variant="contained" disabled={loading} data-testid="register-submit">Register</Button>
-    {serverError && <Alert severity="error" data-testid="register-server-error">{serverError}</Alert>}
-    <Button variant="text" onClick={() => navigate('/login')} data-testid="register-to-login">Already have an account? Sign in</Button>
-  </Stack></form></Container>;
+  return (
+    <Container maxWidth="sm" sx={{ py: 4 }} data-testid="register-page">
+      <form onSubmit={handleSubmit} data-testid="register-form">
+        <Stack spacing={2}>
+          <Typography variant="h4">Create account</Typography>
+          <TextField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            inputProps={{ 'data-testid': 'register-email' }}
+            required
+            error={!!formErrors.email}
+            helperText={formErrors.email}
+          />
+          <TextField
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            inputProps={{ 'data-testid': 'register-password' }}
+            required
+            error={!!formErrors.password}
+            helperText={formErrors.password ?? '≥8 chars, mixed case, digit'}
+          />
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={loading}
+            data-testid="register-submit"
+          >
+            Register
+          </Button>
+          {serverError && (
+            <Alert severity="error" data-testid="register-server-error">
+              {serverError}
+            </Alert>
+          )}
+          <Button variant="text" onClick={() => navigate('/login')} data-testid="register-to-login">
+            Already have an account? Sign in
+          </Button>
+        </Stack>
+      </form>
+    </Container>
+  );
 }

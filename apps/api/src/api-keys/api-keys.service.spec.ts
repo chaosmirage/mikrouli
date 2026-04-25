@@ -23,10 +23,7 @@ const mockRepository = () => ({
 });
 
 const moduleMetadata: ModuleMetadata = {
-  providers: [
-    ApiKeysService,
-    { provide: getRepositoryToken(ApiKey), useFactory: mockRepository },
-  ],
+  providers: [ApiKeysService, { provide: getRepositoryToken(ApiKey), useFactory: mockRepository }],
 };
 
 describe('ApiKeysService', () => {
@@ -46,7 +43,9 @@ describe('ApiKeysService', () => {
 
   it('createForUser persists hashed key and returns plaintext once', async () => {
     repo.create.mockImplementation((data: Partial<ApiKey>) => data as ApiKey);
-    repo.save.mockImplementation((e: ApiKey) => Promise.resolve({ ...e, id: TEST_KEY_ID, createdAt: new Date() } as ApiKey));
+    repo.save.mockImplementation((e: ApiKey) =>
+      Promise.resolve({ ...e, id: TEST_KEY_ID, createdAt: new Date() } as ApiKey),
+    );
     const result = await service.createForUser(TEST_USER_ID, { label: 'Test' });
     expect(result.key).toMatch(/^mk_/);
     expect(result.key.length).toBeGreaterThanOrEqual(35);
@@ -55,8 +54,13 @@ describe('ApiKeysService', () => {
 
   it('createForUser stores bcrypt hash and 8-char prefix; never plaintext', async () => {
     let captured: Partial<ApiKey> = {};
-    repo.create.mockImplementation((data: Partial<ApiKey>) => { captured = data; return data as ApiKey; });
-    repo.save.mockImplementation((e: ApiKey) => Promise.resolve({ ...e, id: TEST_KEY_ID, createdAt: new Date() } as ApiKey));
+    repo.create.mockImplementation((data: Partial<ApiKey>) => {
+      captured = data;
+      return data as ApiKey;
+    });
+    repo.save.mockImplementation((e: ApiKey) =>
+      Promise.resolve({ ...e, id: TEST_KEY_ID, createdAt: new Date() } as ApiKey),
+    );
     const result = await service.createForUser(TEST_USER_ID, { label: 'Test' });
     expect(captured.keyHash).toMatch(/^\$2/);
     expect(captured.keyPrefix).toHaveLength(8);
@@ -72,17 +76,32 @@ describe('ApiKeysService', () => {
   it('validate findOne filters by revokedAt IS NULL', async () => {
     repo.findOne.mockResolvedValue(null);
     await service.validate('mk_unknownprefix1234567890');
-    expect(repo.findOne).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ revokedAt: IsNull() }) }));
+    expect(repo.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ revokedAt: IsNull() }) }),
+    );
   });
 
   it('validate returns userId on match and triggers last_used_at update', async () => {
-    const mockKey = { id: TEST_KEY_ID, userId: TEST_USER_ID, keyHash: testKeyHash, keyPrefix: TEST_KEY_PREFIX, revokedAt: null, label: 'Test', createdAt: new Date(), lastUsedAt: null, user: {} as User };
+    const mockKey = {
+      id: TEST_KEY_ID,
+      userId: TEST_USER_ID,
+      keyHash: testKeyHash,
+      keyPrefix: TEST_KEY_PREFIX,
+      revokedAt: null,
+      label: 'Test',
+      createdAt: new Date(),
+      lastUsedAt: null,
+      user: {} as User,
+    };
     repo.findOne.mockResolvedValue(mockKey);
     repo.update.mockResolvedValue({ affected: 1 } as never);
     const result = await service.validate(TEST_PLAINTEXT);
     expect(result).toEqual({ userId: TEST_USER_ID });
     await new Promise<void>((resolve) => setImmediate(resolve));
-    expect(repo.update).toHaveBeenCalledWith(TEST_KEY_ID, expect.objectContaining({ lastUsedAt: expect.any(Date) }));
+    expect(repo.update).toHaveBeenCalledWith(
+      TEST_KEY_ID,
+      expect.objectContaining({ lastUsedAt: expect.any(Date) }),
+    );
   });
 
   it('revoke throws NotFoundException when no rows match (ownership check)', async () => {
@@ -91,7 +110,17 @@ describe('ApiKeysService', () => {
   });
 
   it('listForUser does not include keyHash or plaintext', async () => {
-    const stubKey = { id: 'k1', label: 'Key 1', keyPrefix: 'abcdefgh', keyHash: '$2b$10$fake', createdAt: new Date(), lastUsedAt: null, revokedAt: null, userId: TEST_USER_ID, user: {} as User };
+    const stubKey = {
+      id: 'k1',
+      label: 'Key 1',
+      keyPrefix: 'abcdefgh',
+      keyHash: '$2b$10$fake',
+      createdAt: new Date(),
+      lastUsedAt: null,
+      revokedAt: null,
+      userId: TEST_USER_ID,
+      user: {} as User,
+    };
     repo.find.mockResolvedValue([stubKey]);
     const result = await service.listForUser(TEST_USER_ID);
     expect(result[0]).not.toHaveProperty('keyHash');

@@ -7,12 +7,21 @@ import LoginPage from './LoginPage';
 
 const mockLogin = vi.fn();
 const mockAuth: AuthContextValue = {
-  user: null, bootstrapping: false,
-  login: mockLogin, register: vi.fn(), logout: vi.fn(),
+  user: null,
+  bootstrapping: false,
+  login: mockLogin,
+  register: vi.fn(),
+  logout: vi.fn(),
 };
 
 function renderLogin() {
-  const tree = <MemoryRouter><AuthContext.Provider value={mockAuth}><LoginPage /></AuthContext.Provider></MemoryRouter>;
+  const tree = (
+    <MemoryRouter>
+      <AuthContext.Provider value={mockAuth}>
+        <LoginPage />
+      </AuthContext.Provider>
+    </MemoryRouter>
+  );
   render(tree);
 }
 
@@ -38,7 +47,9 @@ describe('LoginPage', () => {
   });
 
   it('shows error alert on login failure', async () => {
-    mockLogin.mockRejectedValue(Object.assign(new Error('Invalid email or password'), { status: 401 }));
+    mockLogin.mockRejectedValue(
+      Object.assign(new Error('Invalid email or password'), { status: 401 }),
+    );
     renderLogin();
     fireEvent.change(screen.getByTestId('login-email'), { target: { value: 'bad@test.com' } });
     fireEvent.change(screen.getByTestId('login-password'), { target: { value: 'wrong' } });

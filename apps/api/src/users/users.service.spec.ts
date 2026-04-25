@@ -15,10 +15,7 @@ const mockRepository = () => ({
 });
 
 const moduleMetadata: ModuleMetadata = {
-  providers: [
-    UsersService,
-    { provide: getRepositoryToken(User), useFactory: mockRepository },
-  ],
+  providers: [UsersService, { provide: getRepositoryToken(User), useFactory: mockRepository }],
 };
 
 describe('UsersService', () => {
@@ -39,7 +36,9 @@ describe('UsersService', () => {
     const user = { email: 'test@example.com', passwordHash: 'hash' } as User;
     repo.create.mockReturnValue(user);
     repo.save.mockRejectedValue(DUPLICATE_EMAIL_ERROR);
-    await expect(service.create({ email: 'test@example.com', passwordHash: 'hash' })).rejects.toThrow(ConflictException);
+    await expect(
+      service.create({ email: 'test@example.com', passwordHash: 'hash' }),
+    ).rejects.toThrow(ConflictException);
   });
 
   it('create propagates non-unique errors', async () => {
@@ -47,6 +46,8 @@ describe('UsersService', () => {
     const dbError = new Error('connection lost');
     repo.create.mockReturnValue(user);
     repo.save.mockRejectedValue(dbError);
-    await expect(service.create({ email: 'test@example.com', passwordHash: 'hash' })).rejects.toThrow('connection lost');
+    await expect(
+      service.create({ email: 'test@example.com', passwordHash: 'hash' }),
+    ).rejects.toThrow('connection lost');
   });
 });

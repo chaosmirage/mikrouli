@@ -55,19 +55,19 @@ spec:
               value: production
             # Migrations run as a dedicated Job before this Deployment rolls out
             - name: MIGRATIONS_RUN
-              value: "false"
+              value: 'false'
             - name: DB_HOST
               value: postgres
             - name: DB_PORT
-              value: "5432"
+              value: '5432'
             - name: REDIS_HOST
               value: redis-primary
             - name: REDIS_PORT
-              value: "6379"
+              value: '6379'
             - name: CLICKHOUSE_HOST
               value: clickhouse
             - name: CLICKHOUSE_PORT
-              value: "8123"
+              value: '8123'
           envFrom:
             - secretRef:
                 name: mikrouli-secrets

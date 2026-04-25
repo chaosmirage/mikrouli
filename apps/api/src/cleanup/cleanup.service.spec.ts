@@ -21,7 +21,14 @@ const moduleMetadata: ModuleMetadata = {
 
 function makeExpiredLink(slug = TEST_SLUG): Link {
   const past = new Date(Date.now() - 60_000);
-  return { shortUrl: slug, originalUrl: 'https://example.com', userId: 'u', createdAt: past, expiresAt: past, user: undefined as never };
+  return {
+    shortUrl: slug,
+    originalUrl: 'https://example.com',
+    userId: 'u',
+    createdAt: past,
+    expiresAt: past,
+    user: undefined as never,
+  };
 }
 
 describe('CleanupService', () => {

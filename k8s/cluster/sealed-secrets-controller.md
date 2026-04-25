@@ -34,6 +34,7 @@ Commit `k8s/sealed-secrets.crt` to the repository (it is public-key only — saf
 ## Sealing a new secret
 
 1. Create a raw secret manifest (NEVER commit this file):
+
    ```bash
    kubectl create secret generic mikrouli-secrets \
      --namespace mikrouli \
@@ -44,6 +45,7 @@ Commit `k8s/sealed-secrets.crt` to the repository (it is public-key only — saf
    ```
 
 2. Seal it with the controller cert:
+
    ```bash
    kubeseal --cert k8s/sealed-secrets.crt \
      -o yaml < /tmp/raw-secret.yaml \

@@ -62,7 +62,11 @@ describe('RedirectService', () => {
     mockRedisService.get.mockResolvedValue(null);
     mockLinksService.findBySlug.mockResolvedValue(makeLink());
     await service.resolve(TEST_SLUG);
-    expect(mockRedisService.set).toHaveBeenCalledWith(`link:${TEST_SLUG}`, TEST_URL, expect.any(Number));
+    expect(mockRedisService.set).toHaveBeenCalledWith(
+      `link:${TEST_SLUG}`,
+      TEST_URL,
+      expect.any(Number),
+    );
   });
 
   it('returns not-found when slug missing in DB', async () => {

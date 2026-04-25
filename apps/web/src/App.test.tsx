@@ -15,7 +15,11 @@ const mockAuth: AuthContextValue = {
 describe('App', () => {
   it('renders a stub inside auth context without crashing', () => {
     const stub = <div data-testid="stub">ok</div>;
-    const tree = <MemoryRouter><AuthContext.Provider value={mockAuth}>{stub}</AuthContext.Provider></MemoryRouter>;
+    const tree = (
+      <MemoryRouter>
+        <AuthContext.Provider value={mockAuth}>{stub}</AuthContext.Provider>
+      </MemoryRouter>
+    );
     render(tree);
     expect(screen.getByTestId('stub')).toBeInTheDocument();
   });
