@@ -1,0 +1,187 @@
+name: Build, Test, Scan, and Deploy
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE: ghcr.io/${{ github.repository_owner }}/mikrouli-api
+  WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/mikrouli-web
+
+jobs:
+  test:
+    name: Test and Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint api
+        run: pnpm --filter api lint
+
+      - name: Lint web
+        run: pnpm --filter web lint
+
+      - name: Test api
+        run: pnpm --filter api test
+
+      - name: Test web
+        run: pnpm --filter web test
+
+      - name: Build api
+        run: pnpm --filter api build
+
+      - name: Build web
+        run: pnpm --filter web build
+
+  build-and-scan:
+    name: Build, Scan, and Push Images
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push api image
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/api
+          push: true
+          tags: ${{ env.API_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/web
+          push: true
+          tags: ${{ env.WEB_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan api image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.API_IMAGE }}:${{ github.sha }}
+          format: sarif
+          output: trivy-api-results.sarif
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
+      - name: Scan web image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.WEB_IMAGE }}:${{ github.sha }}
+          format: sarif
+          output: trivy-web-results.sarif
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
+      - name: Upload api scan results to Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-api-results.sarif
+
+      - name: Upload web scan results to Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-web-results.sarif
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build-and-scan
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl for staging
+        run: |
+          mkdir -p ~/.kube
+          printf '%s' "$KUBECONFIG_STAGING" > ~/.kube/config
+          chmod 600 ~/.kube/config
+        env:
+          KUBECONFIG_STAGING: ${{ secrets.KUBECONFIG_STAGING }}
+
+      - name: Pin image tags to current SHA
+        run: |
+          sed -i "s/newTag: main/newTag: ${{ github.sha }}/g" \
+            k8s/overlays/staging/kustomization.yaml
+
+      - name: Deploy to staging
+        run: kubectl apply -k k8s/overlays/staging
+
+      - name: Wait for api rollout
+        run: kubectl rollout status deployment/api -n mikrouli --timeout=5m
+
+      - name: Wait for web rollout
+        run: kubectl rollout status deployment/web -n mikrouli --timeout=5m
+
+  deploy-production:
+    name: Deploy to Production
+    needs: build-and-scan
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl for production
+        run: |
+          mkdir -p ~/.kube
+          printf '%s' "$KUBECONFIG_PRODUCTION" > ~/.kube/config
+          chmod 600 ~/.kube/config
+        env:
+          KUBECONFIG_PRODUCTION: ${{ secrets.KUBECONFIG_PRODUCTION }}
+
+      - name: Pin image tags to current SHA (never :latest)
+        run: |
+          sed -i "s/GITSHA-PLACEHOLDER/${{ github.sha }}/g" \
+            k8s/overlays/production/kustomization.yaml
+
+      - name: Deploy to production
+        run: kubectl apply -k k8s/overlays/production
+
+      - name: Wait for api rollout
+        run: kubectl rollout status deployment/api -n mikrouli --timeout=10m
+
+      - name: Wait for web rollout
+        run: kubectl rollout status deployment/web -n mikrouli --timeout=10m
