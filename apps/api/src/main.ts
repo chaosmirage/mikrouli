@@ -1,3 +1,4 @@
+import './instrumentation';
 import { NestFactory } from '@nestjs/core';
 import { BadRequestException, ValidationPipe, ValidationPipeOptions } from '@nestjs/common';
 import { INestApplication } from '@nestjs/common';
