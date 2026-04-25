@@ -30,9 +30,28 @@ describe('SlugGeneratorService', () => {
     expect(slugs.size).toBeGreaterThan(90);
   });
 
-  it('ALPHABET excludes ambiguous characters O, I, l', () => {
+  it('ALPHABET length is exactly 61', () => {
+    expect(ALPHABET).toHaveLength(61);
+  });
+
+  it('ALPHABET excludes uppercase O and I but keeps all 26 lowercase', () => {
     expect(ALPHABET).not.toContain('O');
     expect(ALPHABET).not.toContain('I');
-    expect(ALPHABET).not.toContain('l');
+    expect(ALPHABET).toContain('l');
+    expect(ALPHABET).toContain('I'.toLowerCase());
+  });
+
+  it('generate() draws only from ALPHABET across 1000 samples', () => {
+    const alphabetSet = new Set(ALPHABET.split(''));
+    const slugs = Array.from({ length: 1000 }, () => service.generate());
+    const allChars = slugs.join('').split('');
+    expect(allChars.every((c) => alphabetSet.has(c))).toBe(true);
+  });
+
+  it('generate() never invokes Math.random', () => {
+    const spy = jest.spyOn(Math, 'random');
+    Array.from({ length: 100 }, () => service.generate());
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

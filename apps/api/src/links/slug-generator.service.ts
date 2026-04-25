@@ -1,7 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 
-export const ALPHABET = '0123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ_';
+/**
+ * Slug alphabet — exactly 61 characters:
+ *   digits(10) + lowercase(26, all letters) + uppercase(24, exclude O and I) + underscore(1)
+ *
+ * The visually-ambiguous uppercase letters O (resembles 0) and I (resembles 1 / l)
+ * are excluded so a printed or hand-typed slug is unambiguous. Lowercase l is kept
+ * because the lowercase set is committed to be exhaustive (a-z)
+ */
+export const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ_';
 export const SLUG_LENGTH = 6;
 const MAX_BYTE = ALPHABET.length * Math.floor(256 / ALPHABET.length); // 244 — bias-free ceiling
 const REJECTION_BUFFER = 2; // extra bytes absorb the ~4.7% rejection rate per byte
