@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
 
 const DEFAULT_DB_PORT = 5432;
 
@@ -39,6 +40,7 @@ const typeOrmModule = TypeOrmModule.forRootAsync({
     HealthModule,
     UsersModule,
     AuthModule,
+    ApiKeysModule,
   ],
 })
 export class AppModule {}
