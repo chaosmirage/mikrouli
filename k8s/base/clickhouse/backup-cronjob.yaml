@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: clickhouse-backup
+  namespace: mikrouli
+  labels:
+    app.kubernetes.io/name: clickhouse-backup
+    app.kubernetes.io/part-of: mikrouli
+spec:
+  # Daily at 03:00 UTC — staggered from the postgres backup at 02:00
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: clickhouse-backup
+            app.kubernetes.io/part-of: mikrouli
+        spec:
+          serviceAccountName: clickhouse-backup
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+            fsGroup: 101
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              image: clickhouse/clickhouse-server:24.3-alpine
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              command:
+                - sh
+                - -c
+                - |
+                  clickhouse-client --host clickhouse --query \
+                    "BACKUP DATABASE mikrouli TO S3('$S3_ENDPOINT/$S3_BUCKET/clickhouse/$(date +%Y%m%d-%H%M%S)', '$S3_ACCESS_KEY', '$S3_SECRET_KEY')"
+              envFrom:
+                - secretRef:
+                    name: mikrouli-secrets
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  memory: 128Mi
+                  cpu: 100m
+                limits:
+                  memory: 256Mi
+                  cpu: 250m
+          volumes:
+            - name: tmp
+              emptyDir: {}

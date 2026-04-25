@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickhouse-users
+  namespace: mikrouli
+data:
+  users.xml: |
+    <?xml version="1.0"?>
+    <clickhouse>
+      <users>
+        <default>
+          <!-- Replace with SHA-256 hash of the actual password from mikrouli-secrets -->
+          <password_sha256_hex>PLACEHOLDER-SHA256-OF-CLICKHOUSE-PASSWORD</password_sha256_hex>
+          <!-- Restrict to private RFC-1918 ranges used by the cluster network -->
+          <networks>
+            <ip>10.0.0.0/8</ip>
+            <ip>172.16.0.0/12</ip>
+            <ip>192.168.0.0/16</ip>
+          </networks>
+          <profile>default</profile>
+          <quota>default</quota>
+          <access_management>0</access_management>
+        </default>
+      </users>
+      <profiles>
+        <default>
+          <max_memory_usage>1073741824</max_memory_usage>
+          <use_uncompressed_cache>0</use_uncompressed_cache>
+          <load_balancing>random</load_balancing>
+        </default>
+      </profiles>
+      <quotas>
+        <default>
+          <interval>
+            <duration>3600</duration>
+            <queries>0</queries>
+            <errors>0</errors>
+            <result_rows>0</result_rows>
+            <read_rows>0</read_rows>
+            <execution_time>0</execution_time>
+          </interval>
+        </default>
+      </quotas>
+    </clickhouse>

@@ -1,0 +1,66 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: mikrouli
+  labels:
+    app.kubernetes.io/name: postgres-backup
+    app.kubernetes.io/part-of: mikrouli
+spec:
+  # Daily at 02:00 UTC — well outside business hours
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: postgres-backup
+            app.kubernetes.io/part-of: mikrouli
+        spec:
+          serviceAccountName: postgres-backup
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70
+            runAsGroup: 70
+            fsGroup: 70
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              image: postgres:16-alpine
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              command:
+                - sh
+                - -c
+                - |
+                  BACKUP_FILE="/tmp/backup-$(date +%Y%m%d-%H%M%S).sql.gz"
+                  pg_dump -h postgres -U "$DB_USER" "$DB_NAME" | gzip > "$BACKUP_FILE"
+                  aws s3 cp "$BACKUP_FILE" \
+                    "s3://$S3_BUCKET/postgres/$(date +%Y/%m/%d)/" \
+                    --endpoint-url "$S3_ENDPOINT"
+              envFrom:
+                - secretRef:
+                    name: mikrouli-secrets
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  memory: 128Mi
+                  cpu: 100m
+                limits:
+                  memory: 256Mi
+                  cpu: 250m
+          volumes:
+            - name: tmp
+              emptyDir: {}
