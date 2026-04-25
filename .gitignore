@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build artefacts
+dist/
+*.tsbuildinfo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Coverage / test output
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Caches
+.turbo/
+.eslintcache
+.parcel-cache
+.cache/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Override user-global gitignore that hides .nvmrc
+!.nvmrc
+
+

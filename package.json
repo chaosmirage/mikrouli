@@ -1,0 +1,24 @@
+{
+  "name": "mikrouli",
+  "version": "0.0.1",
+  "private": true,
+  "description": "URL shortener — NestJS + React + MUI v5 + PostgreSQL + Redis + ClickHouse",
+  "scripts": {
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter api test:e2e",
+    "migration:run": "pnpm --filter api migration:run",
+    "migration:generate": "pnpm --filter api migration:generate",
+    "dev": "pnpm -r --parallel dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1"
+  }
+}
