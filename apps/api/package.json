@@ -12,7 +12,10 @@
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migration:run": "nest build && npx typeorm migration:run -d dist/data-source.js",
-    "migration:generate": "nest build && npx typeorm migration:generate -d dist/data-source.js"
+    "migration:generate": "nest build && npx typeorm migration:generate -d dist/data-source.js",
+    "spec:compile": "tsp compile spec",
+    "spec:mock": "prism mock spec/tsp-output/@typespec/openapi3/openapi.json",
+    "spec:lint": "redocly lint spec/tsp-output/@typespec/openapi3/openapi.json --skip-rule no-unused-components --skip-rule operation-4xx-response"
   },
   "dependencies": {
     "@clickhouse/client": "^1.17.0",
@@ -23,6 +26,8 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.4.15",
     "@nestjs/schedule": "^4.1.2",
+    "@nestjs/swagger": "^7.0.0",
+    "swagger-ui-express": "^5.0.1",
     "@nestjs/typeorm": "^10.0.2",
     "bcryptjs": "^3.0.3",
     "class-transformer": "^0.5.1",
@@ -37,6 +42,11 @@
     "typeorm": "^0.3.20"
   },
   "devDependencies": {
+    "@stoplight/prism-cli": "^5.12.1",
+    "@typespec/compiler": "^0.63.0",
+    "@typespec/http": "^0.63.0",
+    "@typespec/openapi": "^0.63.0",
+    "@typespec/openapi3": "^0.63.0",
     "@nestjs/cli": "^10.4.9",
     "@nestjs/schematics": "^10.2.3",
     "@nestjs/testing": "^10.4.15",
