@@ -33,3 +33,6 @@ Thumbs.db
 !.nvmrc
 
 
+
+# TypeSpec stray output (correct path is apps/api/spec/tsp-output/)
+apps/api/tsp-output/
