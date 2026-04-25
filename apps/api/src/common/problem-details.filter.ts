@@ -78,7 +78,8 @@ function sendProblem(res: Response, status: number, body: ProblemDetails): void 
 
 function dispatchProblem(exception: unknown, res: Response, isProd: boolean): void {
   if (exception instanceof HttpException) {
-    sendProblem(res, exception.getStatus(), resolveHttpProblem(exception));
+    const problem = resolveHttpProblem(exception);
+    sendProblem(res, problem.status, problem);
     return;
   }
   if (exception instanceof QueryFailedError) {
