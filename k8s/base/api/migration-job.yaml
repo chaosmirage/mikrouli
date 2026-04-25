@@ -49,6 +49,16 @@ spec:
               value: postgres
             - name: DB_PORT
               value: '5432'
+            - name: OTEL_ENABLED
+              value: 'false'
+            - name: OTEL_SERVICE_NAME
+              value: 'mikrouli-api'
+            - name: SERVICE_VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app.kubernetes.io/version']
+            - name: DEPLOYMENT_ENVIRONMENT
+              value: 'production'
           envFrom:
             - secretRef:
                 name: mikrouli-secrets

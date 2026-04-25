@@ -173,6 +173,26 @@ kubeseal --fetch-cert \
 
 ---
 
+## Observability
+
+The API emits OpenTelemetry traces via the OTLP/HTTP protocol.
+An OTel collector deployment is **out of scope** for this project — operators bring their own
+(Jaeger, Tempo, SigNoz, Honeycomb, …) and point the env var at it.
+
+### Environment variables
+
+| Variable                       | Default (in k8s)                                              | Description                          |
+| ------------------------------ | ------------------------------------------------------------- | ------------------------------------ |
+| `OTEL_ENABLED`                 | `true` (api Deployment) / `false` (migration Job)            | Enable/disable the SDK               |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`  | `http://otel-collector.observability.svc.cluster.local:4318` | OTLP/HTTP collector endpoint         |
+| `OTEL_SERVICE_NAME`            | `mikrouli-api`                                               | Resource attribute `service.name`    |
+| `SERVICE_VERSION`              | pod label `app.kubernetes.io/version`                        | Resource attribute `service.version` |
+| `DEPLOYMENT_ENVIRONMENT`       | `production`                                                  | Resource attribute `deployment.environment` |
+
+SDK reference: <https://opentelemetry.io/docs/languages/js/getting-started/nodejs/>
+
+---
+
 ## Deploy
 
 ### Prerequisites
