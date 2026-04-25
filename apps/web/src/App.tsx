@@ -1,22 +1,25 @@
-import Container from '@mui/material/Container';
-import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-
-const heading = <Typography variant="h3">mikrouli</Typography>;
-const subhead = (
-  <Typography color="text.secondary">URL shortener — bootstrap phase</Typography>
-);
-const cta = <Button variant="contained">Primary action</Button>;
-const stack = <Stack spacing={3}>{heading}{subhead}{cta}</Stack>;
-const box = <Box sx={{ py: 8 }}>{stack}</Box>;
-const root = (
-  <Container maxWidth="sm" data-testid="app-root">
-    {box}
-  </Container>
-);
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { AuthProvider } from './auth/AuthContext';
+import ProtectedRoute from './auth/ProtectedRoute';
+import AppShell from './components/AppShell';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import DashboardPage from './pages/DashboardPage';
+import StatsPage from './pages/StatsPage';
+import ApiKeysPage from './pages/ApiKeysPage';
 
 export default function App() {
-  return root;
+  const protectedRoutes = <Route element={<ProtectedRoute />}>
+    <Route path="/dashboard" element={<DashboardPage />} />
+    <Route path="/stats/:slug" element={<StatsPage />} />
+    <Route path="/api-keys" element={<ApiKeysPage />} />
+  </Route>;
+  const shell = <AuthProvider><AppShell /></AuthProvider>;
+  const outerRoute = <Route element={shell}>
+    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+    <Route path="/login" element={<LoginPage />} />
+    <Route path="/register" element={<RegisterPage />} />
+    {protectedRoutes}
+  </Route>;
+  return <Routes>{outerRoute}</Routes>;
 }
