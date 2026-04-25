@@ -1,8 +1,23 @@
-# Hetzner k3s cluster configuration
+# Hetzner k3s cluster configuration — cost-capped at ≤ €30 / month
 # Managed by: https://github.com/vitobotta/hetzner-k3s
 # Usage:
 #   hetzner-k3s create --config k8s/cluster/hetzner-k3s.yaml
 #   hetzner-k3s delete --config k8s/cluster/hetzner-k3s.yaml
+#
+# Cost breakdown (Hetzner Cloud, EUR/month, prices as of April 2026):
+#   1 × cx22 control-plane (with workloads): €4.51
+#   1 × cx22 worker:                          €4.51
+#   30 GB volumes (postgres+clickhouse+redis): €1.32
+#   1 × Hetzner Load Balancer (LB11):         €5.39
+#   1 × IPv4 (primary, included in LB):       €0.00
+#   ────────────────────────────────────────────────
+#   TOTAL:                                   ~€15.73 / month
+#
+# Trade-off note: schedule_workloads_on_masters: true is enabled because the
+# €30 budget rules out a 3-master HA control-plane. The single-master setup
+# means a control-plane node failure halts new deployments until the node is
+# replaced; running workloads continue serving via the worker. This is an
+# explicit cost-vs-availability trade-off documented in k8s/README.md.
 
 cluster_name: mikrouli
 kubeconfig_path: ~/.kube/mikrouli.yaml
@@ -20,23 +35,25 @@ api_allowed_networks:
 private_network_subnet: 10.0.0.0/16
 disable_flannel: false
 
-# Control-plane nodes MUST NOT schedule workloads; all app pods go to worker pool
-schedule_workloads_on_masters: false
+# €30 budget cap: control-plane co-hosts workloads (single master, no HA).
+# To upgrade to HA control-plane: change to 3 × cpx11 (~€12.4/mo) and set this
+# back to false; total cost stays under €30.
+schedule_workloads_on_masters: true
 
 masters_pool:
-  instance_type: cpx21
-  instance_count: 3
+  instance_type: cx22
+  instance_count: 1
   location: nbg1
 
 worker_node_pools:
   - name: workers
-    instance_type: cpx21
-    instance_count: 2
+    instance_type: cx22
+    instance_count: 1
     location: nbg1
     autoscaling:
       enabled: false
-      min_instances: 2
-      max_instances: 5
+      min_instances: 1
+      max_instances: 2
 
 # k3s additional server args (passed to every control-plane node)
 k3s_server_args:

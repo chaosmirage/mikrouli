@@ -3,6 +3,28 @@
 This document covers the complete operational lifecycle of the mikrouli cluster on Hetzner Cloud.
 All manifests live under `k8s/` and are managed via Kustomize overlays.
 
+## Cost ceiling — €30 / month
+
+The cluster is sized to fit a strict €30/month total budget on Hetzner Cloud:
+
+| Item                                              | Monthly cost |
+| ------------------------------------------------- | -----------: |
+| 1 × cx22 control-plane (with workloads)           |        €4.51 |
+| 1 × cx22 worker                                   |        €4.51 |
+| 30 GB volumes (postgres + clickhouse + redis)     |        €1.32 |
+| 1 × Hetzner Load Balancer (LB11)                  |        €5.39 |
+| 1 × IPv4 (primary, included with LB)              |        €0.00 |
+| **Total**                                         |   **~€15.7** |
+
+**Replica policy** (cost-capped):
+
+- `api` Deployment: **2 replicas** (HA backend).
+- `web`, `postgres`, `redis-primary`, `redis-replica`, `clickhouse`: **1 replica each**.
+
+**Trade-off**: `schedule_workloads_on_masters: true` is enabled because a 3-master HA control-plane would push the budget over €30. With one master, a control-plane node failure stops new deployments; running workloads continue serving via the worker. To upgrade to HA control-plane: change `instance_type` to `cpx11` (3 nodes ≈ €12.4) and set `schedule_workloads_on_masters: false`. Total stays under €30.
+
+---
+
 **Image registry placeholder**: every image reference uses `ghcr.io/OWNER/mikrouli-{api,web}`.
 Replace `OWNER` with your GitHub organization or username before the first deploy:
 
@@ -34,7 +56,7 @@ brew install vitobotta/tap/hetzner-k3s   # or download from GitHub releases
 # Set your Hetzner Cloud API token
 export HCLOUD_TOKEN=your-hetzner-api-token
 
-# Provision 3 control-plane nodes + 2 workers in Nuremberg
+# Provision 1 control-plane node + 1 worker in Nuremberg (~€16/mo)
 hetzner-k3s create --config k8s/cluster/hetzner-k3s.yaml
 ```
 
