@@ -17,63 +17,72 @@ const mockApiKeysService = {
 };
 
 const serviceProvider = { provide: ApiKeysService, useValue: mockApiKeysService };
-
 const moduleMetadata: ModuleMetadata = {
   controllers: [ApiKeysController],
   providers: [serviceProvider],
 };
-
 const guardOverride = { canActivate: () => true };
+
+async function buildController(): Promise<ApiKeysController> {
+  const moduleRef: TestingModule = await Test.createTestingModule(moduleMetadata)
+    .overrideGuard(JwtAuthGuard)
+    .useValue(guardOverride)
+    .compile();
+  return moduleRef.get<ApiKeysController>(ApiKeysController);
+}
+
+function makeCreatedApiKey(): CreatedApiKey {
+  return {
+    id: TEST_KEY_ID,
+    label: 'Test',
+    key: 'mk_abc123def456',
+    keyPrefix: 'abcdefgh',
+    createdAt: new Date(),
+  };
+}
+
+function makeApiKeySummary(): ApiKeySummary {
+  return {
+    id: TEST_KEY_ID,
+    label: 'Key 1',
+    keyPrefix: 'abcdefgh',
+    createdAt: new Date(),
+    lastUsedAt: null,
+    revokedAt: null,
+  };
+}
+
+function makeAuthedReq(): AuthedReq {
+  return { user: { id: TEST_USER_ID } } as unknown as AuthedReq;
+}
 
 describe('ApiKeysController', () => {
   let controller: ApiKeysController;
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    const moduleRef: TestingModule = await Test.createTestingModule(moduleMetadata)
-      .overrideGuard(JwtAuthGuard)
-      .useValue(guardOverride)
-      .compile();
-    controller = moduleRef.get<ApiKeysController>(ApiKeysController);
+    controller = await buildController();
   });
 
   it('POST / returns one-time plaintext key in body', async () => {
-    const expected: CreatedApiKey = {
-      id: TEST_KEY_ID,
-      label: 'Test',
-      key: 'mk_abc123def456',
-      keyPrefix: 'abcdefgh',
-      createdAt: new Date(),
-    };
-    mockApiKeysService.createForUser.mockResolvedValue(expected);
-    const result = await controller.create({ user: { id: TEST_USER_ID } } as unknown as AuthedReq, {
-      label: 'Test',
-    });
+    mockApiKeysService.createForUser.mockResolvedValue(makeCreatedApiKey());
+    const result = await controller.create(makeAuthedReq(), { label: 'Test' });
     expect(result).toHaveProperty('key');
     expect(result.key).toMatch(/^mk_/);
   });
 
-  it('GET / returns sanitized list without key field', async () => {
-    const summaries: ApiKeySummary[] = [
-      {
-        id: TEST_KEY_ID,
-        label: 'Key 1',
-        keyPrefix: 'abcdefgh',
-        createdAt: new Date(),
-        lastUsedAt: null,
-        revokedAt: null,
-      },
-    ];
-    mockApiKeysService.listForUser.mockResolvedValue(summaries);
-    const result = await controller.list({ user: { id: TEST_USER_ID } } as unknown as AuthedReq);
-    expect(result[0]).not.toHaveProperty('key');
-    expect(result[0]).not.toHaveProperty('keyHash');
-    expect(result[0]).toHaveProperty('keyPrefix');
+  it('GET / returns wrapped { data } list without key field', async () => {
+    mockApiKeysService.listForUser.mockResolvedValue([makeApiKeySummary()]);
+    const result = await controller.list(makeAuthedReq());
+    expect(result).toHaveProperty('data');
+    expect(result.data[0]).not.toHaveProperty('key');
+    expect(result.data[0]).not.toHaveProperty('keyHash');
+    expect(result.data[0]).toHaveProperty('keyPrefix');
   });
 
   it('DELETE /:id calls service.revoke with userId and keyId', async () => {
     mockApiKeysService.revoke.mockResolvedValue(undefined);
-    await controller.revoke({ user: { id: TEST_USER_ID } } as unknown as AuthedReq, TEST_KEY_ID);
+    await controller.revoke(makeAuthedReq(), TEST_KEY_ID);
     expect(mockApiKeysService.revoke).toHaveBeenCalledWith(TEST_USER_ID, TEST_KEY_ID);
   });
 });

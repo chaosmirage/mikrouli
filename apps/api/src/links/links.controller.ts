@@ -67,9 +67,9 @@ export class LinksController {
   }
 
   @Get()
-  async list(@Req() req: AuthenticatedRequest): Promise<PublicLink[]> {
+  async list(@Req() req: AuthenticatedRequest): Promise<{ data: PublicLink[] }> {
     const links = await this.linksService.listForUser(req.user.id);
-    return links.map(toPublicLink);
+    return { data: links.map(toPublicLink) };
   }
 
   @Delete(':slug')

@@ -16,7 +16,7 @@ function renderDashboard() {
 }
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse([])));
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [] })));
 });
 
 describe('DashboardPage', () => {
@@ -34,9 +34,9 @@ describe('DashboardPage', () => {
       expiresAt: null,
     };
     const mockFetch = vi.fn();
-    mockFetch.mockResolvedValueOnce(makeResponse([]));
+    mockFetch.mockResolvedValueOnce(makeResponse({ data: [] }));
     mockFetch.mockResolvedValueOnce(makeResponse(newLink));
-    mockFetch.mockResolvedValueOnce(makeResponse([newLink]));
+    mockFetch.mockResolvedValueOnce(makeResponse({ data: [newLink] }));
     vi.stubGlobal('fetch', mockFetch);
     renderDashboard();
     await waitFor(() => expect(screen.getByTestId('shorten-url')).toBeInTheDocument());
@@ -54,9 +54,9 @@ describe('DashboardPage', () => {
       expiresAt: null,
     };
     const mockFetch = vi.fn();
-    mockFetch.mockResolvedValueOnce(makeResponse([]));
+    mockFetch.mockResolvedValueOnce(makeResponse({ data: [] }));
     mockFetch.mockResolvedValueOnce(makeResponse(newLink));
-    mockFetch.mockResolvedValueOnce(makeResponse([newLink]));
+    mockFetch.mockResolvedValueOnce(makeResponse({ data: [newLink] }));
     vi.stubGlobal('fetch', mockFetch);
     renderDashboard();
     await waitFor(() => expect(screen.getByTestId('shorten-url')).toBeInTheDocument());
@@ -72,7 +72,7 @@ describe('DashboardPage', () => {
     const pending = new Promise((r) => {
       resolve = r;
     });
-    vi.stubGlobal('fetch', vi.fn().mockReturnValue(pending.then(() => makeResponse([]))));
+    vi.stubGlobal('fetch', vi.fn().mockReturnValue(pending.then(() => makeResponse({ data: [] }))));
     renderDashboard();
     expect(screen.getByTestId('dashboard-loading')).toBeInTheDocument();
     resolve(undefined);

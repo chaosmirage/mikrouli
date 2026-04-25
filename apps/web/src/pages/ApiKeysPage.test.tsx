@@ -16,7 +16,7 @@ function renderApiKeys() {
 }
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse([])));
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [] })));
 });
 
 describe('ApiKeysPage', () => {
@@ -43,9 +43,9 @@ describe('ApiKeysPage', () => {
       revokedAt: null,
     };
     const mockFetch = vi.fn();
-    mockFetch.mockResolvedValueOnce(makeResponse([]));
+    mockFetch.mockResolvedValueOnce(makeResponse({ data: [] }));
     mockFetch.mockResolvedValueOnce(makeResponse(newKey));
-    mockFetch.mockResolvedValueOnce(makeResponse([summary]));
+    mockFetch.mockResolvedValueOnce(makeResponse({ data: [summary] }));
     vi.stubGlobal('fetch', mockFetch);
     renderApiKeys();
     await waitFor(() => expect(screen.getByTestId('key-label')).toBeInTheDocument());

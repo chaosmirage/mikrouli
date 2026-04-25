@@ -76,11 +76,12 @@ describe('LinksController', () => {
     );
   });
 
-  it('GET returns sanitized list (only own user links via service)', async () => {
+  it('GET returns wrapped list { data } and sanitized items', async () => {
     mockLinksService.listForUser.mockResolvedValue([makeLink()]);
     const result = await controller.list(makeRequest() as never);
     expect(mockLinksService.listForUser).toHaveBeenCalledWith(TEST_USER_ID);
-    expect(result[0]).not.toHaveProperty('userId');
+    expect(result).toHaveProperty('data');
+    expect(result.data[0]).not.toHaveProperty('userId');
   });
 
   it('DELETE removes Redis key after service delete', async () => {

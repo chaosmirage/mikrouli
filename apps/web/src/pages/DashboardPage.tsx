@@ -34,7 +34,8 @@ export interface LinkData {
 
 async function loadUserLinks(): Promise<[LinkData[], string | null]> {
   try {
-    return [await apiFetch<LinkData[]>('/api/urls'), null];
+    const response = await apiFetch<{ data: LinkData[] }>('/api/urls');
+    return [response.data, null];
   } catch (err) {
     return [[], extractErrorMessage(err)];
   }

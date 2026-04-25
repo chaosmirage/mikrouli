@@ -31,8 +31,9 @@ export class ApiKeysController {
   }
 
   @Get()
-  list(@Req() req: AuthenticatedRequest): Promise<ApiKeySummary[]> {
-    return this.apiKeysService.listForUser(req.user.id);
+  async list(@Req() req: AuthenticatedRequest): Promise<{ data: ApiKeySummary[] }> {
+    const keys = await this.apiKeysService.listForUser(req.user.id);
+    return { data: keys };
   }
 
   @Delete(':id')

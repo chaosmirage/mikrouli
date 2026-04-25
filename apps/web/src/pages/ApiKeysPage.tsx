@@ -42,7 +42,8 @@ export interface NewApiKey {
 
 async function loadApiKeys(): Promise<[ApiKeySummary[], string | null]> {
   try {
-    return [await apiFetch<ApiKeySummary[]>('/api/api-keys'), null];
+    const response = await apiFetch<{ data: ApiKeySummary[] }>('/api/api-keys');
+    return [response.data, null];
   } catch (err) {
     return [[], extractErrorMessage(err)];
   }
