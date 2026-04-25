@@ -1,0 +1,67 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: api-migration
+  namespace: mikrouli
+  labels:
+    app.kubernetes.io/name: api-migration
+    app.kubernetes.io/part-of: mikrouli
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api-migration
+        app.kubernetes.io/part-of: mikrouli
+    spec:
+      serviceAccountName: api-migration
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migration
+          image: ghcr.io/OWNER/mikrouli-api
+          command:
+            - node
+            - -e
+            - |
+              const ds = require('./dist/data-source').AppDataSource;
+              ds.initialize()
+                .then(() => ds.runMigrations())
+                .then(r => { console.log('migrations run: ' + r.length); process.exit(0); })
+                .catch(e => { console.error(e); process.exit(1); });
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: DB_HOST
+              value: postgres
+            - name: DB_PORT
+              value: "5432"
+          envFrom:
+            - secretRef:
+                name: mikrouli-secrets
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+      volumes:
+        - name: tmp
+          emptyDir: {}
