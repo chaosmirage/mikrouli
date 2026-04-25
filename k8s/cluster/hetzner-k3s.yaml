@@ -1,0 +1,47 @@
+# Hetzner k3s cluster configuration
+# Managed by: https://github.com/vitobotta/hetzner-k3s
+# Usage:
+#   hetzner-k3s create --config k8s/cluster/hetzner-k3s.yaml
+#   hetzner-k3s delete --config k8s/cluster/hetzner-k3s.yaml
+
+cluster_name: mikrouli
+kubeconfig_path: ~/.kube/mikrouli.yaml
+k3s_version: v1.29.4+k3s1
+public_ssh_key_path: ~/.ssh/id_ed25519.pub
+private_ssh_key_path: ~/.ssh/id_ed25519
+use_ssh_agent: true
+
+# Restrict SSH and API access to trusted CIDRs in production
+ssh_allowed_networks:
+  - 0.0.0.0/0
+api_allowed_networks:
+  - 0.0.0.0/0
+
+private_network_subnet: 10.0.0.0/16
+disable_flannel: false
+
+# Control-plane nodes MUST NOT schedule workloads; all app pods go to worker pool
+schedule_workloads_on_masters: false
+
+masters_pool:
+  instance_type: cpx21
+  instance_count: 3
+  location: nbg1
+
+worker_node_pools:
+  - name: workers
+    instance_type: cpx21
+    instance_count: 2
+    location: nbg1
+    autoscaling:
+      enabled: false
+      min_instances: 2
+      max_instances: 5
+
+# k3s additional server args (passed to every control-plane node)
+k3s_server_args:
+  - "--disable=traefik"   # install traefik via Helm chart to control version
+
+# Install these components via Helm after cluster creation
+additional_packages: []
+post_create_commands: []
