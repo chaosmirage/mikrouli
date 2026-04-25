@@ -20,7 +20,8 @@ async function attemptLogin(
     await login(email, password);
     return null;
   } catch (err) {
-    if (err instanceof ApiError && err.status === HTTP_UNAUTHORIZED) return 'Invalid email or password';
+    if (err instanceof ApiError && err.status === HTTP_UNAUTHORIZED)
+      return 'Invalid email or password';
     return extractErrorMessage(err);
   }
 }
@@ -42,12 +43,44 @@ export default function LoginPage() {
     if (!error) navigate('/dashboard');
   };
 
-  return <Container maxWidth="sm" sx={{ py: 4 }} data-testid="login-page"><form onSubmit={handleSubmit} data-testid="login-form"><Stack spacing={2}>
-    <Typography variant="h4">Sign in</Typography>
-    <TextField label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} inputProps={{ 'data-testid': 'login-email' }} required />
-    <TextField label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} inputProps={{ 'data-testid': 'login-password' }} required />
-    <Button type="submit" variant="contained" disabled={loading} data-testid="login-submit">Sign in</Button>
-    {serverError && <Alert severity="error" data-testid="login-error">{serverError}</Alert>}
-    <Button variant="text" onClick={() => navigate('/register')} data-testid="login-to-register">Don't have an account? Register</Button>
-  </Stack></form></Container>;
+  return (
+    <Container maxWidth="sm" sx={{ py: 4 }} data-testid="login-page">
+      <form onSubmit={handleSubmit} data-testid="login-form">
+        <Stack spacing={2}>
+          <Typography variant="h4">Sign in</Typography>
+          <TextField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            inputProps={{ 'data-testid': 'login-email' }}
+            required
+          />
+          <TextField
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            inputProps={{ 'data-testid': 'login-password' }}
+            required
+          />
+          <Button type="submit" variant="contained" disabled={loading} data-testid="login-submit">
+            Sign in
+          </Button>
+          {serverError && (
+            <Alert severity="error" data-testid="login-error">
+              {serverError}
+            </Alert>
+          )}
+          <Button
+            variant="text"
+            onClick={() => navigate('/register')}
+            data-testid="login-to-register"
+          >
+            Don't have an account? Register
+          </Button>
+        </Stack>
+      </form>
+    </Container>
+  );
 }
