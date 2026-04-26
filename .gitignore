@@ -36,3 +36,7 @@ Thumbs.db
 
 # TypeSpec stray output (correct path is apps/api/spec/tsp-output/)
 apps/api/tsp-output/
+
+# Playwright e2e artefacts
+apps/web/playwright-report/
+apps/web/test-results/
