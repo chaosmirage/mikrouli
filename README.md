@@ -47,6 +47,33 @@ pnpm lint
 pnpm format
 ```
 
+### Local OpenTelemetry tracing
+
+The API ships with an OTel SDK that is disabled by default. To enable it locally,
+point it at any OTLP/HTTP collector (Jaeger all-in-one, Grafana Tempo, SigNoz, …):
+
+```bash
+# Start a collector first — example with Jaeger all-in-one (Docker):
+docker run --rm -p 4318:4318 -p 16686:16686 jaegertracing/all-in-one:latest
+
+# Run the API with tracing enabled
+OTEL_ENABLED=true \
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
+pnpm --filter api start:dev
+```
+
+Then open `http://localhost:16686` to explore traces.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `OTEL_ENABLED` | `false` | Set `true` to activate the SDK |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Collector OTLP/HTTP base URL |
+| `OTEL_SERVICE_NAME` | `mikrouli-api` | `service.name` resource attribute |
+| `SERVICE_VERSION` | `dev` | `service.version` resource attribute |
+
+The web frontend uses `VITE_OTEL_ENABLED` and `VITE_OTEL_EXPORTER_OTLP_ENDPOINT` for
+browser traces (set them in `apps/web/.env.local`).
+
 ## Testing
 
 ```bash
