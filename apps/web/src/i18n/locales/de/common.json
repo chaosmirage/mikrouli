@@ -1,0 +1,16 @@
+{
+  "appName": "mikrouli",
+  "loading": "Lädt…",
+  "save": "Speichern",
+  "cancel": "Abbrechen",
+  "delete": "Löschen",
+  "copy": "Kopieren",
+  "copied": "Kopiert",
+  "logout": "Abmelden",
+  "language": "Sprache",
+  "login": "Anmelden",
+  "register": "Registrieren",
+  "dashboard": "Dashboard",
+  "apiKeys": "API-Schlüssel",
+  "dismiss": "Schließen"
+}

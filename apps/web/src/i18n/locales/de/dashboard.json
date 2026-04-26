@@ -1,0 +1,17 @@
+{
+  "title": "Dashboard",
+  "shorten": "URL kürzen",
+  "longUrl": "Lange URL",
+  "shortLink": "Kurzlink",
+  "yourLinks": "Deine Links",
+  "createdAt": "Erstellt",
+  "expiresAt": "Läuft ab",
+  "actions": "Aktionen",
+  "noLinks": "Noch keine Links — oben einen erstellen",
+  "shortUrl": "Kurz-URL",
+  "originalUrl": "Original-URL",
+  "statsLabel": "Statistik",
+  "deleteLink": "Link löschen?",
+  "deleteLinkBody": "{{slug}} wird unwiderruflich entfernt.",
+  "shortenLabel": "Kürzen"
+}

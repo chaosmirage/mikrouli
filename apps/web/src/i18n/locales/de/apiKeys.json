@@ -1,0 +1,18 @@
+{
+  "title": "API-Schlüssel",
+  "label": "Bezeichnung",
+  "prefix": "Präfix",
+  "create": "Schlüssel erstellen",
+  "secretOnce": "Kopiere dieses Geheimnis JETZT — es wird nie wieder angezeigt: {{key}}",
+  "revoke": "Widerrufen",
+  "active": "Aktiv",
+  "revoked": "Widerrufen",
+  "lastUsed": "Zuletzt verwendet",
+  "neverUsed": "Nie verwendet",
+  "status": "Status",
+  "created": "Erstellt",
+  "revokeKey": "API-Schlüssel widerrufen?",
+  "revokeBody": "Der Schlüssel wird unwiderruflich widerrufen.",
+  "noKeys": "Noch keine API-Schlüssel",
+  "dismiss": "Schließen"
+}

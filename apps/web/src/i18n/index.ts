@@ -9,15 +9,15 @@ import enStats from './locales/en/stats.json';
 import enApiKeys from './locales/en/apiKeys.json';
 import enErrors from './locales/en/errors.json';
 
-import ruCommon from './locales/ru/common.json';
-import ruAuth from './locales/ru/auth.json';
-import ruDashboard from './locales/ru/dashboard.json';
-import ruStats from './locales/ru/stats.json';
-import ruApiKeys from './locales/ru/apiKeys.json';
-import ruErrors from './locales/ru/errors.json';
+import deCommon from './locales/de/common.json';
+import deAuth from './locales/de/auth.json';
+import deDashboard from './locales/de/dashboard.json';
+import deStats from './locales/de/stats.json';
+import deApiKeys from './locales/de/apiKeys.json';
+import deErrors from './locales/de/errors.json';
 
 const LOCALE_STORAGE_KEY = 'mikrouli.locale';
-const SUPPORTED_LANGS = ['en', 'ru'] as const;
+const SUPPORTED_LANGS = ['en', 'de'] as const;
 const NAMESPACES = ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors'] as const;
 
 const EN_RESOURCES = {
@@ -28,22 +28,24 @@ const EN_RESOURCES = {
   apiKeys: enApiKeys,
   errors: enErrors,
 };
-const RU_RESOURCES = {
-  common: ruCommon,
-  auth: ruAuth,
-  dashboard: ruDashboard,
-  stats: ruStats,
-  apiKeys: ruApiKeys,
-  errors: ruErrors,
+const DE_RESOURCES = {
+  common: deCommon,
+  auth: deAuth,
+  dashboard: deDashboard,
+  stats: deStats,
+  apiKeys: deApiKeys,
+  errors: deErrors,
 };
 
 function buildResources() {
-  return { en: EN_RESOURCES, ru: RU_RESOURCES };
+  return { en: EN_RESOURCES, de: DE_RESOURCES };
 }
 
+// Default to English for fresh visitors.
+// We do NOT consult navigator language; only respect explicit user choice persisted in localStorage.
 function buildDetection() {
   return {
-    order: ['localStorage', 'navigator'],
+    order: ['localStorage'],
     lookupLocalStorage: LOCALE_STORAGE_KEY,
     caches: ['localStorage'],
   };

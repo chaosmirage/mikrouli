@@ -9,12 +9,12 @@ import enStats from '../i18n/locales/en/stats.json';
 import enApiKeys from '../i18n/locales/en/apiKeys.json';
 import enErrors from '../i18n/locales/en/errors.json';
 
-import ruCommon from '../i18n/locales/ru/common.json';
-import ruAuth from '../i18n/locales/ru/auth.json';
-import ruDashboard from '../i18n/locales/ru/dashboard.json';
-import ruStats from '../i18n/locales/ru/stats.json';
-import ruApiKeys from '../i18n/locales/ru/apiKeys.json';
-import ruErrors from '../i18n/locales/ru/errors.json';
+import deCommon from '../i18n/locales/de/common.json';
+import deAuth from '../i18n/locales/de/auth.json';
+import deDashboard from '../i18n/locales/de/dashboard.json';
+import deStats from '../i18n/locales/de/stats.json';
+import deApiKeys from '../i18n/locales/de/apiKeys.json';
+import deErrors from '../i18n/locales/de/errors.json';
 
 const TEST_EN = {
   common: enCommon,
@@ -24,19 +24,19 @@ const TEST_EN = {
   apiKeys: enApiKeys,
   errors: enErrors,
 };
-const TEST_RU = {
-  common: ruCommon,
-  auth: ruAuth,
-  dashboard: ruDashboard,
-  stats: ruStats,
-  apiKeys: ruApiKeys,
-  errors: ruErrors,
+const TEST_DE = {
+  common: deCommon,
+  auth: deAuth,
+  dashboard: deDashboard,
+  stats: deStats,
+  apiKeys: deApiKeys,
+  errors: deErrors,
 };
 
 void i18next.use(initReactI18next).init({
   lng: 'en',
   fallbackLng: 'en',
-  resources: { en: TEST_EN, ru: TEST_RU },
+  resources: { en: TEST_EN, de: TEST_DE },
   ns: ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors'],
   defaultNS: 'common',
   interpolation: { escapeValue: false },

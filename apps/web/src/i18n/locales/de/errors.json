@@ -1,0 +1,11 @@
+{
+  "validation": "Die übermittelten Daten sind ungültig",
+  "unauthorized": "Ungültige E-Mail oder Passwort",
+  "emailAlreadyRegistered": "E-Mail ist bereits registriert",
+  "conflict": "Existiert bereits",
+  "notFound": "Nicht gefunden",
+  "forbidden": "Keine Berechtigung",
+  "generic": "Etwas ist schiefgelaufen",
+  "noSuchLink": "Kein solcher Link",
+  "notLinkOwner": "Du bist nicht der Eigentümer dieses Links"
+}

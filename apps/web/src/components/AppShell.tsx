@@ -36,8 +36,8 @@ function LocaleSwitcher() {
       <MenuItem value="en" data-testid="locale-option-en">
         English
       </MenuItem>
-      <MenuItem value="ru" data-testid="locale-option-ru">
-        Русский
+      <MenuItem value="de" data-testid="locale-option-de">
+        Deutsch
       </MenuItem>
     </Select>
   );

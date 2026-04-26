@@ -36,18 +36,18 @@ describe('locale switching', () => {
     expect(screen.getByTestId('locale-switcher')).toBeInTheDocument();
   });
 
-  it('switching to ru renders Russian nav labels', async () => {
+  it('switching to de renders German nav labels', async () => {
     renderShell();
     await act(async () => {
-      await i18next.changeLanguage('ru');
+      await i18next.changeLanguage('de');
     });
-    expect(screen.getByText('Войти')).toBeInTheDocument();
-    expect(screen.getByText('Регистрация')).toBeInTheDocument();
+    expect(screen.getByText('Anmelden')).toBeInTheDocument();
+    expect(screen.getByText('Registrieren')).toBeInTheDocument();
   });
 
   it('switching back to en renders English nav labels', async () => {
     await act(async () => {
-      await i18next.changeLanguage('ru');
+      await i18next.changeLanguage('de');
     });
     renderShell();
     await act(async () => {

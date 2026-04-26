@@ -1,0 +1,11 @@
+{
+  "title": "Statistik für {{slug}}",
+  "totalClicks": "Gesamtklicks: {{count}}",
+  "byDay": "Klicks im Zeitverlauf",
+  "topCountries": "Top-Länder",
+  "topBrowsers": "Top-Browser",
+  "noData": "Noch keine Klicks erfasst",
+  "name": "Name",
+  "date": "Datum",
+  "clicks": "Klicks"
+}
