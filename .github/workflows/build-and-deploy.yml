@@ -34,6 +34,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Recompile typespec spec
+        run: pnpm --filter api spec:compile
+
+      - name: Regenerate openapi types
+        run: pnpm spec:types
+
+      - name: Detect spec/type drift
+        run: |
+          git diff --exit-code -- \
+            apps/api/spec/tsp-output \
+            apps/api/src/types/openapi-generated.ts \
+            apps/web/src/api/openapi-generated.ts
+
       - name: Lint api
         run: pnpm --filter api lint
 
