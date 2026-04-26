@@ -12,13 +12,16 @@
     "migration:generate": "pnpm --filter api migration:generate",
     "dev": "pnpm -r --parallel dev",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "spec:types": "openapi-typescript apps/api/spec/tsp-output/@typespec/openapi3/openapi.json --output apps/api/src/types/openapi-generated.ts && openapi-typescript apps/api/spec/tsp-output/@typespec/openapi3/openapi.json --output apps/web/src/api/openapi-generated.ts",
+    "spec:all": "pnpm --filter api spec:compile && pnpm spec:types"
   },
   "engines": {
     "node": ">=20",
     "pnpm": ">=9"
   },
   "devDependencies": {
+    "openapi-typescript": "^7.4.4",
     "prettier": "^3.8.1"
   }
 }
