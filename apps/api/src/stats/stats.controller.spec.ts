@@ -56,7 +56,13 @@ describe('StatsController', () => {
     mockLinksService.findBySlug.mockResolvedValue(makeLink(TEST_USER_ID));
     mockStatsService.getStats.mockResolvedValue(EMPTY_STATS);
     const result = await controller.getStats(TEST_SLUG, makeReq(TEST_USER_ID) as never);
-    expect(result).toEqual(EMPTY_STATS);
+    expect(result).toEqual({
+      slug: TEST_SLUG,
+      totalClicks: 0,
+      byDay: [],
+      byCountry: [],
+      byBrowser: [],
+    });
   });
 
   it('throws NotFoundException when link does not exist', async () => {

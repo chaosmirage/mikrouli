@@ -60,8 +60,8 @@ describe('LinksController', () => {
     expect(result).toEqual({
       shortUrl: TEST_SLUG,
       originalUrl: TEST_URL,
-      createdAt: expect.any(Date),
-      expiresAt: FUTURE_DATE,
+      createdAt: expect.any(String),
+      expiresAt: FUTURE_DATE.toISOString(),
     });
     expect(result).not.toHaveProperty('userId');
   });

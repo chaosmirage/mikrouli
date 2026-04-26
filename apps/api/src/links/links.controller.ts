@@ -16,6 +16,7 @@ import { RedisService } from '../redis/redis.service';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { Link } from './entities/link.entity';
 import { LinksService } from './links.service';
+import type { CreateLinkResponse, LinksListResponse, PublicLinkSchema } from '../types/openapi';
 
 const CACHE_TTL_CAP_SECONDS = 86_400;
 
@@ -23,19 +24,12 @@ interface AuthenticatedRequest extends Request {
   user: { id: string };
 }
 
-interface PublicLink {
-  shortUrl: string;
-  originalUrl: string;
-  createdAt: Date;
-  expiresAt: Date | null;
-}
-
-function toPublicLink(link: Link): PublicLink {
+function toPublicLinkSchema(link: Link): PublicLinkSchema {
   return {
     shortUrl: link.shortUrl,
     originalUrl: link.originalUrl,
-    createdAt: link.createdAt,
-    expiresAt: link.expiresAt,
+    createdAt: link.createdAt.toISOString(),
+    expiresAt: link.expiresAt ? link.expiresAt.toISOString() : null,
   };
 }
 
@@ -44,6 +38,10 @@ function ttlSecondsUntil(expiresAt: Date | null): number | undefined {
   const diffMs = expiresAt.getTime() - Date.now();
   if (diffMs <= 0) return undefined;
   return Math.min(Math.floor(diffMs / 1000), CACHE_TTL_CAP_SECONDS);
+}
+
+async function warmCache(redis: RedisService, link: Link): Promise<void> {
+  await redis.set(`link:${link.shortUrl}`, link.originalUrl, ttlSecondsUntil(link.expiresAt));
 }
 
 @Controller('urls')
@@ -56,20 +54,16 @@ export class LinksController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Req() req: AuthenticatedRequest, @Body() dto: CreateLinkDto): Promise<PublicLink> {
+  async create(@Req() req: AuthenticatedRequest, @Body() dto: CreateLinkDto): Promise<CreateLinkResponse> {
     const link = await this.linksService.create(dto.url, req.user.id, dto.expiresAt);
-    await this.redisService.set(
-      `link:${link.shortUrl}`,
-      link.originalUrl,
-      ttlSecondsUntil(link.expiresAt),
-    );
-    return toPublicLink(link);
+    await warmCache(this.redisService, link);
+    return toPublicLinkSchema(link);
   }
 
   @Get()
-  async list(@Req() req: AuthenticatedRequest): Promise<{ data: PublicLink[] }> {
+  async list(@Req() req: AuthenticatedRequest): Promise<LinksListResponse> {
     const links = await this.linksService.listForUser(req.user.id);
-    return { data: links.map(toPublicLink) };
+    return { data: links.map(toPublicLinkSchema) };
   }
 
   @Delete(':slug')

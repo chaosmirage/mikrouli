@@ -11,9 +11,20 @@ import type { Request } from 'express';
 import { BearerOrApiKeyGuard } from '../api-keys/bearer-or-api-key.guard';
 import { LinksService } from '../links/links.service';
 import { AggregatedStats, StatsService } from './stats.service';
+import type { StatsAggregateResponse } from '../types/openapi';
 
 interface AuthenticatedRequest extends Request {
   user: { id: string };
+}
+
+function toStatsResponse(slug: string, stats: AggregatedStats): StatsAggregateResponse {
+  return {
+    slug,
+    totalClicks: stats.totalClicks,
+    byDay: stats.clicksByDay.map((r) => ({ period: r.date, clicks: r.clicks })),
+    byCountry: stats.topCountries.map((r) => ({ country: r.name, clicks: r.clicks })),
+    byBrowser: stats.topBrowsers.map((r) => ({ browser: r.name, clicks: r.clicks })),
+  };
 }
 
 async function verifyLinkOwnership(
@@ -38,8 +49,9 @@ export class StatsController {
   async getStats(
     @Param('slug') slug: string,
     @Req() req: AuthenticatedRequest,
-  ): Promise<AggregatedStats> {
+  ): Promise<StatsAggregateResponse> {
     await verifyLinkOwnership(this.linksService, slug, req.user.id);
-    return this.statsService.getStats(slug);
+    const stats = await this.statsService.getStats(slug);
+    return toStatsResponse(slug, stats);
   }
 }
