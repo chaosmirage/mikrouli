@@ -2,13 +2,37 @@ const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 const JSON_CONTENT_TYPE = 'application/json';
 
+interface ProblemDetails {
+  type?: string;
+  title?: string;
+  detail?: string;
+  message?: string;
+}
+
+const PROBLEM_TYPE_I18N_MAP: Record<string, string> = {
+  validation: 'errors:validation',
+  unauthorized: 'errors:unauthorized',
+  conflict: 'errors:conflict',
+  'not-found': 'errors:notFound',
+  forbidden: 'errors:forbidden',
+};
+
 export class ApiError extends Error {
   readonly status: number;
-  constructor(status: number, message: string) {
+  readonly problemType?: string;
+  constructor(status: number, message: string, problemType?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.problemType = problemType;
   }
+}
+
+export function mapProblemTypeToI18nKey(problemType: string | undefined): string {
+  if (!problemType) return 'errors:generic';
+  const parts = problemType.split('/');
+  const segment = parts[parts.length - 1] ?? problemType;
+  return PROBLEM_TYPE_I18N_MAP[segment] ?? 'errors:generic';
 }
 
 export function getAccessToken(): string | null {
@@ -54,13 +78,15 @@ function buildHeaders(init?: RequestInit): HeadersInit {
 
 async function buildApiError(response: Response): Promise<ApiError> {
   let message = response.statusText;
+  let problemType: string | undefined;
   try {
-    const body = (await response.json()) as { message?: string };
-    if (body.message) message = String(body.message);
+    const body = (await response.json()) as ProblemDetails;
+    message = body.detail ?? body.title ?? body.message ?? response.statusText;
+    problemType = body.type;
   } catch {
     // Keep statusText as message
   }
-  return new ApiError(response.status, message);
+  return new ApiError(response.status, message, problemType);
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
