@@ -11,17 +11,9 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch, clearTokens, getAccessToken, setTokens } from '../api/client';
+import type { MeResponse, LoginResponse } from '../api/types';
 
-export interface User {
-  id: string;
-  email: string;
-  createdAt: string;
-}
-
-interface TokenPair {
-  accessToken: string;
-  refreshToken: string;
-}
+export type User = MeResponse;
 
 export interface AuthContextValue {
   user: User | null;
@@ -34,21 +26,15 @@ export interface AuthContextValue {
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
 async function fetchMe(): Promise<User> {
-  return apiFetch<User>('/api/auth/me');
+  return apiFetch('/api/auth/me', 'get');
 }
 
-async function loginRequest(email: string, password: string): Promise<TokenPair> {
-  return apiFetch<TokenPair>('/api/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  });
+async function loginRequest(email: string, password: string): Promise<LoginResponse> {
+  return apiFetch('/api/auth/login', 'post', { body: { email, password } });
 }
 
 async function registerRequest(email: string, password: string): Promise<User> {
-  return apiFetch<User>('/api/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  });
+  return apiFetch('/api/auth/register', 'post', { body: { email, password } });
 }
 
 async function bootstrapUser(): Promise<User | null> {

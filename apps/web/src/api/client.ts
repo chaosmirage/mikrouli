@@ -1,6 +1,27 @@
+import type { paths } from './openapi-generated';
+
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 const JSON_CONTENT_TYPE = 'application/json';
+
+// Path-keyed type helpers (module-scope, depth 0)
+type ApiPath = keyof paths;
+type HttpMethod<P extends ApiPath> = keyof paths[P] & string;
+
+type RequestBody<P extends ApiPath, M extends HttpMethod<P>> =
+  paths[P][M] extends { requestBody: { content: { 'application/json': infer B } } } ? B : never;
+
+type JsonBody<P extends ApiPath, M extends HttpMethod<P>> =
+  RequestBody<P, M> extends never ? undefined : RequestBody<P, M>;
+
+type Ok200<P extends ApiPath, M extends HttpMethod<P>> =
+  paths[P][M] extends { responses: { 200: { content: { 'application/json': infer T } } } } ? T : never;
+
+type Ok201<P extends ApiPath, M extends HttpMethod<P>> =
+  paths[P][M] extends { responses: { 201: { content: { 'application/json': infer T } } } } ? T : never;
+
+type SuccessBody<P extends ApiPath, M extends HttpMethod<P>> =
+  Ok200<P, M> extends never ? (Ok201<P, M> extends never ? void : Ok201<P, M>) : Ok200<P, M>;
 
 interface ProblemDetails {
   type?: string;
@@ -65,15 +86,10 @@ function authorizationHeader(): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
 
-function contentTypeHeader(method: string | undefined): Record<string, string> {
-  if (!method || method === 'GET') return {};
-  return { 'Content-Type': JSON_CONTENT_TYPE };
-}
-
-function buildHeaders(init?: RequestInit): HeadersInit {
-  const method = init?.method;
-  const existingHeaders = (init?.headers as Record<string, string>) ?? {};
-  return { ...authorizationHeader(), ...contentTypeHeader(method), ...existingHeaders };
+function buildFetchHeaders(method: string, hasBody: boolean): HeadersInit {
+  const auth = authorizationHeader();
+  const ct = hasBody && method !== 'GET' ? { 'Content-Type': JSON_CONTENT_TYPE } : {};
+  return { ...auth, ...ct };
 }
 
 async function buildApiError(response: Response): Promise<ApiError> {
@@ -89,9 +105,24 @@ async function buildApiError(response: Response): Promise<ApiError> {
   return new ApiError(response.status, message, problemType);
 }
 
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = buildHeaders(init);
-  const response = await fetch(path, { ...init, headers });
+function resolvePathParams(path: string, params: Record<string, string>): string {
+  return Object.entries(params).reduce(
+    (acc, [k, v]) => acc.replace(`{${k}}`, encodeURIComponent(v)),
+    path,
+  );
+}
+
+export async function apiFetch<P extends ApiPath, M extends HttpMethod<P>>(
+  path: P,
+  method: M,
+  opts?: { body?: JsonBody<P, M>; pathParams?: Record<string, string> },
+): Promise<SuccessBody<P, M>> {
+  const resolvedPath = opts?.pathParams ? resolvePathParams(path as string, opts.pathParams) : (path as string);
+  const hasBody = opts?.body !== undefined;
+  const headers = buildFetchHeaders(method.toUpperCase(), hasBody);
+  const body = hasBody ? JSON.stringify(opts?.body) : undefined;
+  const response = await fetch(resolvedPath, { method: method.toUpperCase(), headers, body });
   if (!response.ok) throw await buildApiError(response);
-  return response.json() as Promise<T>;
+  if (response.status === 204) return undefined as SuccessBody<P, M>;
+  return response.json() as Promise<SuccessBody<P, M>>;
 }
