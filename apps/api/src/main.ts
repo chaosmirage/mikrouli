@@ -19,7 +19,8 @@ function loadOpenApiDocument(): Record<string, unknown> {
 }
 
 function mountSwagger(app: INestApplication, document: Record<string, unknown>): void {
-  SwaggerModule.setup('docs', app, document as unknown as OpenAPIObject);
+  // Mount under the /api global prefix so nginx routes correctly.
+  SwaggerModule.setup('api/docs', app, document as unknown as OpenAPIObject);
 }
 
 function validationExceptionFactory(errors: unknown[]): BadRequestException {
