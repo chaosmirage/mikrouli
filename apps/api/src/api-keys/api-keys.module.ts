@@ -12,6 +12,6 @@ import { BearerOrApiKeyGuard } from './bearer-or-api-key.guard';
   imports: [TypeOrmModule.forFeature([ApiKey]), UsersModule, AuthModule],
   providers: [ApiKeysService, ApiKeyAuthGuard, BearerOrApiKeyGuard],
   controllers: [ApiKeysController],
-  exports: [BearerOrApiKeyGuard, AuthModule],
+  exports: [BearerOrApiKeyGuard, ApiKeyAuthGuard, AuthModule],
 })
 export class ApiKeysModule {}
