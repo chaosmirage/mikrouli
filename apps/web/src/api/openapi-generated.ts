@@ -4,902 +4,902 @@
  */
 
 export interface paths {
-    "/api/api-keys": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description List API keys for the authenticated user */
-        get: operations["ApiKeys_list"];
-        put?: never;
-        /** @description Create a new API key */
-        post: operations["ApiKeys_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  '/api/api-keys': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/api-keys/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** @description Revoke an API key by id */
-        delete: operations["ApiKeys_revoke"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** @description List API keys for the authenticated user */
+    get: operations['ApiKeys_list'];
+    put?: never;
+    /** @description Create a new API key */
+    post: operations['ApiKeys_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/api-keys/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Authenticate and receive JWT tokens */
-        post: operations["Auth_login"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    /** @description Revoke an API key by id */
+    delete: operations['ApiKeys_revoke'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/login': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/auth/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return authenticated user profile */
-        get: operations["Auth_me"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** @description Authenticate and receive JWT tokens */
+    post: operations['Auth_login'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/me': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Rotate refresh token and issue new token pair */
-        post: operations["Auth_refresh"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** @description Return authenticated user profile */
+    get: operations['Auth_me'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/refresh': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Register a new user account */
-        post: operations["Auth_register"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** @description Rotate refresh token and issue new token pair */
+    post: operations['Auth_refresh'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/register': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Service health check */
-        get: operations["Health_check"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** @description Register a new user account */
+    post: operations['Auth_register'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/health': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/stats/{slug}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get click analytics for a short link */
-        get: operations["Stats_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** @description Service health check */
+    get: operations['Health_check'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/stats/{slug}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/urls": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description List authenticated user's short links */
-        get: operations["Links_list"];
-        put?: never;
-        /** @description Shorten a URL */
-        post: operations["Links_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** @description Get click analytics for a short link */
+    get: operations['Stats_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/urls': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/urls/{slug}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** @description Delete a short link by slug */
-        delete: operations["Links_remove"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** @description List authenticated user's short links */
+    get: operations['Links_list'];
+    put?: never;
+    /** @description Shorten a URL */
+    post: operations['Links_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/urls/{slug}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/{slug}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Redirect to original URL for a given slug */
-        get: operations["Redirect_redirect"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    /** @description Delete a short link by slug */
+    delete: operations['Links_remove'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/{slug}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    /** @description Redirect to original URL for a given slug */
+    get: operations['Redirect_redirect'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        ApiKeyCreated: {
-            /** Format: date-time */
-            createdAt: string;
-            id: string;
-            label: string;
-            key: string;
-            keyPrefix: string;
-        };
-        ApiKeySummary: {
-            /** Format: date-time */
-            createdAt: string;
-            id: string;
-            label: string;
-            keyPrefix: string;
-            /** Format: date-time */
-            lastUsedAt: string | null;
-            /** Format: date-time */
-            revokedAt: string | null;
-        };
-        ApiKeysList: {
-            data: components["schemas"]["ApiKeySummary"][];
-        };
-        BadRequestError: {
-            /** Format: uri */
-            type?: string;
-            title?: string;
-            status?: number;
-            detail?: string;
-            /** Format: uri */
-            instance?: string;
-        };
-        ClickByBrowser: {
-            browser: string;
-            clicks: number;
-        };
-        ClickByCountry: {
-            country: string;
-            clicks: number;
-        };
-        ClickByPeriod: {
-            period: string;
-            clicks: number;
-        };
-        ConflictError: {
-            /** Format: uri */
-            type?: string;
-            title?: string;
-            status?: number;
-            detail?: string;
-            /** Format: uri */
-            instance?: string;
-        };
-        CreateApiKeyRequest: {
-            label: string;
-        };
-        CreateLinkRequest: {
-            url: string;
-            /** Format: date-time */
-            expiresAt?: string | null;
-        };
-        ForbiddenError: {
-            /** Format: uri */
-            type?: string;
-            title?: string;
-            status?: number;
-            detail?: string;
-            /** Format: uri */
-            instance?: string;
-        };
-        GoneError: {
-            /** Format: uri */
-            type?: string;
-            title?: string;
-            status?: number;
-            detail?: string;
-            /** Format: uri */
-            instance?: string;
-        };
-        HealthResponse: {
-            /** @enum {string} */
-            status: "ok";
-        };
-        InternalServerError: {
-            /** Format: uri */
-            type?: string;
-            title?: string;
-            status?: number;
-            detail?: string;
-            /** Format: uri */
-            instance?: string;
-        };
-        LinksList: {
-            data: components["schemas"]["PublicLink"][];
-        };
-        LoginRequest: {
-            /** Format: email */
-            email: string;
-            password: string;
-        };
-        LoginResponse: {
-            accessToken: string;
-            refreshToken: string;
-        };
-        NotFoundError: {
-            /** Format: uri */
-            type?: string;
-            title?: string;
-            status?: number;
-            detail?: string;
-            /** Format: uri */
-            instance?: string;
-        };
-        ProblemDetails: {
-            /** Format: uri */
-            type?: string;
-            title?: string;
-            status?: number;
-            detail?: string;
-            /** Format: uri */
-            instance?: string;
-        };
-        PublicLink: {
-            /** Format: date-time */
-            createdAt: string;
-            shortUrl: string;
-            originalUrl: string;
-            /** Format: date-time */
-            expiresAt: string | null;
-        };
-        RefreshRequest: {
-            refreshToken: string;
-        };
-        RegisterRequest: {
-            /** Format: email */
-            email: string;
-            password: string;
-        };
-        RegisterResponse: {
-            /** Format: date-time */
-            createdAt: string;
-            id: string;
-            /** Format: email */
-            email: string;
-        };
-        StatsAggregate: {
-            slug: string;
-            totalClicks: number;
-            byDay: components["schemas"]["ClickByPeriod"][];
-            byCountry: components["schemas"]["ClickByCountry"][];
-            byBrowser: components["schemas"]["ClickByBrowser"][];
-        };
-        Timestamps: {
-            /** Format: date-time */
-            createdAt: string;
-        };
-        UnauthorizedError: {
-            /** Format: uri */
-            type?: string;
-            title?: string;
-            status?: number;
-            detail?: string;
-            /** Format: uri */
-            instance?: string;
-        };
-        UserProfile: {
-            /** Format: date-time */
-            createdAt: string;
-            id: string;
-            /** Format: email */
-            email: string;
-        };
-        ValidationError: {
-            /** Format: uri */
-            type?: string;
-            title?: string;
-            status?: number;
-            detail?: string;
-            /** Format: uri */
-            instance?: string;
-            errors: components["schemas"]["ValidationErrorItem"][];
-        };
-        ValidationErrorItem: {
-            field: string;
-            message: string;
-            rule: string;
-        };
+  schemas: {
+    ApiKeyCreated: {
+      /** Format: date-time */
+      createdAt: string;
+      id: string;
+      label: string;
+      key: string;
+      keyPrefix: string;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    ApiKeySummary: {
+      /** Format: date-time */
+      createdAt: string;
+      id: string;
+      label: string;
+      keyPrefix: string;
+      /** Format: date-time */
+      lastUsedAt: string | null;
+      /** Format: date-time */
+      revokedAt: string | null;
+    };
+    ApiKeysList: {
+      data: components['schemas']['ApiKeySummary'][];
+    };
+    BadRequestError: {
+      /** Format: uri */
+      type?: string;
+      title?: string;
+      status?: number;
+      detail?: string;
+      /** Format: uri */
+      instance?: string;
+    };
+    ClickByBrowser: {
+      browser: string;
+      clicks: number;
+    };
+    ClickByCountry: {
+      country: string;
+      clicks: number;
+    };
+    ClickByPeriod: {
+      period: string;
+      clicks: number;
+    };
+    ConflictError: {
+      /** Format: uri */
+      type?: string;
+      title?: string;
+      status?: number;
+      detail?: string;
+      /** Format: uri */
+      instance?: string;
+    };
+    CreateApiKeyRequest: {
+      label: string;
+    };
+    CreateLinkRequest: {
+      url: string;
+      /** Format: date-time */
+      expiresAt?: string | null;
+    };
+    ForbiddenError: {
+      /** Format: uri */
+      type?: string;
+      title?: string;
+      status?: number;
+      detail?: string;
+      /** Format: uri */
+      instance?: string;
+    };
+    GoneError: {
+      /** Format: uri */
+      type?: string;
+      title?: string;
+      status?: number;
+      detail?: string;
+      /** Format: uri */
+      instance?: string;
+    };
+    HealthResponse: {
+      /** @enum {string} */
+      status: 'ok';
+    };
+    InternalServerError: {
+      /** Format: uri */
+      type?: string;
+      title?: string;
+      status?: number;
+      detail?: string;
+      /** Format: uri */
+      instance?: string;
+    };
+    LinksList: {
+      data: components['schemas']['PublicLink'][];
+    };
+    LoginRequest: {
+      /** Format: email */
+      email: string;
+      password: string;
+    };
+    LoginResponse: {
+      accessToken: string;
+      refreshToken: string;
+    };
+    NotFoundError: {
+      /** Format: uri */
+      type?: string;
+      title?: string;
+      status?: number;
+      detail?: string;
+      /** Format: uri */
+      instance?: string;
+    };
+    ProblemDetails: {
+      /** Format: uri */
+      type?: string;
+      title?: string;
+      status?: number;
+      detail?: string;
+      /** Format: uri */
+      instance?: string;
+    };
+    PublicLink: {
+      /** Format: date-time */
+      createdAt: string;
+      shortUrl: string;
+      originalUrl: string;
+      /** Format: date-time */
+      expiresAt: string | null;
+    };
+    RefreshRequest: {
+      refreshToken: string;
+    };
+    RegisterRequest: {
+      /** Format: email */
+      email: string;
+      password: string;
+    };
+    RegisterResponse: {
+      /** Format: date-time */
+      createdAt: string;
+      id: string;
+      /** Format: email */
+      email: string;
+    };
+    StatsAggregate: {
+      slug: string;
+      totalClicks: number;
+      byDay: components['schemas']['ClickByPeriod'][];
+      byCountry: components['schemas']['ClickByCountry'][];
+      byBrowser: components['schemas']['ClickByBrowser'][];
+    };
+    Timestamps: {
+      /** Format: date-time */
+      createdAt: string;
+    };
+    UnauthorizedError: {
+      /** Format: uri */
+      type?: string;
+      title?: string;
+      status?: number;
+      detail?: string;
+      /** Format: uri */
+      instance?: string;
+    };
+    UserProfile: {
+      /** Format: date-time */
+      createdAt: string;
+      id: string;
+      /** Format: email */
+      email: string;
+    };
+    ValidationError: {
+      /** Format: uri */
+      type?: string;
+      title?: string;
+      status?: number;
+      detail?: string;
+      /** Format: uri */
+      instance?: string;
+      errors: components['schemas']['ValidationErrorItem'][];
+    };
+    ValidationErrorItem: {
+      field: string;
+      message: string;
+      rule: string;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    ApiKeys_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiKeysList"];
-                };
-            };
-            /** @description Access is unauthorized. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["UnauthorizedError"];
-                };
-            };
-        };
+  ApiKeys_list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    ApiKeys_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateApiKeyRequest"];
-            };
+        content: {
+          'application/json': components['schemas']['ApiKeysList'];
         };
-        responses: {
-            /** @description The request has succeeded and a new resource has been created as a result. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiKeyCreated"];
-                };
-            };
-            /** @description The server could not understand the request due to invalid syntax. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["BadRequestError"];
-                };
-            };
-            /** @description Access is unauthorized. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["UnauthorizedError"];
-                };
-            };
-            /** @description Client error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ValidationError"];
-                };
-            };
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
         };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
+        };
+      };
     };
-    ApiKeys_revoke: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description There is no content to send for this request, but the headers may be useful. */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Access is unauthorized. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["UnauthorizedError"];
-                };
-            };
-            /** @description The server cannot find the requested resource. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["NotFoundError"];
-                };
-            };
-        };
+  };
+  ApiKeys_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    Auth_login: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginRequest"];
-            };
-        };
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponse"];
-                };
-            };
-            /** @description The server could not understand the request due to invalid syntax. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["BadRequestError"];
-                };
-            };
-            /** @description Access is unauthorized. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["UnauthorizedError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateApiKeyRequest'];
+      };
     };
-    Auth_me: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserProfile"];
-                };
-            };
-            /** @description Access is unauthorized. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["UnauthorizedError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['ApiKeyCreated'];
         };
+      };
+      /** @description The server could not understand the request due to invalid syntax. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['BadRequestError'];
+        };
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
+        };
+      };
+      /** @description Client error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ValidationError'];
+        };
+      };
     };
-    Auth_refresh: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RefreshRequest"];
-            };
-        };
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponse"];
-                };
-            };
-            /** @description Access is unauthorized. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["UnauthorizedError"];
-                };
-            };
-        };
+  };
+  ApiKeys_revoke: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
     };
-    Auth_register: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegisterRequest"];
-            };
+        content?: never;
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
         };
-        responses: {
-            /** @description The request has succeeded and a new resource has been created as a result. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RegisterResponse"];
-                };
-            };
-            /** @description The server could not understand the request due to invalid syntax. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["BadRequestError"];
-                };
-            };
-            /** @description The request conflicts with the current state of the server. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ConflictError"];
-                };
-            };
-            /** @description Client error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ValidationError"];
-                };
-            };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
         };
+      };
+      /** @description The server cannot find the requested resource. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['NotFoundError'];
+        };
+      };
     };
-    Health_check: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HealthResponse"];
-                };
-            };
-        };
+  };
+  Auth_login: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    Stats_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StatsAggregate"];
-                };
-            };
-            /** @description Access is unauthorized. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["UnauthorizedError"];
-                };
-            };
-            /** @description Access is forbidden. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ForbiddenError"];
-                };
-            };
-            /** @description The server cannot find the requested resource. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["NotFoundError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LoginRequest'];
+      };
     };
-    Links_list: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LinksList"];
-                };
-            };
-            /** @description Access is unauthorized. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["UnauthorizedError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['LoginResponse'];
         };
+      };
+      /** @description The server could not understand the request due to invalid syntax. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['BadRequestError'];
+        };
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
+        };
+      };
     };
-    Links_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateLinkRequest"];
-            };
-        };
-        responses: {
-            /** @description The request has succeeded and a new resource has been created as a result. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicLink"];
-                };
-            };
-            /** @description The server could not understand the request due to invalid syntax. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["BadRequestError"];
-                };
-            };
-            /** @description Access is unauthorized. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["UnauthorizedError"];
-                };
-            };
-            /** @description Client error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ValidationError"];
-                };
-            };
-        };
+  };
+  Auth_me: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    Links_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description There is no content to send for this request, but the headers may be useful. */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Access is unauthorized. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["UnauthorizedError"];
-                };
-            };
-            /** @description Access is forbidden. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ForbiddenError"];
-                };
-            };
-            /** @description The server cannot find the requested resource. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["NotFoundError"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['UserProfile'];
         };
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
+        };
+      };
     };
-    Redirect_redirect: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Redirection */
-            302: {
-                headers: {
-                    location: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The server cannot find the requested resource. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["NotFoundError"];
-                };
-            };
-            /** @description Client error */
-            410: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["GoneError"];
-                };
-            };
-        };
+  };
+  Auth_refresh: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RefreshRequest'];
+      };
+    };
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LoginResponse'];
+        };
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
+        };
+      };
+    };
+  };
+  Auth_register: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RegisterRequest'];
+      };
+    };
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RegisterResponse'];
+        };
+      };
+      /** @description The server could not understand the request due to invalid syntax. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['BadRequestError'];
+        };
+      };
+      /** @description The request conflicts with the current state of the server. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ConflictError'];
+        };
+      };
+      /** @description Client error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ValidationError'];
+        };
+      };
+    };
+  };
+  Health_check: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HealthResponse'];
+        };
+      };
+    };
+  };
+  Stats_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StatsAggregate'];
+        };
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
+        };
+      };
+      /** @description Access is forbidden. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenError'];
+        };
+      };
+      /** @description The server cannot find the requested resource. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['NotFoundError'];
+        };
+      };
+    };
+  };
+  Links_list: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LinksList'];
+        };
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
+        };
+      };
+    };
+  };
+  Links_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateLinkRequest'];
+      };
+    };
+    responses: {
+      /** @description The request has succeeded and a new resource has been created as a result. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PublicLink'];
+        };
+      };
+      /** @description The server could not understand the request due to invalid syntax. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['BadRequestError'];
+        };
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
+        };
+      };
+      /** @description Client error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ValidationError'];
+        };
+      };
+    };
+  };
+  Links_remove: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
+        };
+      };
+      /** @description Access is forbidden. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenError'];
+        };
+      };
+      /** @description The server cannot find the requested resource. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['NotFoundError'];
+        };
+      };
+    };
+  };
+  Redirect_redirect: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Redirection */
+      302: {
+        headers: {
+          location: string;
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The server cannot find the requested resource. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['NotFoundError'];
+        };
+      };
+      /** @description Client error */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['GoneError'];
+        };
+      };
+    };
+  };
 }

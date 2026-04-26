@@ -54,7 +54,10 @@ export class LinksController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Req() req: AuthenticatedRequest, @Body() dto: CreateLinkDto): Promise<CreateLinkResponse> {
+  async create(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CreateLinkDto,
+  ): Promise<CreateLinkResponse> {
     const link = await this.linksService.create(dto.url, req.user.id, dto.expiresAt);
     await warmCache(this.redisService, link);
     return toPublicLinkSchema(link);

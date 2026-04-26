@@ -44,7 +44,11 @@ describe('AuthController', () => {
     const publicUser = { id: 'uuid-1', email: 'test@example.com', createdAt };
     mockAuthService.register.mockResolvedValue(publicUser);
     const result = await controller.register({ email: 'test@example.com', password: 'Password1' });
-    expect(result).toEqual({ id: 'uuid-1', email: 'test@example.com', createdAt: createdAt.toISOString() });
+    expect(result).toEqual({
+      id: 'uuid-1',
+      email: 'test@example.com',
+      createdAt: createdAt.toISOString(),
+    });
     expect(result).not.toHaveProperty('passwordHash');
   });
 

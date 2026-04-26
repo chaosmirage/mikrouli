@@ -8,14 +8,19 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { AuthService, PublicUser, TokenPair } from './auth.service';
+import { AuthService, PublicUser } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RequestUser } from './jwt.strategy';
-import type { RegisterResponse, LoginResponse, RefreshResponse, MeResponse } from '../types/openapi';
+import type {
+  RegisterResponse,
+  LoginResponse,
+  RefreshResponse,
+  MeResponse,
+} from '../types/openapi';
 
 interface AuthenticatedRequest {
   user: RequestUser;

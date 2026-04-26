@@ -52,7 +52,10 @@ export class ApiKeysController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Req() req: AuthenticatedRequest, @Body() dto: CreateApiKeyDto): Promise<CreateApiKeyResponse> {
+  async create(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CreateApiKeyDto,
+  ): Promise<CreateApiKeyResponse> {
     const key = await this.apiKeysService.createForUser(req.user.id, dto);
     return toApiKeyCreatedResponse(key);
   }
