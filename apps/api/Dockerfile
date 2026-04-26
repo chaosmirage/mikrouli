@@ -44,8 +44,12 @@ COPY apps/api/package.json ./apps/api/
 # Install production deps only
 RUN pnpm install --filter api... --prod
 
-# Copy compiled output from builder
+# Copy compiled output and the TypeSpec-generated OpenAPI spec from builder.
+# The Swagger UI mount in main.ts reads the spec at runtime via a relative path
+# (../spec/tsp-output/@typespec/openapi3/openapi.json), so the spec/ directory
+# must accompany dist/ inside the image.
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/spec/tsp-output ./apps/api/spec/tsp-output
 
 USER node
 EXPOSE 3000
