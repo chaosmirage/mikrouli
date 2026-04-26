@@ -13,7 +13,7 @@ test('register login and me returns user email', async ({ page, request }) => {
   const opts = { headers: { Authorization: `Bearer ${accessToken ?? ''}` } };
   const resp = await apiCall(request, 'GET', '/api/auth/me', opts);
   expect(resp.ok()).toBe(true);
-  const body = await resp.json() as { email: string };
+  const body = (await resp.json()) as { email: string };
   expect(body.email).toBe(email);
 });
 

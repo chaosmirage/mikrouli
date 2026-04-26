@@ -47,6 +47,29 @@ pnpm lint
 pnpm format
 ```
 
+## E2E tests
+
+End-to-end tests use Playwright against the full docker-compose stack. Chromium must be installed once per machine:
+
+```bash
+pnpm --filter web e2e:install
+```
+
+Run the full suite (requires the stack to be up):
+
+```bash
+docker compose up -d
+pnpm --filter web e2e
+```
+
+For interactive debugging:
+
+```bash
+pnpm --filter web e2e:ui
+```
+
+The test runner expects the stack at `http://localhost:8888` by default. Override with `E2E_BASE_URL=http://...` if needed.
+
 ### Local OpenTelemetry tracing
 
 The API ships with an OTel SDK that is disabled by default. To enable it locally,

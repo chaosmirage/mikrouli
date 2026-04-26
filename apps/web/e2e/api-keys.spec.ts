@@ -27,10 +27,13 @@ test('api key can be used to create a link', async ({ page, request }) => {
   const keyData = { label: KEY_LABEL_CI };
   const createKeyResp = await apiCall(request, 'POST', '/api/api-keys', { headers, data: keyData });
   expect(createKeyResp.status()).toBe(201);
-  const keyBody = await createKeyResp.json() as { key: string };
+  const keyBody = (await createKeyResp.json()) as { key: string };
   const apiKeyHeader = { 'X-API-Key': keyBody.key };
   const linkData = { url: 'https://example.com/api-key-test' };
-  const createLinkResp = await apiCall(request, 'POST', '/api/urls', { headers: apiKeyHeader, data: linkData });
+  const createLinkResp = await apiCall(request, 'POST', '/api/urls', {
+    headers: apiKeyHeader,
+    data: linkData,
+  });
   expect(createLinkResp.status()).toBe(201);
 });
 
@@ -39,13 +42,16 @@ test('revoked key returns 401', async ({ page, request }) => {
   const headers = { Authorization: `Bearer ${accessToken ?? ''}` };
   const keyData = { label: KEY_LABEL_REVOKE };
   const createResp = await apiCall(request, 'POST', '/api/api-keys', { headers, data: keyData });
-  const keyBody = await createResp.json() as { id: string; key: string };
+  const keyBody = (await createResp.json()) as { id: string; key: string };
   await page.goto('/api-keys');
   await expect(page.getByTestId(`revoke-${keyBody.id}`)).toBeVisible();
   await page.getByTestId(`revoke-${keyBody.id}`).click();
   await page.getByTestId('revoke-confirm').click();
   const revokedHeader = { 'X-API-Key': keyBody.key };
   const linkData = { url: 'https://example.com' };
-  const revokedResp = await apiCall(request, 'POST', '/api/urls', { headers: revokedHeader, data: linkData });
+  const revokedResp = await apiCall(request, 'POST', '/api/urls', {
+    headers: revokedHeader,
+    data: linkData,
+  });
   expect(revokedResp.status()).toBe(401);
 });

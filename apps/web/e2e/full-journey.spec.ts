@@ -34,7 +34,7 @@ async function assertStatsFlush(
   await page.goto(`/stats/${slug}`);
   const headers = { Authorization: `Bearer ${token}` };
   const resp = await apiCall(request, 'GET', `/api/stats/${slug}`, { headers });
-  const body = await resp.json() as { totalClicks: number };
+  const body = (await resp.json()) as { totalClicks: number };
   expect(body.totalClicks).toBeGreaterThanOrEqual(1);
 }
 
@@ -56,7 +56,7 @@ async function revokeKeyByLabel(
 ): Promise<void> {
   const headers = { Authorization: `Bearer ${token}` };
   const resp = await apiCall(request, 'GET', '/api/api-keys', { headers });
-  const body = await resp.json() as { data: Array<{ id: string; label: string }> };
+  const body = (await resp.json()) as { data: Array<{ id: string; label: string }> };
   const keyEntry = body.data.find((k) => k.label === label);
   await page.getByTestId(`revoke-${keyEntry?.id ?? ''}`).click();
   await page.getByTestId('revoke-confirm').click();
@@ -86,12 +86,18 @@ test('full user journey from register through delete', async ({ page, request, b
 
   const apiKeyHeader = { 'X-API-Key': secret };
   const apiLinkData = { url: JOURNEY_API_URL };
-  const apiLinkResp = await apiCall(request, 'POST', '/api/urls', { headers: apiKeyHeader, data: apiLinkData });
+  const apiLinkResp = await apiCall(request, 'POST', '/api/urls', {
+    headers: apiKeyHeader,
+    data: apiLinkData,
+  });
   expect(apiLinkResp.status()).toBe(201);
 
   await revokeKeyByLabel(page, request, JOURNEY_KEY_LABEL, token);
 
-  const revokedResp = await apiCall(request, 'POST', '/api/urls', { headers: apiKeyHeader, data: { url: 'https://example.com' } });
+  const revokedResp = await apiCall(request, 'POST', '/api/urls', {
+    headers: apiKeyHeader,
+    data: { url: 'https://example.com' },
+  });
   expect(revokedResp.status()).toBe(401);
 
   await deleteLinkBySlug(page, slug);

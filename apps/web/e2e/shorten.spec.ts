@@ -20,7 +20,7 @@ test('short url redirects with 302 to original url', async ({ page, request }) =
   const headers = { Authorization: `Bearer ${accessToken ?? ''}` };
   const data = { url: LONG_URL };
   const createResp = await apiCall(request, 'POST', '/api/urls', { headers, data });
-  const body = await createResp.json() as { shortUrl: string };
+  const body = (await createResp.json()) as { shortUrl: string };
   const slug = body.shortUrl.split('/').at(-1) ?? '';
   const redirect = await request.fetch(`/${slug}`, { maxRedirects: 0 });
   expect(redirect.status()).toBe(302);
@@ -43,7 +43,7 @@ test('delete link removes row and slug returns 404', async ({ page, request }) =
   const headers = { Authorization: `Bearer ${accessToken ?? ''}` };
   const data = { url: DELETE_URL };
   const createResp = await apiCall(request, 'POST', '/api/urls', { headers, data });
-  const body = await createResp.json() as { shortUrl: string };
+  const body = (await createResp.json()) as { shortUrl: string };
   const shortUrl = body.shortUrl;
   const slug = shortUrl.split('/').at(-1) ?? '';
   await page.reload();
