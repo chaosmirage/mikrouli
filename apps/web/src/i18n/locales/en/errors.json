@@ -1,0 +1,11 @@
+{
+  "validation": "The submitted data is invalid",
+  "unauthorized": "Invalid email or password",
+  "emailAlreadyRegistered": "Email already registered",
+  "conflict": "Already exists",
+  "notFound": "Not found",
+  "forbidden": "You do not have permission",
+  "generic": "Something went wrong",
+  "noSuchLink": "No such link",
+  "notLinkOwner": "You do not own this link"
+}

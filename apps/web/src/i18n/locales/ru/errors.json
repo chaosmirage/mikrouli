@@ -1,0 +1,11 @@
+{
+  "validation": "Отправленные данные некорректны",
+  "unauthorized": "Неверный email или пароль",
+  "emailAlreadyRegistered": "Этот email уже зарегистрирован",
+  "conflict": "Уже существует",
+  "notFound": "Не найдено",
+  "forbidden": "Нет прав доступа",
+  "generic": "Что-то пошло не так",
+  "noSuchLink": "Ссылка не найдена",
+  "notLinkOwner": "Вы не являетесь владельцем этой ссылки"
+}

@@ -1,0 +1,18 @@
+{
+  "title": "API keys",
+  "label": "Label",
+  "prefix": "Prefix",
+  "create": "Create key",
+  "secretOnce": "Copy this secret NOW — it will never be shown again: {{key}}",
+  "revoke": "Revoke",
+  "active": "Active",
+  "revoked": "Revoked",
+  "lastUsed": "Last used",
+  "neverUsed": "Never used",
+  "status": "Status",
+  "created": "Created",
+  "revokeKey": "Revoke API key?",
+  "revokeBody": "This will permanently revoke the key and cannot be undone.",
+  "noKeys": "No API keys yet",
+  "dismiss": "Dismiss"
+}

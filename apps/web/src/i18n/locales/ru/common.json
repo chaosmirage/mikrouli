@@ -1,0 +1,16 @@
+{
+  "appName": "mikrouli",
+  "loading": "Загрузка…",
+  "save": "Сохранить",
+  "cancel": "Отмена",
+  "delete": "Удалить",
+  "copy": "Копировать",
+  "copied": "Скопировано",
+  "logout": "Выйти",
+  "language": "Язык",
+  "login": "Войти",
+  "register": "Регистрация",
+  "dashboard": "Дашборд",
+  "apiKeys": "API-ключи",
+  "dismiss": "Закрыть"
+}
