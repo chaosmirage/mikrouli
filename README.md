@@ -47,6 +47,58 @@ pnpm lint
 pnpm format
 ```
 
+## Observability — viewing OpenTelemetry traces
+
+OpenTelemetry itself is just an emitter — it does not bundle a UI. A separate backend
+receives + stores + visualises the OTLP data. The docker-compose stack ships with
+**Jaeger all-in-one** for local development:
+
+```bash
+docker compose up -d jaeger
+open http://localhost:16686    # Jaeger UI
+```
+
+The api container points its OTLP exporter at `jaeger:4318` automatically when started
+via docker compose. After making a few API calls, refresh the Jaeger UI, pick the
+`mikrouli-api` service from the dropdown, and click **Find Traces** to see request spans.
+
+### Other free / open-source backends
+
+| Tool                 | Storage                                            | UI port | Best for                                      |
+| -------------------- | -------------------------------------------------- | ------- | --------------------------------------------- |
+| **Jaeger**           | in-memory (or Cassandra/Elasticsearch)             | 16686   | Traces only, dead-simple — what we ship       |
+| **SigNoz**           | ClickHouse                                         | 3301    | Full self-hosted APM (traces + metrics + logs) |
+| **Grafana stack**    | Tempo (traces) + Loki (logs) + Mimir (metrics)     | 3000    | Maximum flexibility, most moving parts        |
+| **OpenObserve**      | local FS or S3                                     | 5080    | Lightweight Rust binary, single executable    |
+| **HyperDX / Uptrace**| ClickHouse                                         | 8080    | Modern alternatives to SigNoz                 |
+| **Aspire Dashboard** | in-memory                                          | 18888   | Dev-only ephemeral viewer, single container   |
+
+For production at the €30/month Hetzner budget, self-hosting Tempo + Grafana would
+bust the cost ceiling. Use a free hosted tier instead:
+
+| Service              | Free tier                                          |
+| -------------------- | -------------------------------------------------- |
+| **Honeycomb**        | 20M events/month free                              |
+| **Grafana Cloud**    | 50 GB traces / 10 k metrics free                   |
+| **New Relic**        | 100 GB ingest free                                 |
+| **Datadog**          | 14-day trial; otherwise paid                       |
+
+Point the api Deployment env at the chosen collector:
+
+```yaml
+env:
+  - name: OTEL_ENABLED
+    value: 'true'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'https://<your-collector>.example.com'
+  - name: OTEL_EXPORTER_OTLP_HEADERS
+    value: 'authorization=Bearer <your-token>'   # if the backend requires auth
+```
+
+The frontend SDK is gated by `VITE_OTEL_ENABLED` and `VITE_OTEL_EXPORTER_OTLP_ENDPOINT`
+(set at build time via Vite). Browser traces are propagated to backend traces via the
+W3C `traceparent` header automatically (`@opentelemetry/instrumentation-fetch`).
+
 ## E2E tests
 
 End-to-end tests use Playwright against the full docker-compose stack. Chromium must be installed once per machine:
