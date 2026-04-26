@@ -20,8 +20,22 @@ const LOCALE_STORAGE_KEY = 'mikrouli.locale';
 const SUPPORTED_LANGS = ['en', 'ru'] as const;
 const NAMESPACES = ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors'] as const;
 
-const EN_RESOURCES = { common: enCommon, auth: enAuth, dashboard: enDashboard, stats: enStats, apiKeys: enApiKeys, errors: enErrors };
-const RU_RESOURCES = { common: ruCommon, auth: ruAuth, dashboard: ruDashboard, stats: ruStats, apiKeys: ruApiKeys, errors: ruErrors };
+const EN_RESOURCES = {
+  common: enCommon,
+  auth: enAuth,
+  dashboard: enDashboard,
+  stats: enStats,
+  apiKeys: enApiKeys,
+  errors: enErrors,
+};
+const RU_RESOURCES = {
+  common: ruCommon,
+  auth: ruAuth,
+  dashboard: ruDashboard,
+  stats: ruStats,
+  apiKeys: ruApiKeys,
+  errors: ruErrors,
+};
 
 function buildResources() {
   return { en: EN_RESOURCES, ru: RU_RESOURCES };

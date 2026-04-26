@@ -21,7 +21,9 @@ interface AuthNavProps {
 
 function LocaleSwitcher() {
   const { i18n, t } = useTranslation('common');
-  const handleChange = (e: SelectChangeEvent) => { void i18n.changeLanguage(e.target.value); };
+  const handleChange = (e: SelectChangeEvent) => {
+    void i18n.changeLanguage(e.target.value);
+  };
   return (
     <Select
       value={i18n.resolvedLanguage ?? i18n.language}
@@ -31,8 +33,12 @@ function LocaleSwitcher() {
       inputProps={{ 'aria-label': t('language') }}
       sx={{ color: 'inherit', '& .MuiOutlinedInput-notchedOutline': { border: 'none' } }}
     >
-      <MenuItem value="en" data-testid="locale-option-en">English</MenuItem>
-      <MenuItem value="ru" data-testid="locale-option-ru">Русский</MenuItem>
+      <MenuItem value="en" data-testid="locale-option-en">
+        English
+      </MenuItem>
+      <MenuItem value="ru" data-testid="locale-option-ru">
+        Русский
+      </MenuItem>
     </Select>
   );
 }

@@ -7,14 +7,14 @@ All manifests live under `k8s/` and are managed via Kustomize overlays.
 
 The cluster is sized to fit a strict €30/month total budget on Hetzner Cloud:
 
-| Item                                              | Monthly cost |
-| ------------------------------------------------- | -----------: |
-| 1 × cx22 control-plane (with workloads)           |        €4.51 |
-| 1 × cx22 worker                                   |        €4.51 |
-| 30 GB volumes (postgres + clickhouse + redis)     |        €1.32 |
-| 1 × Hetzner Load Balancer (LB11)                  |        €5.39 |
-| 1 × IPv4 (primary, included with LB)              |        €0.00 |
-| **Total**                                         |   **~€15.7** |
+| Item                                          | Monthly cost |
+| --------------------------------------------- | -----------: |
+| 1 × cx22 control-plane (with workloads)       |        €4.51 |
+| 1 × cx22 worker                               |        €4.51 |
+| 30 GB volumes (postgres + clickhouse + redis) |        €1.32 |
+| 1 × Hetzner Load Balancer (LB11)              |        €5.39 |
+| 1 × IPv4 (primary, included with LB)          |        €0.00 |
+| **Total**                                     |   **~€15.7** |
 
 **Replica policy** (cost-capped):
 
@@ -181,13 +181,13 @@ An OTel collector deployment is **out of scope** for this project — operators 
 
 ### Environment variables
 
-| Variable                       | Default (in k8s)                                              | Description                          |
-| ------------------------------ | ------------------------------------------------------------- | ------------------------------------ |
-| `OTEL_ENABLED`                 | `true` (api Deployment) / `false` (migration Job)            | Enable/disable the SDK               |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`  | `http://otel-collector.observability.svc.cluster.local:4318` | OTLP/HTTP collector endpoint         |
-| `OTEL_SERVICE_NAME`            | `mikrouli-api`                                               | Resource attribute `service.name`    |
-| `SERVICE_VERSION`              | pod label `app.kubernetes.io/version`                        | Resource attribute `service.version` |
-| `DEPLOYMENT_ENVIRONMENT`       | `production`                                                  | Resource attribute `deployment.environment` |
+| Variable                      | Default (in k8s)                                             | Description                                 |
+| ----------------------------- | ------------------------------------------------------------ | ------------------------------------------- |
+| `OTEL_ENABLED`                | `true` (api Deployment) / `false` (migration Job)            | Enable/disable the SDK                      |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://otel-collector.observability.svc.cluster.local:4318` | OTLP/HTTP collector endpoint                |
+| `OTEL_SERVICE_NAME`           | `mikrouli-api`                                               | Resource attribute `service.name`           |
+| `SERVICE_VERSION`             | pod label `app.kubernetes.io/version`                        | Resource attribute `service.version`        |
+| `DEPLOYMENT_ENVIRONMENT`      | `production`                                                 | Resource attribute `deployment.environment` |
 
 SDK reference: <https://opentelemetry.io/docs/languages/js/getting-started/nodejs/>
 

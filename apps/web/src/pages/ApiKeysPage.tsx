@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
@@ -78,12 +79,13 @@ interface CreateKeyCardProps {
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
 }
 function CreateKeyCard({ label, loading, error, onChange, onSubmit }: CreateKeyCardProps) {
+  const { t } = useTranslation('apiKeys');
   return (
     <Card data-testid="create-key-card">
       <CardContent>
         <form onSubmit={onSubmit} data-testid="create-key-form">
           <TextField
-            label="Label"
+            label={t('label')}
             value={label}
             onChange={(e) => onChange(e.target.value)}
             inputProps={{ 'data-testid': 'key-label' }}
@@ -96,7 +98,7 @@ function CreateKeyCard({ label, loading, error, onChange, onSubmit }: CreateKeyC
             sx={{ mt: 1 }}
             data-testid="key-create"
           >
-            Create key
+            {t('create')}
           </Button>
           {error && (
             <Alert severity="error" sx={{ mt: 1 }} data-testid="key-create-error">
@@ -115,6 +117,7 @@ interface NewKeyAlertProps {
   onCopy: (text: string) => void;
 }
 function NewKeyAlert({ apiKey, onDismiss, onCopy }: NewKeyAlertProps) {
+  const { t } = useTranslation('apiKeys');
   const copyBtn = (
     <IconButton size="small" onClick={() => onCopy(apiKey.key)} data-testid="copy-key-secret">
       <ContentCopyIcon fontSize="inherit" />
@@ -122,7 +125,7 @@ function NewKeyAlert({ apiKey, onDismiss, onCopy }: NewKeyAlertProps) {
   );
   const dismissBtn = (
     <Button size="small" onClick={onDismiss} data-testid="dismiss-key-alert">
-      Dismiss
+      {t('dismiss')}
     </Button>
   );
   return (
@@ -136,7 +139,7 @@ function NewKeyAlert({ apiKey, onDismiss, onCopy }: NewKeyAlertProps) {
         </>
       }
     >
-      Copy this secret NOW — it will never be shown again: {apiKey.key}
+      {t('secretOnce', { key: apiKey.key })}
     </Alert>
   );
 }
@@ -146,14 +149,16 @@ interface KeyTableRowProps {
   onRevoke: (id: string) => void;
 }
 function KeyTableRow({ apiKey, onRevoke }: KeyTableRowProps) {
+  const { t } = useTranslation('apiKeys');
   const isRevoked = apiKey.revokedAt !== null;
-  const status = isRevoked ? 'Revoked' : 'Active';
+  const status = isRevoked ? t('revoked') : t('active');
+  const lastUsed = apiKey.lastUsedAt ? apiKey.lastUsedAt.slice(0, 10) : '—';
   return (
     <TableRow>
       <TableCell>{apiKey.label}</TableCell>
       <TableCell>{apiKey.keyPrefix}…</TableCell>
       <TableCell>{apiKey.createdAt.slice(0, 10)}</TableCell>
-      <TableCell>{apiKey.lastUsedAt ? apiKey.lastUsedAt.slice(0, 10) : '—'}</TableCell>
+      <TableCell>{lastUsed}</TableCell>
       <TableCell>{status}</TableCell>
       <TableCell>
         <IconButton
@@ -169,19 +174,6 @@ function KeyTableRow({ apiKey, onRevoke }: KeyTableRowProps) {
   );
 }
 
-const KEYS_TABLE_HEAD = (
-  <TableHead>
-    <TableRow>
-      <TableCell>Label</TableCell>
-      <TableCell>Prefix</TableCell>
-      <TableCell>Created</TableCell>
-      <TableCell>Last Used</TableCell>
-      <TableCell>Status</TableCell>
-      <TableCell>Revoke</TableCell>
-    </TableRow>
-  </TableHead>
-);
-
 interface KeysTableProps {
   keys: ApiKeySummary[];
   loading: boolean;
@@ -189,22 +181,29 @@ interface KeysTableProps {
   onRevoke: (id: string) => void;
 }
 function KeysTable({ keys, loading, fetchError, onRevoke }: KeysTableProps) {
+  const { t } = useTranslation('apiKeys');
   if (loading) return <CircularProgress data-testid="keys-loading" />;
   if (fetchError) return <Alert severity="error">{fetchError}</Alert>;
   if (keys.length === 0)
-    return <Typography data-testid="no-keys-message">No API keys yet</Typography>;
-  const body = (
-    <TableBody>
-      {keys.map((k) => (
-        <KeyTableRow key={k.id} apiKey={k} onRevoke={onRevoke} />
-      ))}
-    </TableBody>
-  );
+    return <Typography data-testid="no-keys-message">{t('noKeys')}</Typography>;
   return (
     <TableContainer component={Paper} data-testid="api-keys-table">
       <Table size="small">
-        {KEYS_TABLE_HEAD}
-        {body}
+        <TableHead>
+          <TableRow>
+            <TableCell>{t('label')}</TableCell>
+            <TableCell>{t('prefix')}</TableCell>
+            <TableCell>{t('created')}</TableCell>
+            <TableCell>{t('lastUsed')}</TableCell>
+            <TableCell>{t('status')}</TableCell>
+            <TableCell>{t('revoke')}</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {keys.map((k) => (
+            <KeyTableRow key={k.id} apiKey={k} onRevoke={onRevoke} />
+          ))}
+        </TableBody>
       </Table>
     </TableContainer>
   );
@@ -216,25 +215,20 @@ interface RevokeDialogProps {
   onCancel: () => void;
 }
 function RevokeDialog({ candidate, onConfirm, onCancel }: RevokeDialogProps) {
-  const cancelBtn = (
-    <Button onClick={onCancel} data-testid="revoke-cancel">
-      Cancel
-    </Button>
-  );
-  const confirmBtn = (
-    <Button onClick={onConfirm} color="error" variant="contained" data-testid="revoke-confirm">
-      Revoke
-    </Button>
-  );
+  const { t } = useTranslation('apiKeys');
   return (
     <Dialog open={!!candidate} onClose={onCancel} data-testid="revoke-dialog">
-      <DialogTitle>Revoke API key?</DialogTitle>
+      <DialogTitle>{t('revokeKey')}</DialogTitle>
       <DialogContent>
-        <Typography>This will permanently revoke the key and cannot be undone.</Typography>
+        <Typography>{t('revokeBody')}</Typography>
       </DialogContent>
       <DialogActions>
-        {cancelBtn}
-        {confirmBtn}
+        <Button onClick={onCancel} data-testid="revoke-cancel">
+          {t('cancel', { ns: 'common' })}
+        </Button>
+        <Button onClick={onConfirm} color="error" variant="contained" data-testid="revoke-confirm">
+          {t('revoke')}
+        </Button>
       </DialogActions>
     </Dialog>
   );
@@ -284,40 +278,30 @@ export default function ApiKeysPage() {
   const handleCopy = (text: string) => {
     void navigator.clipboard.writeText(text);
   };
-  const createCard = (
-    <CreateKeyCard
-      label={labelInput}
-      loading={createLoading}
-      error={createError}
-      onChange={setLabelInput}
-      onSubmit={handleCreate}
-    />
-  );
-  const keyAlert = newKey ? (
-    <NewKeyAlert apiKey={newKey} onDismiss={() => setNewKey(null)} onCopy={handleCopy} />
-  ) : null;
-  const keysTable = (
-    <KeysTable
-      keys={keys}
-      loading={keysLoading}
-      fetchError={keysError}
-      onRevoke={setRevokeCandidate}
-    />
-  );
-  const dialog = (
-    <RevokeDialog
-      candidate={revokeCandidate}
-      onConfirm={handleRevoke}
-      onCancel={() => setRevokeCandidate(null)}
-    />
-  );
 
   return (
     <Stack spacing={4} data-testid="api-keys-page">
-      {createCard}
-      {keyAlert}
-      {keysTable}
-      {dialog}
+      <CreateKeyCard
+        label={labelInput}
+        loading={createLoading}
+        error={createError}
+        onChange={setLabelInput}
+        onSubmit={handleCreate}
+      />
+      {newKey && (
+        <NewKeyAlert apiKey={newKey} onDismiss={() => setNewKey(null)} onCopy={handleCopy} />
+      )}
+      <KeysTable
+        keys={keys}
+        loading={keysLoading}
+        fetchError={keysError}
+        onRevoke={setRevokeCandidate}
+      />
+      <RevokeDialog
+        candidate={revokeCandidate}
+        onConfirm={handleRevoke}
+        onCancel={() => setRevokeCandidate(null)}
+      />
     </Stack>
   );
 }

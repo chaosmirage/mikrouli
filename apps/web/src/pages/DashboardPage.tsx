@@ -44,7 +44,10 @@ async function loadUserLinks(): Promise<[LinkData[], string | null]> {
 
 async function attemptShorten(url: string): Promise<[LinkData | null, string | null]> {
   try {
-    const link = await apiFetch<LinkData>('/api/urls', { method: 'POST', body: JSON.stringify({ url }) });
+    const link = await apiFetch<LinkData>('/api/urls', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    });
     return [link, null];
   } catch (err) {
     return [null, extractErrorMessage(err)];
@@ -96,7 +99,15 @@ interface ShortenCardProps {
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   onCopy: (text: string) => void;
 }
-function ShortenCard({ urlInput, onChange, onSubmit, loading, error, newLink, onCopy }: ShortenCardProps) {
+function ShortenCard({
+  urlInput,
+  onChange,
+  onSubmit,
+  loading,
+  error,
+  newLink,
+  onCopy,
+}: ShortenCardProps) {
   const { t } = useTranslation('dashboard');
   return (
     <Card data-testid="dashboard-shorten-card">
@@ -110,7 +121,13 @@ function ShortenCard({ urlInput, onChange, onSubmit, loading, error, newLink, on
             inputProps={{ 'data-testid': 'shorten-url' }}
             required
           />
-          <Button type="submit" variant="contained" disabled={loading} sx={{ mt: 1 }} data-testid="shorten-submit">
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={loading}
+            sx={{ mt: 1 }}
+            data-testid="shorten-submit"
+          >
             {t('shortenLabel')}
           </Button>
           {error && (
@@ -163,7 +180,8 @@ function LinksTable({ links, loading, fetchError, onDelete, onStats }: LinksTabl
   const { t } = useTranslation('dashboard');
   if (loading) return <CircularProgress data-testid="dashboard-loading" />;
   if (fetchError) return <Alert severity="error">{fetchError}</Alert>;
-  if (links.length === 0) return <Typography data-testid="no-links-message">{t('noLinks')}</Typography>;
+  if (links.length === 0)
+    return <Typography data-testid="no-links-message">{t('noLinks')}</Typography>;
   return (
     <TableContainer component={Paper} data-testid="dashboard-links-table">
       <Table size="small">
@@ -201,7 +219,9 @@ function DeleteDialog({ candidate, onConfirm, onCancel }: DeleteDialogProps) {
         <Typography>{t('deleteLinkBody', { slug: candidate ?? '' })}</Typography>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel} data-testid="delete-cancel">{t('cancel', { ns: 'common' })}</Button>
+        <Button onClick={onCancel} data-testid="delete-cancel">
+          {t('cancel', { ns: 'common' })}
+        </Button>
         <Button onClick={onConfirm} color="error" variant="contained" data-testid="delete-confirm">
           {t('delete', { ns: 'common' })}
         </Button>
@@ -239,14 +259,20 @@ export default function DashboardPage() {
     setNewLink(link);
     setShortenError(error);
     setShortenLoading(false);
-    if (!error) { setUrlInput(''); triggerRefresh(); }
+    if (!error) {
+      setUrlInput('');
+      triggerRefresh();
+    }
   };
 
   const handleDeleteConfirm = async () => {
     if (!deleteCandidate) return;
     const error = await attemptDelete(deleteCandidate);
     setDeleteCandidate(null);
-    if (error) { setShortenError(error); return; }
+    if (error) {
+      setShortenError(error);
+      return;
+    }
     triggerRefresh();
   };
 

@@ -630,13 +630,7 @@
     "schemas": {
       "ApiKeyCreated": {
         "type": "object",
-        "required": [
-          "createdAt",
-          "id",
-          "label",
-          "key",
-          "keyPrefix"
-        ],
+        "required": ["createdAt", "id", "label", "key", "keyPrefix"],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -658,14 +652,7 @@
       },
       "ApiKeySummary": {
         "type": "object",
-        "required": [
-          "createdAt",
-          "id",
-          "label",
-          "keyPrefix",
-          "lastUsedAt",
-          "revokedAt"
-        ],
+        "required": ["createdAt", "id", "label", "keyPrefix", "lastUsedAt", "revokedAt"],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -694,9 +681,7 @@
       },
       "ApiKeysList": {
         "type": "object",
-        "required": [
-          "data"
-        ],
+        "required": ["data"],
         "properties": {
           "data": {
             "type": "array",
@@ -730,10 +715,7 @@
       },
       "ClickByBrowser": {
         "type": "object",
-        "required": [
-          "browser",
-          "clicks"
-        ],
+        "required": ["browser", "clicks"],
         "properties": {
           "browser": {
             "type": "string"
@@ -745,10 +727,7 @@
       },
       "ClickByCountry": {
         "type": "object",
-        "required": [
-          "country",
-          "clicks"
-        ],
+        "required": ["country", "clicks"],
         "properties": {
           "country": {
             "type": "string"
@@ -760,10 +739,7 @@
       },
       "ClickByPeriod": {
         "type": "object",
-        "required": [
-          "period",
-          "clicks"
-        ],
+        "required": ["period", "clicks"],
         "properties": {
           "period": {
             "type": "string"
@@ -797,9 +773,7 @@
       },
       "CreateApiKeyRequest": {
         "type": "object",
-        "required": [
-          "label"
-        ],
+        "required": ["label"],
         "properties": {
           "label": {
             "type": "string",
@@ -810,9 +784,7 @@
       },
       "CreateLinkRequest": {
         "type": "object",
-        "required": [
-          "url"
-        ],
+        "required": ["url"],
         "properties": {
           "url": {
             "type": "string",
@@ -871,15 +843,11 @@
       },
       "HealthResponse": {
         "type": "object",
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "properties": {
           "status": {
             "type": "string",
-            "enum": [
-              "ok"
-            ]
+            "enum": ["ok"]
           }
         }
       },
@@ -907,9 +875,7 @@
       },
       "LinksList": {
         "type": "object",
-        "required": [
-          "data"
-        ],
+        "required": ["data"],
         "properties": {
           "data": {
             "type": "array",
@@ -921,10 +887,7 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "properties": {
           "email": {
             "type": "string",
@@ -937,10 +900,7 @@
       },
       "LoginResponse": {
         "type": "object",
-        "required": [
-          "accessToken",
-          "refreshToken"
-        ],
+        "required": ["accessToken", "refreshToken"],
         "properties": {
           "accessToken": {
             "type": "string"
@@ -996,12 +956,7 @@
       },
       "PublicLink": {
         "type": "object",
-        "required": [
-          "createdAt",
-          "shortUrl",
-          "originalUrl",
-          "expiresAt"
-        ],
+        "required": ["createdAt", "shortUrl", "originalUrl", "expiresAt"],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -1022,9 +977,7 @@
       },
       "RefreshRequest": {
         "type": "object",
-        "required": [
-          "refreshToken"
-        ],
+        "required": ["refreshToken"],
         "properties": {
           "refreshToken": {
             "type": "string"
@@ -1033,10 +986,7 @@
       },
       "RegisterRequest": {
         "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "properties": {
           "email": {
             "type": "string",
@@ -1052,11 +1002,7 @@
       },
       "RegisterResponse": {
         "type": "object",
-        "required": [
-          "createdAt",
-          "id",
-          "email"
-        ],
+        "required": ["createdAt", "id", "email"],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -1073,13 +1019,7 @@
       },
       "StatsAggregate": {
         "type": "object",
-        "required": [
-          "slug",
-          "totalClicks",
-          "byDay",
-          "byCountry",
-          "byBrowser"
-        ],
+        "required": ["slug", "totalClicks", "byDay", "byCountry", "byBrowser"],
         "properties": {
           "slug": {
             "type": "string"
@@ -1109,9 +1049,7 @@
       },
       "Timestamps": {
         "type": "object",
-        "required": [
-          "createdAt"
-        ],
+        "required": ["createdAt"],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -1143,11 +1081,7 @@
       },
       "UserProfile": {
         "type": "object",
-        "required": [
-          "createdAt",
-          "id",
-          "email"
-        ],
+        "required": ["createdAt", "id", "email"],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -1164,9 +1098,7 @@
       },
       "ValidationError": {
         "type": "object",
-        "required": [
-          "errors"
-        ],
+        "required": ["errors"],
         "properties": {
           "type": {
             "type": "string",
@@ -1195,11 +1127,7 @@
       },
       "ValidationErrorItem": {
         "type": "object",
-        "required": [
-          "field",
-          "message",
-          "rule"
-        ],
+        "required": ["field", "message", "rule"],
         "properties": {
           "field": {
             "type": "string"

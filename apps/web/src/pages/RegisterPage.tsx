@@ -36,7 +36,8 @@ function validateRegisterForm(email: string, password: string): RegisterFormErro
 }
 
 function mapRegisterError(err: unknown): string {
-  if (err instanceof ApiError && err.status === HTTP_CONFLICT) return 'errors:emailAlreadyRegistered';
+  if (err instanceof ApiError && err.status === HTTP_CONFLICT)
+    return 'errors:emailAlreadyRegistered';
   return 'errors:generic';
 }
 

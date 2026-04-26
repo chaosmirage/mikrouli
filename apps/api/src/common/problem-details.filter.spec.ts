@@ -51,7 +51,10 @@ function asBody(res: MockResponse): Record<string, unknown> {
 describe('ProblemDetailsFilter', () => {
   it('HttpException maps to ProblemDetails with correct status, type, content-type', () => {
     const res = new MockResponse();
-    buildFilter().catch(new HttpException('Not Found', HttpStatus.NOT_FOUND), makeHost(res) as never);
+    buildFilter().catch(
+      new HttpException('Not Found', HttpStatus.NOT_FOUND),
+      makeHost(res) as never,
+    );
     expect(res.statusCode).toBe(HttpStatus.NOT_FOUND);
     expect(res.headers['Content-Type']).toBe(PROBLEM_JSON);
     expect(asBody(res).status).toBe(HttpStatus.NOT_FOUND);
@@ -60,7 +63,10 @@ describe('ProblemDetailsFilter', () => {
 
   it('BadRequestException with validation payload emits 422 with errors[]', () => {
     const res = new MockResponse();
-    buildFilter().catch(new HttpException(VALIDATION_PAYLOAD, HttpStatus.BAD_REQUEST), makeHost(res) as never);
+    buildFilter().catch(
+      new HttpException(VALIDATION_PAYLOAD, HttpStatus.BAD_REQUEST),
+      makeHost(res) as never,
+    );
     expect(res.statusCode).toBe(422);
     expect(asBody(res).status).toBe(422);
     type ErrorEntry = { field: string; rule: string; message: string };

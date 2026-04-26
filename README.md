@@ -64,12 +64,12 @@ pnpm --filter api start:dev
 
 Then open `http://localhost:16686` to explore traces.
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `OTEL_ENABLED` | `false` | Set `true` to activate the SDK |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Collector OTLP/HTTP base URL |
-| `OTEL_SERVICE_NAME` | `mikrouli-api` | `service.name` resource attribute |
-| `SERVICE_VERSION` | `dev` | `service.version` resource attribute |
+| Variable                      | Default                 | Purpose                              |
+| ----------------------------- | ----------------------- | ------------------------------------ |
+| `OTEL_ENABLED`                | `false`                 | Set `true` to activate the SDK       |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Collector OTLP/HTTP base URL         |
+| `OTEL_SERVICE_NAME`           | `mikrouli-api`          | `service.name` resource attribute    |
+| `SERVICE_VERSION`             | `dev`                   | `service.version` resource attribute |
 
 The web frontend uses `VITE_OTEL_ENABLED` and `VITE_OTEL_EXPORTER_OTLP_ENDPOINT` for
 browser traces (set them in `apps/web/.env.local`).

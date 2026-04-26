@@ -27,7 +27,12 @@ function validationExceptionFactory(errors: unknown[]): BadRequestException {
 }
 
 function buildValidationPipeOptions(): ValidationPipeOptions {
-  return { whitelist: true, forbidNonWhitelisted: true, transform: true, exceptionFactory: validationExceptionFactory };
+  return {
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+    exceptionFactory: validationExceptionFactory,
+  };
 }
 
 // All routes (including the F3 redirect that lands later) live under /api.

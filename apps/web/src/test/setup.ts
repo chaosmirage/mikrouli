@@ -16,8 +16,22 @@ import ruStats from '../i18n/locales/ru/stats.json';
 import ruApiKeys from '../i18n/locales/ru/apiKeys.json';
 import ruErrors from '../i18n/locales/ru/errors.json';
 
-const TEST_EN = { common: enCommon, auth: enAuth, dashboard: enDashboard, stats: enStats, apiKeys: enApiKeys, errors: enErrors };
-const TEST_RU = { common: ruCommon, auth: ruAuth, dashboard: ruDashboard, stats: ruStats, apiKeys: ruApiKeys, errors: ruErrors };
+const TEST_EN = {
+  common: enCommon,
+  auth: enAuth,
+  dashboard: enDashboard,
+  stats: enStats,
+  apiKeys: enApiKeys,
+  errors: enErrors,
+};
+const TEST_RU = {
+  common: ruCommon,
+  auth: ruAuth,
+  dashboard: ruDashboard,
+  stats: ruStats,
+  apiKeys: ruApiKeys,
+  errors: ruErrors,
+};
 
 void i18next.use(initReactI18next).init({
   lng: 'en',
