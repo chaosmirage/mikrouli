@@ -56,6 +56,11 @@ services:
       CLICKHOUSE_PORT: '8123'
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      OTEL_ENABLED: 'true'
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'http://jaeger:4318'
+      OTEL_SERVICE_NAME: 'mikrouli-api'
+      SERVICE_VERSION: 'dev'
+      DEPLOYMENT_ENVIRONMENT: 'docker-compose'
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,6 +68,8 @@ services:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3000/api/health']
@@ -149,6 +156,25 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+
+  # Jaeger all-in-one — OpenTelemetry traces backend + UI for local development.
+  # UI: http://localhost:16686
+  # OTLP receiver: jaeger:4318 (HTTP/proto, matches the OTel SDK default)
+  # In-memory storage; restarting the container wipes traces — that is fine for dev.
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    ports:
+      - '16686:16686' # Jaeger UI
+      - '4318:4318' # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: 'true'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:16686/']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   postgres_data:
