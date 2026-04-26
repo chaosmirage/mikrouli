@@ -25,29 +25,20 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { apiFetch, extractErrorMessage } from '../api/client';
+import type { PublicLink } from '../api/types';
 
-export interface LinkData {
-  shortUrl: string;
-  originalUrl: string;
-  createdAt: string;
-  expiresAt: string | null;
-}
-
-async function loadUserLinks(): Promise<[LinkData[], string | null]> {
+async function loadUserLinks(): Promise<[PublicLink[], string | null]> {
   try {
-    const response = await apiFetch<{ data: LinkData[] }>('/api/urls');
+    const response = await apiFetch('/api/urls', 'get');
     return [response.data, null];
   } catch (err) {
     return [[], extractErrorMessage(err)];
   }
 }
 
-async function attemptShorten(url: string): Promise<[LinkData | null, string | null]> {
+async function attemptShorten(url: string): Promise<[PublicLink | null, string | null]> {
   try {
-    const link = await apiFetch<LinkData>('/api/urls', {
-      method: 'POST',
-      body: JSON.stringify({ url }),
-    });
+    const link = await apiFetch('/api/urls', 'post', { body: { url } });
     return [link, null];
   } catch (err) {
     return [null, extractErrorMessage(err)];
@@ -56,7 +47,7 @@ async function attemptShorten(url: string): Promise<[LinkData | null, string | n
 
 async function attemptDelete(slug: string): Promise<string | null> {
   try {
-    await apiFetch<void>(`/api/urls/${slug}`, { method: 'DELETE' });
+    await apiFetch('/api/urls/{slug}', 'delete', { pathParams: { slug } });
     return null;
   } catch (err) {
     return extractErrorMessage(err);
@@ -74,7 +65,7 @@ function copyToClipboard(text: string): void {
 }
 
 interface NewLinkResultProps {
-  link: LinkData;
+  link: PublicLink;
   onCopy: (text: string) => void;
 }
 function NewLinkResult({ link, onCopy }: NewLinkResultProps) {
@@ -94,7 +85,7 @@ interface ShortenCardProps {
   urlInput: string;
   loading: boolean;
   error: string | null;
-  newLink: LinkData | null;
+  newLink: PublicLink | null;
   onChange: (v: string) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   onCopy: (text: string) => void;
@@ -143,7 +134,7 @@ function ShortenCard({
 }
 
 interface LinkTableRowProps {
-  link: LinkData;
+  link: PublicLink;
   onDelete: (slug: string) => void;
   onStats: (slug: string) => void;
 }
@@ -170,7 +161,7 @@ function LinkTableRow({ link, onDelete, onStats }: LinkTableRowProps) {
 }
 
 interface LinksTableProps {
-  links: LinkData[];
+  links: PublicLink[];
   loading: boolean;
   fetchError: string | null;
   onDelete: (slug: string) => void;
@@ -231,13 +222,13 @@ function DeleteDialog({ candidate, onConfirm, onCancel }: DeleteDialogProps) {
 }
 
 export default function DashboardPage() {
-  const [links, setLinks] = useState<LinkData[]>([]);
+  const [links, setLinks] = useState<PublicLink[]>([]);
   const [linksLoading, setLinksLoading] = useState(true);
   const [linksError, setLinksError] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [shortenLoading, setShortenLoading] = useState(false);
   const [shortenError, setShortenError] = useState<string | null>(null);
-  const [newLink, setNewLink] = useState<LinkData | null>(null);
+  const [newLink, setNewLink] = useState<PublicLink | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
   const navigate = useNavigate();

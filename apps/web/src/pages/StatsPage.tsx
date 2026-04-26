@@ -13,26 +13,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Stack from '@mui/material/Stack';
 import { ApiError, apiFetch } from '../api/client';
-
-interface DayClick {
-  date: string;
-  clicks: number;
-}
-interface CountryStat {
-  name: string;
-  clicks: number;
-}
-interface BrowserStat {
-  name: string;
-  clicks: number;
-}
-
-export interface Stats {
-  totalClicks: number;
-  clicksByDay: DayClick[];
-  topCountries: CountryStat[];
-  topBrowsers: BrowserStat[];
-}
+import type { StatsAggregate, ClickByPeriod, ClickByCountry, ClickByBrowser } from '../api/types';
 
 const HTTP_NOT_FOUND = 404;
 const HTTP_FORBIDDEN = 403;
@@ -43,9 +24,10 @@ function mapStatsError(err: unknown): string {
   return 'errors:generic';
 }
 
-async function loadStats(slug: string): Promise<[Stats | null, string | null]> {
+async function loadStats(slug: string): Promise<[StatsAggregate | null, string | null]> {
   try {
-    return [await apiFetch<Stats>(`/api/stats/${slug}`), null];
+    const data = await apiFetch('/api/stats/{slug}', 'get', { pathParams: { slug } });
+    return [data, null];
   } catch (err) {
     return [null, mapStatsError(err)];
   }
@@ -79,32 +61,8 @@ function NameClicksHead({ nameLabel, clicksLabel }: NameClicksHeadProps) {
   );
 }
 
-interface SimpleTableProps {
-  title: string;
-  rows: Array<{ name: string; clicks: number }>;
-  testId?: string;
-}
-function SimpleTable({ title, rows, testId }: SimpleTableProps) {
-  const { t } = useTranslation('stats');
-  return (
-    <Stack spacing={1} data-testid={testId}>
-      <Typography variant="h6">{title}</Typography>
-      <TableContainer component={Paper}>
-        <Table size="small">
-          <NameClicksHead nameLabel={t('name')} clicksLabel={t('clicks')} />
-          <TableBody>
-            {rows.map((r) => (
-              <StatRow key={r.name} name={r.name} clicks={r.clicks} />
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Stack>
-  );
-}
-
 interface DayTableProps {
-  rows: DayClick[];
+  rows: ClickByPeriod[];
 }
 function DayTable({ rows }: DayTableProps) {
   const { t } = useTranslation('stats');
@@ -116,7 +74,53 @@ function DayTable({ rows }: DayTableProps) {
           <NameClicksHead nameLabel={t('date')} clicksLabel={t('clicks')} />
           <TableBody>
             {rows.map((r) => (
-              <StatRow key={r.date} name={r.date} clicks={r.clicks} />
+              <StatRow key={r.period} name={r.period} clicks={r.clicks} />
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Stack>
+  );
+}
+
+interface CountryTableProps {
+  rows: ClickByCountry[];
+  title: string;
+}
+function CountryTable({ rows, title }: CountryTableProps) {
+  const { t } = useTranslation('stats');
+  return (
+    <Stack spacing={1} data-testid="stats-countries-section">
+      <Typography variant="h6">{title}</Typography>
+      <TableContainer component={Paper}>
+        <Table size="small">
+          <NameClicksHead nameLabel={t('name')} clicksLabel={t('clicks')} />
+          <TableBody>
+            {rows.map((r) => (
+              <StatRow key={r.country} name={r.country} clicks={r.clicks} />
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Stack>
+  );
+}
+
+interface BrowserTableProps {
+  rows: ClickByBrowser[];
+  title: string;
+}
+function BrowserTable({ rows, title }: BrowserTableProps) {
+  const { t } = useTranslation('stats');
+  return (
+    <Stack spacing={1} data-testid="stats-browsers-section">
+      <Typography variant="h6">{title}</Typography>
+      <TableContainer component={Paper}>
+        <Table size="small">
+          <NameClicksHead nameLabel={t('name')} clicksLabel={t('clicks')} />
+          <TableBody>
+            {rows.map((r) => (
+              <StatRow key={r.browser} name={r.browser} clicks={r.clicks} />
             ))}
           </TableBody>
         </Table>
@@ -127,7 +131,7 @@ function DayTable({ rows }: DayTableProps) {
 
 interface StatsViewProps {
   slug: string;
-  stats: Stats;
+  stats: StatsAggregate;
 }
 function StatsView({ slug, stats }: StatsViewProps) {
   const { t } = useTranslation('stats');
@@ -139,17 +143,9 @@ function StatsView({ slug, stats }: StatsViewProps) {
       <Typography data-testid="stats-total">
         {t('totalClicks', { count: stats.totalClicks })}
       </Typography>
-      <DayTable rows={stats.clicksByDay} />
-      <SimpleTable
-        title={t('topCountries')}
-        rows={stats.topCountries}
-        testId="stats-countries-section"
-      />
-      <SimpleTable
-        title={t('topBrowsers')}
-        rows={stats.topBrowsers}
-        testId="stats-browsers-section"
-      />
+      <DayTable rows={stats.byDay} />
+      <CountryTable title={t('topCountries')} rows={stats.byCountry} />
+      <BrowserTable title={t('topBrowsers')} rows={stats.byBrowser} />
     </Stack>
   );
 }
@@ -157,7 +153,7 @@ function StatsView({ slug, stats }: StatsViewProps) {
 export default function StatsPage() {
   const { t } = useTranslation('stats');
   const { slug = '' } = useParams<{ slug: string }>();
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<StatsAggregate | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 

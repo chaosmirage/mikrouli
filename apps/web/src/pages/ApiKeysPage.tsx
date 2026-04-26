@@ -23,39 +23,20 @@ import IconButton from '@mui/material/IconButton';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import BlockIcon from '@mui/icons-material/Block';
 import { apiFetch, extractErrorMessage } from '../api/client';
-
-export interface ApiKeySummary {
-  id: string;
-  label: string;
-  keyPrefix: string;
-  createdAt: string;
-  lastUsedAt: string | null;
-  revokedAt: string | null;
-}
-
-export interface NewApiKey {
-  id: string;
-  label: string;
-  key: string;
-  keyPrefix: string;
-  createdAt: string;
-}
+import type { ApiKeySummary, ApiKeyCreated } from '../api/types';
 
 async function loadApiKeys(): Promise<[ApiKeySummary[], string | null]> {
   try {
-    const response = await apiFetch<{ data: ApiKeySummary[] }>('/api/api-keys');
+    const response = await apiFetch('/api/api-keys', 'get');
     return [response.data, null];
   } catch (err) {
     return [[], extractErrorMessage(err)];
   }
 }
 
-async function attemptCreateKey(label: string): Promise<[NewApiKey | null, string | null]> {
+async function attemptCreateKey(label: string): Promise<[ApiKeyCreated | null, string | null]> {
   try {
-    const key = await apiFetch<NewApiKey>('/api/api-keys', {
-      method: 'POST',
-      body: JSON.stringify({ label }),
-    });
+    const key = await apiFetch('/api/api-keys', 'post', { body: { label } });
     return [key, null];
   } catch (err) {
     return [null, extractErrorMessage(err)];
@@ -64,7 +45,7 @@ async function attemptCreateKey(label: string): Promise<[NewApiKey | null, strin
 
 async function attemptRevokeKey(id: string): Promise<string | null> {
   try {
-    await apiFetch<void>(`/api/api-keys/${id}`, { method: 'DELETE' });
+    await apiFetch('/api/api-keys/{id}', 'delete', { pathParams: { id } });
     return null;
   } catch (err) {
     return extractErrorMessage(err);
@@ -112,7 +93,7 @@ function CreateKeyCard({ label, loading, error, onChange, onSubmit }: CreateKeyC
 }
 
 interface NewKeyAlertProps {
-  apiKey: NewApiKey;
+  apiKey: ApiKeyCreated;
   onDismiss: () => void;
   onCopy: (text: string) => void;
 }
@@ -241,7 +222,7 @@ export default function ApiKeysPage() {
   const [labelInput, setLabelInput] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [newKey, setNewKey] = useState<NewApiKey | null>(null);
+  const [newKey, setNewKey] = useState<ApiKeyCreated | null>(null);
   const [revokeCandidate, setRevokeCandidate] = useState<string | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
 
