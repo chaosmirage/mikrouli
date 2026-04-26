@@ -186,7 +186,7 @@ jobs:
 
   deploy-staging:
     name: Deploy to Staging
-    needs: build-and-scan
+    needs: [build-and-scan, e2e]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     environment: staging
