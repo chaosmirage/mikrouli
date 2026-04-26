@@ -1,12 +1,13 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
-import { ApiError, extractErrorMessage } from '../api/client';
+import { ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 
 interface RegisterFormErrors {
@@ -22,16 +23,21 @@ function validatePassword(password: string): string | undefined {
   const hasLength = password.length >= PASSWORD_MIN_LENGTH;
   const hasMixedCase = /[A-Z]/.test(password) && /[a-z]/.test(password);
   const hasDigit = /[0-9]/.test(password);
-  if (!hasLength || !hasMixedCase || !hasDigit) return '≥8 chars, mixed case, digit required';
+  if (!hasLength || !hasMixedCase || !hasDigit) return 'auth:passwordValidationError';
   return undefined;
 }
 
 function validateRegisterForm(email: string, password: string): RegisterFormErrors {
   const errors: RegisterFormErrors = {};
-  if (!EMAIL_PATTERN.test(email)) errors.email = 'Valid email required';
+  if (!EMAIL_PATTERN.test(email)) errors.email = 'auth:invalidEmail';
   const pwError = validatePassword(password);
   if (pwError) errors.password = pwError;
   return errors;
+}
+
+function mapRegisterError(err: unknown): string {
+  if (err instanceof ApiError && err.status === HTTP_CONFLICT) return 'errors:emailAlreadyRegistered';
+  return 'errors:generic';
 }
 
 async function attemptRegister(
@@ -43,16 +49,16 @@ async function attemptRegister(
     await register(email, password);
     return null;
   } catch (err) {
-    if (err instanceof ApiError && err.status === HTTP_CONFLICT) return 'Email already registered';
-    return extractErrorMessage(err);
+    return mapRegisterError(err);
   }
 }
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [formErrors, setFormErrors] = useState<RegisterFormErrors>({});
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -65,36 +71,36 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
-    const error = await attemptRegister(register, email, password);
-    setServerError(error);
+    const key = await attemptRegister(register, email, password);
+    setErrorKey(key);
     setLoading(false);
-    if (!error) navigate('/dashboard');
+    if (!key) navigate('/dashboard');
   };
 
   return (
     <Container maxWidth="sm" sx={{ py: 4 }} data-testid="register-page">
       <form onSubmit={handleSubmit} data-testid="register-form">
         <Stack spacing={2}>
-          <Typography variant="h4">Create account</Typography>
+          <Typography variant="h4">{t('auth:register')}</Typography>
           <TextField
-            label="Email"
+            label={t('auth:email')}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             inputProps={{ 'data-testid': 'register-email' }}
             required
             error={!!formErrors.email}
-            helperText={formErrors.email}
+            helperText={formErrors.email ? t(formErrors.email) : undefined}
           />
           <TextField
-            label="Password"
+            label={t('auth:password')}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             inputProps={{ 'data-testid': 'register-password' }}
             required
             error={!!formErrors.password}
-            helperText={formErrors.password ?? '≥8 chars, mixed case, digit'}
+            helperText={formErrors.password ? t(formErrors.password) : t('auth:passwordHint')}
           />
           <Button
             type="submit"
@@ -102,15 +108,15 @@ export default function RegisterPage() {
             disabled={loading}
             data-testid="register-submit"
           >
-            Register
+            {t('auth:register')}
           </Button>
-          {serverError && (
+          {errorKey && (
             <Alert severity="error" data-testid="register-server-error">
-              {serverError}
+              {t(errorKey)}
             </Alert>
           )}
           <Button variant="text" onClick={() => navigate('/login')} data-testid="register-to-login">
-            Already have an account? Sign in
+            {t('auth:hasAccount')}
           </Button>
         </Stack>
       </form>
