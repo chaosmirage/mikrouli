@@ -40,10 +40,11 @@ describe('AuthController', () => {
   });
 
   it('POST /register returns id+email+createdAt without passwordHash', async () => {
-    const publicUser = { id: 'uuid-1', email: 'test@example.com', createdAt: new Date() };
+    const createdAt = new Date('2024-01-01T00:00:00.000Z');
+    const publicUser = { id: 'uuid-1', email: 'test@example.com', createdAt };
     mockAuthService.register.mockResolvedValue(publicUser);
     const result = await controller.register({ email: 'test@example.com', password: 'Password1' });
-    expect(result).toEqual(publicUser);
+    expect(result).toEqual({ id: 'uuid-1', email: 'test@example.com', createdAt: createdAt.toISOString() });
     expect(result).not.toHaveProperty('passwordHash');
   });
 
