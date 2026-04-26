@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
@@ -43,10 +44,7 @@ async function loadUserLinks(): Promise<[LinkData[], string | null]> {
 
 async function attemptShorten(url: string): Promise<[LinkData | null, string | null]> {
   try {
-    const link = await apiFetch<LinkData>('/api/urls', {
-      method: 'POST',
-      body: JSON.stringify({ url }),
-    });
+    const link = await apiFetch<LinkData>('/api/urls', { method: 'POST', body: JSON.stringify({ url }) });
     return [link, null];
   } catch (err) {
     return [null, extractErrorMessage(err)];
@@ -98,35 +96,22 @@ interface ShortenCardProps {
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   onCopy: (text: string) => void;
 }
-function ShortenCard({
-  urlInput,
-  onChange,
-  onSubmit,
-  loading,
-  error,
-  newLink,
-  onCopy,
-}: ShortenCardProps) {
+function ShortenCard({ urlInput, onChange, onSubmit, loading, error, newLink, onCopy }: ShortenCardProps) {
+  const { t } = useTranslation('dashboard');
   return (
     <Card data-testid="dashboard-shorten-card">
       <CardContent>
         <form onSubmit={onSubmit} data-testid="shorten-form">
           <TextField
             fullWidth
-            label="Long URL"
+            label={t('longUrl')}
             value={urlInput}
             onChange={(e) => onChange(e.target.value)}
             inputProps={{ 'data-testid': 'shorten-url' }}
             required
           />
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={loading}
-            sx={{ mt: 1 }}
-            data-testid="shorten-submit"
-          >
-            Shorten
+          <Button type="submit" variant="contained" disabled={loading} sx={{ mt: 1 }} data-testid="shorten-submit">
+            {t('shortenLabel')}
           </Button>
           {error && (
             <Alert severity="error" sx={{ mt: 1 }} data-testid="shorten-error">
@@ -147,14 +132,12 @@ interface LinkTableRowProps {
 }
 function LinkTableRow({ link, onDelete, onStats }: LinkTableRowProps) {
   const slug = extractSlug(link.shortUrl);
-  const createdDate = link.createdAt.slice(0, 10);
-  const expiresText = link.expiresAt ? link.expiresAt.slice(0, 10) : '—';
   return (
     <TableRow data-testid={`link-row-${link.shortUrl}`}>
       <TableCell>{link.shortUrl}</TableCell>
       <TableCell>{link.originalUrl}</TableCell>
-      <TableCell>{createdDate}</TableCell>
-      <TableCell>{expiresText}</TableCell>
+      <TableCell>{link.createdAt.slice(0, 10)}</TableCell>
+      <TableCell>{link.expiresAt ? link.expiresAt.slice(0, 10) : '—'}</TableCell>
       <TableCell>
         <IconButton size="small" onClick={() => onStats(slug)} data-testid={`stats-${slug}`}>
           <BarChartIcon fontSize="small" />
@@ -177,21 +160,21 @@ interface LinksTableProps {
   onStats: (slug: string) => void;
 }
 function LinksTable({ links, loading, fetchError, onDelete, onStats }: LinksTableProps) {
+  const { t } = useTranslation('dashboard');
   if (loading) return <CircularProgress data-testid="dashboard-loading" />;
   if (fetchError) return <Alert severity="error">{fetchError}</Alert>;
-  if (links.length === 0)
-    return <Typography data-testid="no-links-message">No links yet — shorten one above</Typography>;
+  if (links.length === 0) return <Typography data-testid="no-links-message">{t('noLinks')}</Typography>;
   return (
     <TableContainer component={Paper} data-testid="dashboard-links-table">
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell>Short URL</TableCell>
-            <TableCell>Original URL</TableCell>
-            <TableCell>Created</TableCell>
-            <TableCell>Expires</TableCell>
-            <TableCell>Stats</TableCell>
-            <TableCell>Delete</TableCell>
+            <TableCell>{t('shortUrl')}</TableCell>
+            <TableCell>{t('originalUrl')}</TableCell>
+            <TableCell>{t('createdAt')}</TableCell>
+            <TableCell>{t('expiresAt')}</TableCell>
+            <TableCell>{t('statsLabel')}</TableCell>
+            <TableCell>{t('delete', { ns: 'common' })}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -210,25 +193,18 @@ interface DeleteDialogProps {
   onCancel: () => void;
 }
 function DeleteDialog({ candidate, onConfirm, onCancel }: DeleteDialogProps) {
-  const cancelBtn = (
-    <Button onClick={onCancel} data-testid="delete-cancel">
-      Cancel
-    </Button>
-  );
-  const confirmBtn = (
-    <Button onClick={onConfirm} color="error" variant="contained" data-testid="delete-confirm">
-      Delete
-    </Button>
-  );
+  const { t } = useTranslation('dashboard');
   return (
     <Dialog open={!!candidate} onClose={onCancel} data-testid="delete-dialog">
-      <DialogTitle data-testid="delete-dialog-title">Delete link?</DialogTitle>
+      <DialogTitle data-testid="delete-dialog-title">{t('deleteLink')}</DialogTitle>
       <DialogContent>
-        <Typography>This will permanently delete {candidate}.</Typography>
+        <Typography>{t('deleteLinkBody', { slug: candidate ?? '' })}</Typography>
       </DialogContent>
       <DialogActions>
-        {cancelBtn}
-        {confirmBtn}
+        <Button onClick={onCancel} data-testid="delete-cancel">{t('cancel', { ns: 'common' })}</Button>
+        <Button onClick={onConfirm} color="error" variant="contained" data-testid="delete-confirm">
+          {t('delete', { ns: 'common' })}
+        </Button>
       </DialogActions>
     </Dialog>
   );
@@ -263,59 +239,43 @@ export default function DashboardPage() {
     setNewLink(link);
     setShortenError(error);
     setShortenLoading(false);
-    if (!error) {
-      setUrlInput('');
-      triggerRefresh();
-    }
+    if (!error) { setUrlInput(''); triggerRefresh(); }
   };
 
   const handleDeleteConfirm = async () => {
     if (!deleteCandidate) return;
     const error = await attemptDelete(deleteCandidate);
     setDeleteCandidate(null);
-    if (error) {
-      setShortenError(error);
-      return;
-    }
+    if (error) { setShortenError(error); return; }
     triggerRefresh();
   };
 
   const handleCopy = (text: string) => copyToClipboard(text);
   const handleStats = (slug: string) => navigate(`/stats/${slug}`);
 
-  const shortenCard = (
-    <ShortenCard
-      urlInput={urlInput}
-      onChange={setUrlInput}
-      onSubmit={handleShorten}
-      loading={shortenLoading}
-      error={shortenError}
-      newLink={newLink}
-      onCopy={handleCopy}
-    />
-  );
-  const linksTable = (
-    <LinksTable
-      links={links}
-      loading={linksLoading}
-      fetchError={linksError}
-      onDelete={setDeleteCandidate}
-      onStats={handleStats}
-    />
-  );
-  const dialog = (
-    <DeleteDialog
-      candidate={deleteCandidate}
-      onConfirm={handleDeleteConfirm}
-      onCancel={() => setDeleteCandidate(null)}
-    />
-  );
-
   return (
     <Stack spacing={4} data-testid="dashboard-page">
-      {shortenCard}
-      {linksTable}
-      {dialog}
+      <ShortenCard
+        urlInput={urlInput}
+        onChange={setUrlInput}
+        onSubmit={handleShorten}
+        loading={shortenLoading}
+        error={shortenError}
+        newLink={newLink}
+        onCopy={handleCopy}
+      />
+      <LinksTable
+        links={links}
+        loading={linksLoading}
+        fetchError={linksError}
+        onDelete={setDeleteCandidate}
+        onStats={handleStats}
+      />
+      <DeleteDialog
+        candidate={deleteCandidate}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteCandidate(null)}
+      />
     </Stack>
   );
 }
