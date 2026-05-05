@@ -1,6 +1,6 @@
 {
   "title": "Statistics for {{slug}}",
-  "totalClicks": "Total clicks: {{count}}",
+  "totalClicks": "Total clicks",
   "byDay": "Clicks over time",
   "topCountries": "Top countries",
   "topBrowsers": "Top browsers",
