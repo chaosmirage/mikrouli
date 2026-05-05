@@ -8,10 +8,14 @@ data:
     <?xml version="1.0"?>
     <clickhouse>
       <users>
-        <default>
-          <!-- __SHA256__ is substituted at pod startup by the init container,
-               which reads CLICKHOUSE_PASSWORD from the mikrouli-secrets Secret
-               and computes its SHA-256. The hash never lives in git. -->
+        <!-- replace="replace" overrides the default-user entry shipped in
+             /etc/clickhouse-server/users.xml entirely. Without it, the base
+             <no_password/> field collides with our <password_sha256_hex>. -->
+        <default replace="replace">
+          <!-- The placeholder below is substituted at pod startup by the
+               init container, which reads CLICKHOUSE_PASSWORD from the
+               mikrouli-secrets Secret and computes its SHA-256. The hash
+               never lives in git. -->
           <password_sha256_hex>__SHA256__</password_sha256_hex>
           <!-- Restrict to private RFC-1918 ranges used by the cluster network -->
           <networks>
