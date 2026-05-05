@@ -65,27 +65,32 @@ function CreateKeyCard({ label, loading, error, onChange, onSubmit }: CreateKeyC
     <Card data-testid="create-key-card">
       <CardContent>
         <form onSubmit={onSubmit} data-testid="create-key-form">
-          <TextField
-            label={t('label')}
-            value={label}
-            onChange={(e) => onChange(e.target.value)}
-            inputProps={{ 'data-testid': 'key-label' }}
-            required
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={loading}
-            sx={{ mt: 1 }}
-            data-testid="key-create"
-          >
-            {t('create')}
-          </Button>
-          {error && (
-            <Alert severity="error" sx={{ mt: 1 }} data-testid="key-create-error">
-              {error}
-            </Alert>
-          )}
+          <Stack spacing={1.5}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+              <TextField
+                label={t('label')}
+                value={label}
+                onChange={(e) => onChange(e.target.value)}
+                inputProps={{ 'data-testid': 'key-label' }}
+                required
+                sx={{ flex: 1 }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={loading}
+                data-testid="key-create"
+                sx={{ whiteSpace: 'nowrap' }}
+              >
+                {t('create')}
+              </Button>
+            </Stack>
+            {error && (
+              <Alert severity="error" data-testid="key-create-error">
+                {error}
+              </Alert>
+            )}
+          </Stack>
         </form>
       </CardContent>
     </Card>

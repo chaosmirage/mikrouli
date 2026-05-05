@@ -128,29 +128,33 @@ function ShortenCard({
     <Card data-testid="dashboard-shorten-card">
       <CardContent>
         <form onSubmit={onSubmit} data-testid="shorten-form">
-          <TextField
-            fullWidth
-            label={t('longUrl')}
-            value={urlInput}
-            onChange={(e) => onChange(e.target.value)}
-            inputProps={{ 'data-testid': 'shorten-url' }}
-            required
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={loading}
-            sx={{ mt: 1 }}
-            data-testid="shorten-submit"
-          >
-            {t('shortenLabel')}
-          </Button>
-          {error && (
-            <Alert severity="error" sx={{ mt: 1 }} data-testid="shorten-error">
-              {error}
-            </Alert>
-          )}
-          {newLink && <NewLinkResult link={newLink} onCopy={onCopy} />}
+          <Stack spacing={1.5}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+              <TextField
+                label={t('longUrl')}
+                value={urlInput}
+                onChange={(e) => onChange(e.target.value)}
+                inputProps={{ 'data-testid': 'shorten-url' }}
+                required
+                sx={{ flex: 1 }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={loading}
+                data-testid="shorten-submit"
+                sx={{ whiteSpace: 'nowrap' }}
+              >
+                {t('shortenLabel')}
+              </Button>
+            </Stack>
+            {error && (
+              <Alert severity="error" data-testid="shorten-error">
+                {error}
+              </Alert>
+            )}
+            {newLink && <NewLinkResult link={newLink} onCopy={onCopy} />}
+          </Stack>
         </form>
       </CardContent>
     </Card>
