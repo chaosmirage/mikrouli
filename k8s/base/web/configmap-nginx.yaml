@@ -42,10 +42,11 @@ data:
         }
 
         # 6-character short-link redirect — slugs are alphanumeric, length 6.
-        # Matches /abc123 but not /index.html, /assets/x.js, etc.
-        location ~ "^/[A-Za-z0-9]{6}$" {
+        # NestJS api has setGlobalPrefix('api'), so /<slug> must be rewritten
+        # to /api/<slug> before proxying — see apps/api/src/main.ts.
+        location ~ "^/([A-Za-z0-9]{6})$" {
             set $api_upstream "api.mikrouli.svc.cluster.local";
-            proxy_pass http://$api_upstream:3000;
+            proxy_pass http://$api_upstream:3000/api/$1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
