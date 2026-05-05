@@ -1,7 +1,8 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Container from '@mui/material/Container';
+import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
@@ -11,6 +12,11 @@ import { ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 
 const HTTP_UNAUTHORIZED = 401;
+
+const LOGIN_PAGE_SX = { py: 6 } as const;
+const LOGIN_PAPER_SX = { p: { xs: 3, sm: 4 } } as const;
+const LOGIN_EMAIL_INPUT_PROPS = { 'data-testid': 'login-email' } as const;
+const LOGIN_PASSWORD_INPUT_PROPS = { 'data-testid': 'login-password' } as const;
 
 function mapLoginError(err: unknown): string {
   if (err instanceof ApiError && err.status === HTTP_UNAUTHORIZED) return 'errors:unauthorized';
@@ -39,34 +45,48 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    const key = await attemptLogin(login, email, password);
-    setErrorKey(key);
-    setLoading(false);
-    if (!key) navigate('/dashboard');
-  };
+  const handleSubmit = useCallback(
+    async (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      setLoading(true);
+      const key = await attemptLogin(login, email, password);
+      setErrorKey(key);
+      setLoading(false);
+      if (!key) navigate('/dashboard');
+    },
+    [login, email, password, navigate],
+  );
+
+  const handleEmailChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value),
+    [],
+  );
+  const handlePasswordChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value),
+    [],
+  );
+  const handleGoRegister = useCallback(() => navigate('/register'), [navigate]);
 
   return (
-    <Container maxWidth="sm" sx={{ py: 4 }} data-testid="login-page">
-      <form onSubmit={handleSubmit} data-testid="login-form">
-        <Stack spacing={2}>
+    <Container maxWidth="sm" sx={LOGIN_PAGE_SX} data-testid="login-page">
+      <Paper variant="outlined" sx={LOGIN_PAPER_SX}>
+        <form onSubmit={handleSubmit} data-testid="login-form">
+          <Stack spacing={2}>
           <Typography variant="h4">{t('auth:signIn')}</Typography>
           <TextField
             label={t('auth:email')}
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            inputProps={{ 'data-testid': 'login-email' }}
+            onChange={handleEmailChange}
+            inputProps={LOGIN_EMAIL_INPUT_PROPS}
             required
           />
           <TextField
             label={t('auth:password')}
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            inputProps={{ 'data-testid': 'login-password' }}
+            onChange={handlePasswordChange}
+            inputProps={LOGIN_PASSWORD_INPUT_PROPS}
             required
           />
           <Button type="submit" variant="contained" disabled={loading} data-testid="login-submit">
@@ -79,13 +99,14 @@ export default function LoginPage() {
           )}
           <Button
             variant="text"
-            onClick={() => navigate('/register')}
+            onClick={handleGoRegister}
             data-testid="login-to-register"
           >
             {t('auth:noAccount')}
           </Button>
-        </Stack>
-      </form>
+          </Stack>
+        </form>
+      </Paper>
     </Container>
   );
 }
