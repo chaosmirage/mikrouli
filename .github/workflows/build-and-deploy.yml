@@ -136,6 +136,10 @@ jobs:
       contents: read
       packages: write
       security-events: write
+      # codeql-action/upload-sarif needs actions:read to fetch workflow-run
+      # metadata for fingerprinting; without it the upload step exits with
+      # "Resource not accessible by integration".
+      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@v6
