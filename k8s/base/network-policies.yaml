@@ -42,8 +42,10 @@ metadata:
   namespace: mikrouli
 spec:
   podSelector:
-    matchLabels:
-      app.kubernetes.io/name: api
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [api, api-migration]
   policyTypes:
     - Egress
   egress:
@@ -143,5 +145,7 @@ spec:
   ingress:
     - from:
         - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: api
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [api, api-migration]
