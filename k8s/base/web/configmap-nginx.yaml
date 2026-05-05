@@ -54,6 +54,12 @@ data:
             proxy_read_timeout 5s;
             # Pass redirect responses through verbatim
             proxy_redirect off;
+            # Some short-links target URLs with very long base64 query
+            # strings (e.g. cooking.mikrou.li state) — bump buffers so the
+            # Location header doesn't trip "upstream sent too big header".
+            proxy_buffer_size 64k;
+            proxy_buffers 4 64k;
+            proxy_busy_buffers_size 64k;
         }
 
         # Static assets — long-lived cache (content-addressed filenames from Vite)
