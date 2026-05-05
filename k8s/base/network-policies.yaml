@@ -149,7 +149,7 @@ spec:
               - key: app.kubernetes.io/name
                 operator: In
                 values: [api, api-migration]
-
+---
 # Allow Traefik (in kube-system) to reach cert-manager acme http01 solver
 # pods, which are dynamically created by cert-manager when issuing certs.
 apiVersion: networking.k8s.io/v1
