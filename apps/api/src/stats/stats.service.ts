@@ -35,19 +35,19 @@ function escapeSlug(slug: string): string {
 }
 
 function totalQuery(slug: string): string {
-  return `SELECT count() AS total FROM stats WHERE short_url = '${escapeSlug(slug)}'`;
+  return `SELECT count() AS total FROM stats_buffer WHERE short_url = '${escapeSlug(slug)}'`;
 }
 
 function byDayQuery(slug: string): string {
-  return `SELECT toDate(timestamp) AS date, count() AS clicks FROM stats WHERE short_url = '${escapeSlug(slug)}' GROUP BY date ORDER BY date`;
+  return `SELECT toDate(timestamp) AS date, count() AS clicks FROM stats_buffer WHERE short_url = '${escapeSlug(slug)}' GROUP BY date ORDER BY date`;
 }
 
 function topCountriesQuery(slug: string): string {
-  return `SELECT country_id, count() AS clicks FROM stats WHERE short_url = '${escapeSlug(slug)}' GROUP BY country_id ORDER BY clicks DESC LIMIT ${TOP_LIMIT}`;
+  return `SELECT country_id, count() AS clicks FROM stats_buffer WHERE short_url = '${escapeSlug(slug)}' GROUP BY country_id ORDER BY clicks DESC LIMIT ${TOP_LIMIT}`;
 }
 
 function topBrowsersQuery(slug: string): string {
-  return `SELECT browser_id, count() AS clicks FROM stats WHERE short_url = '${escapeSlug(slug)}' GROUP BY browser_id ORDER BY clicks DESC LIMIT ${TOP_LIMIT}`;
+  return `SELECT browser_id, count() AS clicks FROM stats_buffer WHERE short_url = '${escapeSlug(slug)}' GROUP BY browser_id ORDER BY clicks DESC LIMIT ${TOP_LIMIT}`;
 }
 
 function buildStatRow(
