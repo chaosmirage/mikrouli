@@ -231,6 +231,12 @@ kubectl apply -f k8s/base/api/migration-job.yaml
 kubectl wait --for=condition=complete job/api-migration -n mikrouli --timeout=5m
 ```
 
+### Cutover from `url-shortener`
+
+Replacing the legacy `url-shortener` deployment on the same cluster while preserving production data (users, links, click stats) follows a separate runbook with its own pre-flight checklist, dump-and-restore sequence, and rollback path:
+
+See [`k8s/CUTOVER.md`](./CUTOVER.md).
+
 ---
 
 ## Rollback
