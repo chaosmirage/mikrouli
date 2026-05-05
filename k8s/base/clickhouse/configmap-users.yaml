@@ -4,13 +4,15 @@ metadata:
   name: clickhouse-users
   namespace: mikrouli
 data:
-  users.xml: |
+  users.xml.tmpl: |
     <?xml version="1.0"?>
     <clickhouse>
       <users>
         <default>
-          <!-- Replace with SHA-256 hash of the actual password from mikrouli-secrets -->
-          <password_sha256_hex>PLACEHOLDER-SHA256-OF-CLICKHOUSE-PASSWORD</password_sha256_hex>
+          <!-- __SHA256__ is substituted at pod startup by the init container,
+               which reads CLICKHOUSE_PASSWORD from the mikrouli-secrets Secret
+               and computes its SHA-256. The hash never lives in git. -->
+          <password_sha256_hex>__SHA256__</password_sha256_hex>
           <!-- Restrict to private RFC-1918 ranges used by the cluster network -->
           <networks>
             <ip>10.0.0.0/8</ip>

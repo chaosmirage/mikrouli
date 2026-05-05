@@ -27,6 +27,36 @@ spec:
         fsGroup: 101
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        # Renders users.xml from the committed template by substituting
+        # __SHA256__ with the SHA-256 of CLICKHOUSE_PASSWORD (read from
+        # mikrouli-secrets at pod startup). Result lives in an emptyDir
+        # mounted into the main container at /etc/clickhouse-server/users.d/.
+        # This keeps the password hash out of git entirely.
+        - name: render-users-xml
+          image: busybox:1.37
+          command:
+            - sh
+            - -ec
+            - |
+              SHA256=$(printf '%s' "$CLICKHOUSE_PASSWORD" | sha256sum | awk '{print $1}')
+              sed "s|__SHA256__|${SHA256}|" /tmpl/users.xml.tmpl > /rendered/users.xml
+              chmod 0440 /rendered/users.xml
+          envFrom:
+            - secretRef:
+                name: mikrouli-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: users-config-tmpl
+              mountPath: /tmpl
+              readOnly: true
+            - name: users-config-rendered
+              mountPath: /rendered
       containers:
         - name: clickhouse
           image: clickhouse/clickhouse-server:24.3-alpine
@@ -48,7 +78,7 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/clickhouse
-            - name: users-config
+            - name: users-config-rendered
               mountPath: /etc/clickhouse-server/users.d/users.xml
               subPath: users.xml
               readOnly: true
@@ -76,9 +106,13 @@ spec:
             timeoutSeconds: 3
             failureThreshold: 3
       volumes:
-        - name: users-config
+        - name: users-config-tmpl
           configMap:
             name: clickhouse-users
+        - name: users-config-rendered
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Ki
   volumeClaimTemplates:
     - metadata:
         name: data
