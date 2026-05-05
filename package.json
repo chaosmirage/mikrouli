@@ -13,7 +13,7 @@
     "dev": "pnpm -r --parallel dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "spec:types": "openapi-typescript apps/api/spec/tsp-output/@typespec/openapi3/openapi.json --output apps/api/src/types/openapi-generated.ts && openapi-typescript apps/api/spec/tsp-output/@typespec/openapi3/openapi.json --output apps/web/src/api/openapi-generated.ts",
+    "spec:types": "openapi-typescript apps/api/spec/tsp-output/@typespec/openapi3/openapi.json --output apps/api/src/types/openapi-generated.ts && openapi-typescript apps/api/spec/tsp-output/@typespec/openapi3/openapi.json --output apps/web/src/api/openapi-generated.ts && prettier --write apps/api/src/types/openapi-generated.ts apps/web/src/api/openapi-generated.ts",
     "spec:all": "pnpm --filter api spec:compile && pnpm spec:types"
   },
   "engines": {
