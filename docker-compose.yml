@@ -82,6 +82,7 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      target: dev
     expose:
       - '5173'
     volumes:
