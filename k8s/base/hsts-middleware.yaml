@@ -1,0 +1,13 @@
+# HSTS headers middleware for production Ingress (referenced from
+# k8s/overlays/production/ingress-patch.yaml).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: hsts-headers
+  namespace: mikrouli
+spec:
+  headers:
+    stsSeconds: 31536000
+    stsIncludeSubdomains: true
+    stsPreload: true
+    forceSTSHeader: true
