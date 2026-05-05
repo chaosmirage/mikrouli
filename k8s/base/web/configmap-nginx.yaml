@@ -5,6 +5,10 @@ metadata:
   namespace: mikrouli
 data:
   default.conf: |
+    # Resolver for k8s service DNS so api ClusterIP changes are picked up
+    # without requiring an nginx reload.
+    resolver kube-dns.kube-system.svc.cluster.local valid=30s ipv6=off;
+
     server {
         listen 8080;
         server_name _;
@@ -25,6 +29,31 @@ data:
             text/javascript
             image/svg+xml;
         gzip_min_length 256;
+
+        # Proxy API calls to the api Deployment.
+        location /api/ {
+            set $api_upstream "api.mikrouli.svc.cluster.local";
+            proxy_pass http://$api_upstream:3000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_read_timeout 30s;
+        }
+
+        # 6-character short-link redirect — slugs are alphanumeric, length 6.
+        # Matches /abc123 but not /index.html, /assets/x.js, etc.
+        location ~ "^/[A-Za-z0-9]{6}$" {
+            set $api_upstream "api.mikrouli.svc.cluster.local";
+            proxy_pass http://$api_upstream:3000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_read_timeout 5s;
+            # Pass redirect responses through verbatim
+            proxy_redirect off;
+        }
 
         # Static assets — long-lived cache (content-addressed filenames from Vite)
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
