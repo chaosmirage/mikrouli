@@ -27,6 +27,7 @@ spec:
       containers:
         - name: migration
           image: ghcr.io/chaosmirage/mikrouli-api
+          workingDir: /app/apps/api
           command:
             - node
             - -e
