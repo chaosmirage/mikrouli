@@ -135,11 +135,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      security-events: write
-      # codeql-action/upload-sarif needs actions:read to fetch workflow-run
-      # metadata for fingerprinting; without it the upload step exits with
-      # "Resource not accessible by integration".
-      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -174,13 +169,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Trivy prints findings as a table directly in the runner log.
+      # No SARIF upload because Code Scanning requires GitHub Advanced
+      # Security (not available on private repos). exit-code=0 keeps the
+      # scan informational; CVEs are visible in the workflow log.
       - name: Scan api image with Trivy
         uses: aquasecurity/trivy-action@master
         if: always()
         with:
           image-ref: ${{ env.API_IMAGE }}:${{ github.sha }}
-          format: sarif
-          output: trivy-api-results.sarif
+          format: table
           severity: HIGH,CRITICAL
           exit-code: '0'
           ignore-unfixed: true
@@ -190,23 +188,10 @@ jobs:
         if: always()
         with:
           image-ref: ${{ env.WEB_IMAGE }}:${{ github.sha }}
-          format: sarif
-          output: trivy-web-results.sarif
+          format: table
           severity: HIGH,CRITICAL
           exit-code: '0'
           ignore-unfixed: true
-
-      - name: Upload api scan results to Security tab
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: trivy-api-results.sarif
-
-      - name: Upload web scan results to Security tab
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: trivy-web-results.sarif
 
   deploy-production:
     name: Deploy to Production
