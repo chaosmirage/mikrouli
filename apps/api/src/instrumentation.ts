@@ -10,7 +10,97 @@ const DEFAULT_ENDPOINT = 'http://localhost:4318';
 const DEFAULT_SERVICE_NAME = 'mikrouli-api';
 const DEFAULT_VERSION = 'dev';
 const REDACTED_VALUE = '[REDACTED]';
-const SENSITIVE_HEADERS = ['authorization', 'x-api-key', 'cookie', 'set-cookie'];
+
+// Header names redacted in BOTH directions (overzealous on purpose: Set-Cookie
+// only ever appears on responses and Authorization on requests, but blanking
+// both sides is cheaper than a false negative).
+const SENSITIVE_HEADER_NAMES = ['authorization', 'x-api-key', 'cookie', 'set-cookie'];
+const SENSITIVE_HEADER_PREFIXES = ['http.request.header.', 'http.response.header.'];
+
+// Network identifiers that constitute PII under GDPR (raw client IP).
+const SENSITIVE_NETWORK_KEYS = [
+  'http.client.ip',
+  'net.peer.ip',
+  'net.sock.peer.addr',
+  'client.address',
+  'client.socket.address',
+];
+
+// URL-like span attributes whose query strings may carry credentials.
+const URL_ATTRIBUTE_KEYS = ['http.target', 'http.url', 'url.full', 'url.path'];
+
+// Query parameter names whose values get blanked out before the URL is
+// recorded as a span attribute.
+const PII_QUERY_PARAMS = [
+  'email',
+  'password',
+  'token',
+  'access_token',
+  'refresh_token',
+  'api_key',
+  'apiKey',
+];
+
+function piiHeaderKeys(): string[] {
+  const out: string[] = [];
+  for (const prefix of SENSITIVE_HEADER_PREFIXES) {
+    out.push(...SENSITIVE_HEADER_NAMES.map((name) => `${prefix}${name}`));
+  }
+  return out;
+}
+
+const PII_ATTRIBUTE_KEYS: ReadonlySet<string> = new Set<string>([
+  ...SENSITIVE_NETWORK_KEYS,
+  ...piiHeaderKeys(),
+]);
+
+const URL_ATTRIBUTE_KEY_SET: ReadonlySet<string> = new Set<string>(URL_ATTRIBUTE_KEYS);
+
+function isPiiKey(key: string): boolean {
+  return PII_ATTRIBUTE_KEYS.has(key);
+}
+
+function isUrlLikeKey(key: string): boolean {
+  return URL_ATTRIBUTE_KEY_SET.has(key);
+}
+
+function redactSearchParams(params: URLSearchParams): URLSearchParams {
+  for (const key of PII_QUERY_PARAMS) {
+    if (params.has(key)) params.set(key, REDACTED_VALUE);
+  }
+  return params;
+}
+
+function redactQueryString(url: string): string {
+  const idx = url.indexOf('?');
+  if (idx < 0) return url;
+  const base = url.slice(0, idx);
+  const redacted = redactSearchParams(new URLSearchParams(url.slice(idx + 1)));
+  const qs = redacted.toString();
+  if (qs.length === 0) return base;
+  return `${base}?${qs}`;
+}
+
+function redactValueFor(key: string, value: unknown): unknown {
+  if (isPiiKey(key)) return REDACTED_VALUE;
+  if (typeof value === 'string' && isUrlLikeKey(key)) return redactQueryString(value);
+  return value;
+}
+
+// Public PII sanitiser — receives an arbitrary span attribute map and
+// returns a copy with sensitive keys replaced with [REDACTED] and URL-like
+// keys with their PII query parameters blanked. Pure (no span mutation).
+// Exported so tests can exercise it directly and so other modules
+// (custom instrumentations, log enrichers) can reuse the same redaction.
+export function sanitiseAttributes(
+  attrs: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(attrs)) {
+    out[key] = redactValueFor(key, value);
+  }
+  return out;
+}
 
 export interface OtelConfig {
   endpoint: string;
@@ -36,16 +126,27 @@ export function buildResource(config: OtelConfig): Resource {
   });
 }
 
+function blankAttributesForPrefix(prefix: string): Record<string, unknown> {
+  const blanks: Record<string, unknown> = {};
+  for (const name of SENSITIVE_HEADER_NAMES) {
+    blanks[`${prefix}${name}`] = '';
+  }
+  return blanks;
+}
+
+function applyAttributeMap(span: Span, map: Record<string, unknown>): void {
+  const sanitised = sanitiseAttributes(map);
+  for (const [key, value] of Object.entries(sanitised)) {
+    span.setAttribute(key, value as string);
+  }
+}
+
 function redactRequestHeaders(span: Span): void {
-  SENSITIVE_HEADERS.forEach((header) => {
-    span.setAttribute(`http.request.header.${header}`, REDACTED_VALUE);
-  });
+  applyAttributeMap(span, blankAttributesForPrefix('http.request.header.'));
 }
 
 function redactResponseHeaders(span: Span): void {
-  SENSITIVE_HEADERS.forEach((header) => {
-    span.setAttribute(`http.response.header.${header}`, REDACTED_VALUE);
-  });
+  applyAttributeMap(span, blankAttributesForPrefix('http.response.header.'));
 }
 
 function buildHttpInstrumentationConfig() {
