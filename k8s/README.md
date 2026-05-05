@@ -36,7 +36,6 @@ grep -rl 'ghcr.io/OWNER' k8s/ | xargs sed -i 's|ghcr.io/OWNER|ghcr.io/your-org|g
 
 | Secret                  | Description                                     |
 | ----------------------- | ----------------------------------------------- |
-| `KUBECONFIG_STAGING`    | Full kubeconfig YAML for the staging cluster    |
 | `KUBECONFIG_PRODUCTION` | Full kubeconfig YAML for the production cluster |
 | `SEALED_SECRETS_CERT`   | Public cert from `kubeseal --fetch-cert`        |
 
@@ -200,20 +199,10 @@ SDK reference: <https://opentelemetry.io/docs/languages/js/getting-started/nodej
 - `kubectl` configured to the target cluster
 - Sealed secrets already applied (see above)
 
-### Staging
-
-```bash
-# CI does this automatically on push to main.
-# Manual deploy:
-kubectl apply -k k8s/overlays/staging
-kubectl rollout status deployment/api -n mikrouli --timeout=5m
-kubectl rollout status deployment/web -n mikrouli --timeout=5m
-```
-
 ### Production
 
 ```bash
-# CI does this automatically on tag push (v*).
+# CI deploys via the Build, Test, Scan, and Deploy workflow (workflow_dispatch only).
 # Manual deploy — always specify an exact git SHA, never :latest:
 SHA=$(git rev-parse HEAD)
 sed "s/GITSHA-PLACEHOLDER/$SHA/g" k8s/overlays/production/kustomization.yaml \

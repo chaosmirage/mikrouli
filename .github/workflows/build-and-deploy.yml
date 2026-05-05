@@ -196,43 +196,10 @@ jobs:
         with:
           sarif_file: trivy-web-results.sarif
 
-  deploy-staging:
-    name: Deploy to Staging
-    needs: [build-and-scan, e2e]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment: staging
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configure kubectl for staging
-        run: |
-          mkdir -p ~/.kube
-          printf '%s' "$KUBECONFIG_STAGING" > ~/.kube/config
-          chmod 600 ~/.kube/config
-        env:
-          KUBECONFIG_STAGING: ${{ secrets.KUBECONFIG_STAGING }}
-
-      - name: Pin image tags to current SHA
-        run: |
-          sed -i "s/newTag: main/newTag: ${{ github.sha }}/g" \
-            k8s/overlays/staging/kustomization.yaml
-
-      - name: Deploy to staging
-        run: kubectl apply -k k8s/overlays/staging
-
-      - name: Wait for api rollout
-        run: kubectl rollout status deployment/api -n mikrouli --timeout=5m
-
-      - name: Wait for web rollout
-        run: kubectl rollout status deployment/web -n mikrouli --timeout=5m
-
   deploy-production:
     name: Deploy to Production
     needs: [build-and-scan, e2e]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
     environment: production
     steps:
       - name: Checkout
