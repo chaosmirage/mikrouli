@@ -4,6 +4,8 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import MenuItem from '@mui/material/MenuItem';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -31,7 +33,11 @@ function LocaleSwitcher() {
       size="small"
       data-testid="locale-switcher"
       inputProps={{ 'aria-label': t('language') }}
-      sx={{ color: 'inherit', '& .MuiOutlinedInput-notchedOutline': { border: 'none' } }}
+      sx={{
+        color: 'text.secondary',
+        fontSize: '0.875rem',
+        '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+      }}
     >
       <MenuItem value="en" data-testid="locale-option-en">
         English
@@ -47,10 +53,19 @@ function GuestNav({ navigate }: GuestNavProps) {
   const { t } = useTranslation('common');
   return (
     <>
-      <Button color="inherit" onClick={() => navigate('/login')} data-testid="nav-login">
+      <Button
+        onClick={() => navigate('/login')}
+        data-testid="nav-login"
+        sx={{ color: 'text.primary' }}
+      >
         {t('login')}
       </Button>
-      <Button color="inherit" onClick={() => navigate('/register')} data-testid="nav-register">
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => navigate('/register')}
+        data-testid="nav-register"
+      >
         {t('register')}
       </Button>
     </>
@@ -61,16 +76,33 @@ function AuthNav({ email, onLogout, navigate }: AuthNavProps) {
   const { t } = useTranslation('common');
   return (
     <>
-      <Button color="inherit" onClick={() => navigate('/dashboard')} data-testid="nav-dashboard">
+      <Button
+        onClick={() => navigate('/dashboard')}
+        data-testid="nav-dashboard"
+        sx={{ color: 'text.primary' }}
+      >
         {t('dashboard')}
       </Button>
-      <Button color="inherit" onClick={() => navigate('/api-keys')} data-testid="nav-api-keys">
+      <Button
+        onClick={() => navigate('/api-keys')}
+        data-testid="nav-api-keys"
+        sx={{ color: 'text.primary' }}
+      >
         {t('apiKeys')}
       </Button>
-      <Typography component="span" sx={{ mx: 1 }} data-testid="nav-user-email">
+      <Typography
+        component="span"
+        data-testid="nav-user-email"
+        sx={{ color: 'text.secondary', fontSize: '0.875rem', mx: 1 }}
+      >
         {email}
       </Typography>
-      <Button color="inherit" onClick={onLogout} data-testid="nav-logout">
+      <Button
+        variant="outlined"
+        onClick={onLogout}
+        data-testid="nav-logout"
+        sx={{ color: 'text.primary' }}
+      >
         {t('logout')}
       </Button>
     </>
@@ -90,9 +122,9 @@ export default function AppShell() {
     <Typography
       variant="h6"
       component="span"
-      sx={{ flexGrow: 1, cursor: 'pointer' }}
       onClick={() => navigate('/')}
       data-testid="nav-title"
+      sx={{ cursor: 'pointer', fontWeight: 700, color: 'text.primary' }}
     >
       {t('appName')}
     </Typography>
@@ -100,13 +132,16 @@ export default function AppShell() {
   return (
     <>
       <AppBar position="static" data-testid="app-bar">
-        <Toolbar data-testid="nav-toolbar">
+        <Toolbar data-testid="nav-toolbar" sx={{ gap: 1.5 }}>
           {title}
-          {navContent}
-          <LocaleSwitcher />
+          <Box sx={{ flexGrow: 1 }} />
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            {navContent}
+            <LocaleSwitcher />
+          </Stack>
         </Toolbar>
       </AppBar>
-      <Container maxWidth="lg" sx={{ py: 4 }} data-testid="page-content">
+      <Container maxWidth="md" sx={{ py: 5 }} data-testid="page-content">
         <Outlet />
       </Container>
     </>
