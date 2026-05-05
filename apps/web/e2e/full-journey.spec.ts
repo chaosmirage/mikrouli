@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
-import type { Browser, Page, APIRequestContext } from '@playwright/test';
-import { registerAndLogin, apiCall } from './fixtures';
+import { test, expect } from './fixtures';
+import type { ApiClient } from './fixtures';
+import type { Browser, Page } from '@playwright/test';
 
 const JOURNEY_URL = 'https://example.com/journey-link';
 const JOURNEY_API_URL = 'https://example.com/api-key-journey';
@@ -26,14 +26,12 @@ async function openSlugIncognito(browser: Browser, slug: string): Promise<void> 
 
 async function assertStatsFlush(
   page: Page,
-  request: APIRequestContext,
+  api: ApiClient,
   slug: string,
-  token: string,
 ): Promise<void> {
   await page.waitForTimeout(STATS_FLUSH_WAIT_MS);
   await page.goto(`/stats/${slug}`);
-  const headers = { Authorization: `Bearer ${token}` };
-  const resp = await apiCall(request, 'GET', `/api/stats/${slug}`, { headers });
+  const resp = await api.call('GET', `/api/stats/${slug}`);
   const body = (await resp.json()) as { totalClicks: number };
   expect(body.totalClicks).toBeGreaterThanOrEqual(1);
 }
@@ -50,58 +48,70 @@ async function createKeyAndCaptureSecret(page: Page): Promise<string> {
 
 async function revokeKeyByLabel(
   page: Page,
-  request: APIRequestContext,
+  api: ApiClient,
   label: string,
-  token: string,
 ): Promise<void> {
-  const headers = { Authorization: `Bearer ${token}` };
-  const resp = await apiCall(request, 'GET', '/api/api-keys', { headers });
+  const resp = await api.call('GET', '/api/api-keys');
   const body = (await resp.json()) as { data: Array<{ id: string; label: string }> };
   const keyEntry = body.data.find((k) => k.label === label);
-  await page.getByTestId(`revoke-${keyEntry?.id ?? ''}`).click();
+  const id = keyEntry?.id ?? '';
+  await page.getByTestId(`revoke-${id}`).click();
+  // Wait for DELETE to commit before returning so the caller can assume
+  // the key is fully revoked (otherwise next API call may race).
+  const revokeResponse = page.waitForResponse(
+    (r) => r.url().includes(`/api/api-keys/${id}`) && r.request().method() === 'DELETE',
+  );
   await page.getByTestId('revoke-confirm').click();
+  await revokeResponse;
 }
 
 async function deleteLinkBySlug(page: Page, slug: string): Promise<void> {
   await page.goto('/dashboard');
   await expect(page.getByTestId(`delete-${slug}`)).toBeVisible();
   await page.getByTestId(`delete-${slug}`).click();
+  // Same pattern: ensure DELETE /api/urls/{slug} committed before caller
+  // tries to assert the slug is gone.
+  const deleteResponse = page.waitForResponse(
+    (r) => r.url().includes(`/api/urls/${slug}`) && r.request().method() === 'DELETE',
+  );
   await page.getByTestId('delete-confirm').click();
+  await deleteResponse;
 }
 
-test('full user journey from register through delete', async ({ page, request, browser }) => {
+test('full user journey from register through delete', async ({ page, api, browser }) => {
   test.setTimeout(JOURNEY_TIMEOUT_MS);
-
-  const { accessToken } = await registerAndLogin(page);
-  const token = accessToken ?? '';
 
   const shortUrl = await createLinkViaUi(page, JOURNEY_URL);
   const slug = shortUrl.split('/').at(-1) ?? '';
 
   await openSlugIncognito(browser, slug);
-  await assertStatsFlush(page, request, slug, token);
+  await assertStatsFlush(page, api, slug);
 
   await page.goto('/api-keys');
   const secret = await createKeyAndCaptureSecret(page);
 
-  const apiKeyHeader = { 'X-API-Key': secret };
   const apiLinkData = { url: JOURNEY_API_URL };
-  const apiLinkResp = await apiCall(request, 'POST', '/api/urls', {
-    headers: apiKeyHeader,
+  // Use X-API-Key auth only (suppress bearer so the api-key path is exercised)
+  const apiLinkResp = await api.call('POST', '/api/urls', {
+    noAuth: true,
+    headers: { 'X-API-Key': secret },
     data: apiLinkData,
   });
   expect(apiLinkResp.status()).toBe(201);
 
-  await revokeKeyByLabel(page, request, JOURNEY_KEY_LABEL, token);
+  await revokeKeyByLabel(page, api, JOURNEY_KEY_LABEL);
 
-  const revokedResp = await apiCall(request, 'POST', '/api/urls', {
-    headers: apiKeyHeader,
+  // Revoked key must yield 401 (noAuth suppresses bearer so only the revoked key is sent)
+  const revokedResp = await api.call('POST', '/api/urls', {
+    noAuth: true,
+    headers: { 'X-API-Key': secret },
     data: { url: 'https://example.com' },
   });
   expect(revokedResp.status()).toBe(401);
 
   await deleteLinkBySlug(page, slug);
 
-  const notFoundResp = await apiCall(request, 'GET', `/${slug}`);
+  // Unauthenticated redirect lookup on a deleted slug must return 404
+  const notFoundResp = await api.call('GET', `/${slug}`, { noAuth: true });
   expect(notFoundResp.status()).toBe(404);
 });
