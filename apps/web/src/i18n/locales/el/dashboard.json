@@ -1,0 +1,17 @@
+{
+  "title": "Πίνακας ελέγχου",
+  "shorten": "Σύντμηση URL",
+  "longUrl": "Πλήρες URL",
+  "shortLink": "Σύντομος σύνδεσμος",
+  "yourLinks": "Οι σύνδεσμοί σας",
+  "createdAt": "Δημιουργήθηκε",
+  "expiresAt": "Λήγει",
+  "actions": "Ενέργειες",
+  "noLinks": "Δεν υπάρχουν σύνδεσμοι ακόμη — δημιουργήστε έναν παραπάνω",
+  "shortUrl": "Σύντομο URL",
+  "originalUrl": "Αρχικό URL",
+  "statsLabel": "Στατιστικά",
+  "deleteLink": "Διαγραφή συνδέσμου;",
+  "deleteLinkBody": "Αυτή η ενέργεια θα διαγράψει οριστικά το {{slug}}.",
+  "shortenLabel": "Σύντμηση"
+}

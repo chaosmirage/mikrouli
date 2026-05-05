@@ -18,8 +18,16 @@ import deApiKeys from './locales/de/apiKeys.json';
 import deErrors from './locales/de/errors.json';
 import deLanding from './locales/de/landing.json';
 
+import elCommon from './locales/el/common.json';
+import elAuth from './locales/el/auth.json';
+import elDashboard from './locales/el/dashboard.json';
+import elStats from './locales/el/stats.json';
+import elApiKeys from './locales/el/apiKeys.json';
+import elErrors from './locales/el/errors.json';
+import elLanding from './locales/el/landing.json';
+
 const LOCALE_STORAGE_KEY = 'mikrouli.locale';
-const SUPPORTED_LANGS = ['en', 'de'] as const;
+const SUPPORTED_LANGS = ['en', 'de', 'el'] as const;
 const NAMESPACES = ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors', 'landing'] as const;
 
 const EN_RESOURCES = {
@@ -40,9 +48,18 @@ const DE_RESOURCES = {
   errors: deErrors,
   landing: deLanding,
 };
+const EL_RESOURCES = {
+  common: elCommon,
+  auth: elAuth,
+  dashboard: elDashboard,
+  stats: elStats,
+  apiKeys: elApiKeys,
+  errors: elErrors,
+  landing: elLanding,
+};
 
 function buildResources() {
-  return { en: EN_RESOURCES, de: DE_RESOURCES };
+  return { en: EN_RESOURCES, de: DE_RESOURCES, el: EL_RESOURCES };
 }
 
 // Default to English for fresh visitors.

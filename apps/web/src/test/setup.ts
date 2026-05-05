@@ -18,6 +18,14 @@ import deApiKeys from '../i18n/locales/de/apiKeys.json';
 import deErrors from '../i18n/locales/de/errors.json';
 import deLanding from '../i18n/locales/de/landing.json';
 
+import elCommon from '../i18n/locales/el/common.json';
+import elAuth from '../i18n/locales/el/auth.json';
+import elDashboard from '../i18n/locales/el/dashboard.json';
+import elStats from '../i18n/locales/el/stats.json';
+import elApiKeys from '../i18n/locales/el/apiKeys.json';
+import elErrors from '../i18n/locales/el/errors.json';
+import elLanding from '../i18n/locales/el/landing.json';
+
 const TEST_EN = {
   common: enCommon,
   auth: enAuth,
@@ -36,11 +44,20 @@ const TEST_DE = {
   errors: deErrors,
   landing: deLanding,
 };
+const TEST_EL = {
+  common: elCommon,
+  auth: elAuth,
+  dashboard: elDashboard,
+  stats: elStats,
+  apiKeys: elApiKeys,
+  errors: elErrors,
+  landing: elLanding,
+};
 
 void i18next.use(initReactI18next).init({
   lng: 'en',
   fallbackLng: 'en',
-  resources: { en: TEST_EN, de: TEST_DE },
+  resources: { en: TEST_EN, de: TEST_DE, el: TEST_EL },
   ns: ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors', 'landing'],
   defaultNS: 'common',
   interpolation: { escapeValue: false },

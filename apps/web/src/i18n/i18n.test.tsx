@@ -45,6 +45,15 @@ describe('locale switching', () => {
     expect(screen.getByText('Registrieren')).toBeInTheDocument();
   });
 
+  it('switching to el renders Greek nav labels', async () => {
+    renderShell();
+    await act(async () => {
+      await i18next.changeLanguage('el');
+    });
+    expect(screen.getByText('Σύνδεση')).toBeInTheDocument();
+    expect(screen.getByText('Εγγραφή')).toBeInTheDocument();
+  });
+
   it('switching back to en renders English nav labels', async () => {
     await act(async () => {
       await i18next.changeLanguage('de');

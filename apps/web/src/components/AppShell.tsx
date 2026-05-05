@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
@@ -10,33 +11,51 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 
+const LOCALE_SELECT_SX = {
+  color: 'text.secondary',
+  fontSize: '0.875rem',
+  '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+} as const;
+
+const NAV_BUTTON_SX = { color: 'text.primary' } as const;
+
+const NAV_TITLE_SX = { cursor: 'pointer', fontWeight: 700, color: 'text.primary' } as const;
+
+const TOOLBAR_SX = { gap: 1.5 } as const;
+
+const FLEX_GROW_SX = { flexGrow: 1 } as const;
+
+const USER_EMAIL_SX = { color: 'text.secondary', fontSize: '0.875rem', mx: 1 } as const;
+
 interface GuestNavProps {
-  navigate: (to: string) => void;
+  onLogin: () => void;
+  onRegister: () => void;
 }
 
 interface AuthNavProps {
   email: string;
   onLogout: () => void;
-  navigate: (to: string) => void;
+  onDashboard: () => void;
+  onApiKeys: () => void;
 }
 
 function LocaleSwitcher() {
   const { i18n, t } = useTranslation('common');
-  const handleChange = (e: SelectChangeEvent) => {
-    void i18n.changeLanguage(e.target.value);
-  };
+  const handleChange = useCallback(
+    (e: SelectChangeEvent) => {
+      void i18n.changeLanguage(e.target.value);
+    },
+    [i18n],
+  );
+  const localeSelectInputProps = { 'aria-label': t('language') };
   return (
     <Select
       value={i18n.resolvedLanguage ?? i18n.language}
       onChange={handleChange}
       size="small"
       data-testid="locale-switcher"
-      inputProps={{ 'aria-label': t('language') }}
-      sx={{
-        color: 'text.secondary',
-        fontSize: '0.875rem',
-        '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-      }}
+      inputProps={localeSelectInputProps}
+      sx={LOCALE_SELECT_SX}
     >
       <MenuItem value="en" data-testid="locale-option-en">
         English
@@ -44,25 +63,24 @@ function LocaleSwitcher() {
       <MenuItem value="de" data-testid="locale-option-de">
         Deutsch
       </MenuItem>
+      <MenuItem value="el" data-testid="locale-option-el">
+        Ελληνικά
+      </MenuItem>
     </Select>
   );
 }
 
-function GuestNav({ navigate }: GuestNavProps) {
+function GuestNav({ onLogin, onRegister }: GuestNavProps) {
   const { t } = useTranslation('common');
   return (
     <>
-      <Button
-        onClick={() => navigate('/login')}
-        data-testid="nav-login"
-        sx={{ color: 'text.primary' }}
-      >
+      <Button onClick={onLogin} data-testid="nav-login" sx={NAV_BUTTON_SX}>
         {t('login')}
       </Button>
       <Button
         variant="contained"
         color="primary"
-        onClick={() => navigate('/register')}
+        onClick={onRegister}
         data-testid="nav-register"
       >
         {t('register')}
@@ -71,37 +89,20 @@ function GuestNav({ navigate }: GuestNavProps) {
   );
 }
 
-function AuthNav({ email, onLogout, navigate }: AuthNavProps) {
+function AuthNav({ email, onLogout, onDashboard, onApiKeys }: AuthNavProps) {
   const { t } = useTranslation('common');
   return (
     <>
-      <Button
-        onClick={() => navigate('/dashboard')}
-        data-testid="nav-dashboard"
-        sx={{ color: 'text.primary' }}
-      >
+      <Button onClick={onDashboard} data-testid="nav-dashboard" sx={NAV_BUTTON_SX}>
         {t('dashboard')}
       </Button>
-      <Button
-        onClick={() => navigate('/api-keys')}
-        data-testid="nav-api-keys"
-        sx={{ color: 'text.primary' }}
-      >
+      <Button onClick={onApiKeys} data-testid="nav-api-keys" sx={NAV_BUTTON_SX}>
         {t('apiKeys')}
       </Button>
-      <Typography
-        component="span"
-        data-testid="nav-user-email"
-        sx={{ color: 'text.secondary', fontSize: '0.875rem', mx: 1 }}
-      >
+      <Typography component="span" data-testid="nav-user-email" sx={USER_EMAIL_SX}>
         {email}
       </Typography>
-      <Button
-        variant="outlined"
-        onClick={onLogout}
-        data-testid="nav-logout"
-        sx={{ color: 'text.primary' }}
-      >
+      <Button variant="outlined" onClick={onLogout} data-testid="nav-logout" sx={NAV_BUTTON_SX}>
         {t('logout')}
       </Button>
     </>
@@ -112,18 +113,30 @@ export default function AppShell() {
   const { user, logout } = useAuth();
   const { t } = useTranslation('common');
   const navigate = useNavigate();
+
+  const handleLogin = useCallback(() => navigate('/login'), [navigate]);
+  const handleRegister = useCallback(() => navigate('/register'), [navigate]);
+  const handleDashboard = useCallback(() => navigate('/dashboard'), [navigate]);
+  const handleApiKeys = useCallback(() => navigate('/api-keys'), [navigate]);
+  const handleHome = useCallback(() => navigate('/'), [navigate]);
+
   const navContent = user ? (
-    <AuthNav email={user.email} onLogout={logout} navigate={navigate} />
+    <AuthNav
+      email={user.email}
+      onLogout={logout}
+      onDashboard={handleDashboard}
+      onApiKeys={handleApiKeys}
+    />
   ) : (
-    <GuestNav navigate={navigate} />
+    <GuestNav onLogin={handleLogin} onRegister={handleRegister} />
   );
   const title = (
     <Typography
       variant="h6"
       component="span"
-      onClick={() => navigate('/')}
+      onClick={handleHome}
       data-testid="nav-title"
-      sx={{ cursor: 'pointer', fontWeight: 700, color: 'text.primary' }}
+      sx={NAV_TITLE_SX}
     >
       {t('appName')}
     </Typography>
@@ -131,9 +144,9 @@ export default function AppShell() {
   return (
     <>
       <AppBar position="static" data-testid="app-bar">
-        <Toolbar data-testid="nav-toolbar" sx={{ gap: 1.5 }}>
+        <Toolbar data-testid="nav-toolbar" sx={TOOLBAR_SX}>
           {title}
-          <Box sx={{ flexGrow: 1 }} />
+          <Box sx={FLEX_GROW_SX} />
           <Stack direction="row" alignItems="center" spacing={1.5}>
             {navContent}
             <LocaleSwitcher />

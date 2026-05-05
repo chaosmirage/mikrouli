@@ -1,0 +1,16 @@
+{
+  "appName": "mikrouli",
+  "loading": "Φόρτωση…",
+  "save": "Αποθήκευση",
+  "cancel": "Ακύρωση",
+  "delete": "Διαγραφή",
+  "copy": "Αντιγραφή",
+  "copied": "Αντιγράφηκε",
+  "logout": "Αποσύνδεση",
+  "language": "Γλώσσα",
+  "login": "Σύνδεση",
+  "register": "Εγγραφή",
+  "dashboard": "Πίνακας ελέγχου",
+  "apiKeys": "Κλειδιά API",
+  "dismiss": "Παράβλεψη"
+}
