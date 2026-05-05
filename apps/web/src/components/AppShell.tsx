@@ -2,7 +2,6 @@ import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
 import MenuItem from '@mui/material/MenuItem';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
@@ -141,9 +140,9 @@ export default function AppShell() {
           </Stack>
         </Toolbar>
       </AppBar>
-      <Container maxWidth="md" sx={{ py: 5 }} data-testid="page-content">
+      <Box component="main" data-testid="page-content">
         <Outlet />
-      </Container>
+      </Box>
     </>
   );
 }
