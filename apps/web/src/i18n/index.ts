@@ -8,6 +8,7 @@ import enDashboard from './locales/en/dashboard.json';
 import enStats from './locales/en/stats.json';
 import enApiKeys from './locales/en/apiKeys.json';
 import enErrors from './locales/en/errors.json';
+import enLanding from './locales/en/landing.json';
 
 import deCommon from './locales/de/common.json';
 import deAuth from './locales/de/auth.json';
@@ -15,10 +16,11 @@ import deDashboard from './locales/de/dashboard.json';
 import deStats from './locales/de/stats.json';
 import deApiKeys from './locales/de/apiKeys.json';
 import deErrors from './locales/de/errors.json';
+import deLanding from './locales/de/landing.json';
 
 const LOCALE_STORAGE_KEY = 'mikrouli.locale';
 const SUPPORTED_LANGS = ['en', 'de'] as const;
-const NAMESPACES = ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors'] as const;
+const NAMESPACES = ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors', 'landing'] as const;
 
 const EN_RESOURCES = {
   common: enCommon,
@@ -27,6 +29,7 @@ const EN_RESOURCES = {
   stats: enStats,
   apiKeys: enApiKeys,
   errors: enErrors,
+  landing: enLanding,
 };
 const DE_RESOURCES = {
   common: deCommon,
@@ -35,6 +38,7 @@ const DE_RESOURCES = {
   stats: deStats,
   apiKeys: deApiKeys,
   errors: deErrors,
+  landing: deLanding,
 };
 
 function buildResources() {

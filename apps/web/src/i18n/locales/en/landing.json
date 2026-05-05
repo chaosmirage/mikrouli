@@ -1,0 +1,17 @@
+{
+  "heroHeadlinePrefix": "Shorten your links,",
+  "heroHeadlineHighlight": "track every click",
+  "heroSubheadline": "The simple link shortener with built-in analytics. See who clicks, where they are, and what they use — completely free.",
+  "ctaGetStarted": "Get started free",
+  "ctaSignIn": "Sign in",
+  "featuresTitle": "Everything you need",
+  "featuresSubtitle": "Three powerful tools, zero complexity.",
+  "feature1Title": "Instant Shortening",
+  "feature1Body": "Paste a long URL and get a short link in under a second. Simple, fast, and reliable.",
+  "feature2Title": "Detailed Analytics",
+  "feature2Body": "Track clicks, geography, browsers, and devices in real time. Know exactly how your links perform.",
+  "feature3Title": "API for Automation",
+  "feature3Body": "Integrate link shortening into your scripts and CI/CD pipelines with a simple REST API.",
+  "bottomCtaTitle": "Ready to get started?",
+  "bottomCtaBody": "Create an account in 30 seconds and start shortening links right now."
+}

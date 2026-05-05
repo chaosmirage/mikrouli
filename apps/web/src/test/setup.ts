@@ -8,6 +8,7 @@ import enDashboard from '../i18n/locales/en/dashboard.json';
 import enStats from '../i18n/locales/en/stats.json';
 import enApiKeys from '../i18n/locales/en/apiKeys.json';
 import enErrors from '../i18n/locales/en/errors.json';
+import enLanding from '../i18n/locales/en/landing.json';
 
 import deCommon from '../i18n/locales/de/common.json';
 import deAuth from '../i18n/locales/de/auth.json';
@@ -15,6 +16,7 @@ import deDashboard from '../i18n/locales/de/dashboard.json';
 import deStats from '../i18n/locales/de/stats.json';
 import deApiKeys from '../i18n/locales/de/apiKeys.json';
 import deErrors from '../i18n/locales/de/errors.json';
+import deLanding from '../i18n/locales/de/landing.json';
 
 const TEST_EN = {
   common: enCommon,
@@ -23,6 +25,7 @@ const TEST_EN = {
   stats: enStats,
   apiKeys: enApiKeys,
   errors: enErrors,
+  landing: enLanding,
 };
 const TEST_DE = {
   common: deCommon,
@@ -31,13 +34,14 @@ const TEST_DE = {
   stats: deStats,
   apiKeys: deApiKeys,
   errors: deErrors,
+  landing: deLanding,
 };
 
 void i18next.use(initReactI18next).init({
   lng: 'en',
   fallbackLng: 'en',
   resources: { en: TEST_EN, de: TEST_DE },
-  ns: ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors'],
+  ns: ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors', 'landing'],
   defaultNS: 'common',
   interpolation: { escapeValue: false },
 });

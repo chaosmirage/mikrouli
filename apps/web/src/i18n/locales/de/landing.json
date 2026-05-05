@@ -1,0 +1,17 @@
+{
+  "heroHeadlinePrefix": "Kürze deine Links,",
+  "heroHeadlineHighlight": "verfolge jeden Klick",
+  "heroSubheadline": "Der einfache Link-Verkürzer mit integrierter Analyse. Sieh, wer klickt, woher sie kommen und was sie verwenden — komplett kostenlos.",
+  "ctaGetStarted": "Kostenlos starten",
+  "ctaSignIn": "Anmelden",
+  "featuresTitle": "Alles, was du brauchst",
+  "featuresSubtitle": "Drei leistungsstarke Werkzeuge, null Komplexität.",
+  "feature1Title": "Sofortiges Kürzen",
+  "feature1Body": "Lange URL einfügen und in weniger als einer Sekunde einen Kurzlink erhalten. Einfach, schnell und zuverlässig.",
+  "feature2Title": "Detaillierte Analyse",
+  "feature2Body": "Verfolge Klicks, Geografie, Browser und Geräte in Echtzeit. Erfahre genau, wie deine Links funktionieren.",
+  "feature3Title": "API für Automatisierung",
+  "feature3Body": "Integriere die Linkkürzung in deine Skripte und CI/CD-Pipelines über eine einfache REST-API.",
+  "bottomCtaTitle": "Bereit loszulegen?",
+  "bottomCtaBody": "Erstelle in 30 Sekunden ein Konto und beginne sofort mit der Linkkürzung."
+}
