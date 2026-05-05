@@ -13,7 +13,10 @@ const apiProxy = {
 const server = {
   port: VITE_DEV_PORT,
   host: true,
-  proxy: { '/api': apiProxy },
+  // Trailing slash matters: `/api` (no slash) would also intercept the SPA
+  // route `/api-keys` and try to proxy it to the API. `/api/` only matches
+  // actual API paths and lets `/api-keys` fall through to vite's SPA handler.
+  proxy: { '/api/': apiProxy },
 };
 
 const build = {
