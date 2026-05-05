@@ -86,6 +86,9 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter web exec playwright install --with-deps chromium
 
+      - name: Seed CI .env from example
+        run: cp .env.example .env
+
       - name: Start docker-compose stack
         run: docker compose up -d --build
 
