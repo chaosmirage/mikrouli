@@ -13,6 +13,11 @@ data:
         listen 8080;
         server_name _;
 
+        # Force UTF-8 for text responses so robots.txt / sitemap.xml /
+        # SPA fallback don't get mis-decoded as CP1251 by Russian browsers.
+        charset utf-8;
+        charset_types text/plain text/xml application/xml application/javascript text/css application/json;
+
         root /usr/share/nginx/html;
         index index.html;
 
