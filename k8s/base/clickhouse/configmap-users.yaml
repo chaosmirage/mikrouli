@@ -17,11 +17,13 @@ data:
                mikrouli-secrets Secret and computes its SHA-256. The hash
                never lives in git. -->
           <password_sha256_hex>__SHA256__</password_sha256_hex>
-          <!-- Restrict to private RFC-1918 ranges used by the cluster network -->
+          <!-- Network access is enforced at the K8s NetworkPolicy layer
+               (only api pods in this namespace can reach ClickHouse).
+               Duplicating IP rules here only blocked legitimate traffic
+               (e.g. ::ffff:127.0.0.1 from clickhouse-client and 10.42.x.x
+               pod CIDR on k3s). The hash check is the real auth boundary. -->
           <networks>
-            <ip>10.0.0.0/8</ip>
-            <ip>172.16.0.0/12</ip>
-            <ip>192.168.0.0/16</ip>
+            <ip>::/0</ip>
           </networks>
           <profile>default</profile>
           <quota>default</quota>
