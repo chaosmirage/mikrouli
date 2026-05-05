@@ -1,15 +1,14 @@
 # mikrouli robots.txt
 #
 # Public surface:
-#   /            — landing page (indexable)
-#   /[6 chars]   — short-URL redirects (302 to user-supplied target; allow so the
-#                  redirect chain is followed by crawlers, but no semantic content)
+#   /             — landing page (indexable)
+#   /[6 chars]    — short-URL redirects (302 to user-supplied target;
+#                   crawlers follow the redirect, no semantic content)
 #
 # Private surface (auth-protected, per-user state, not SEO-relevant):
 #   /login, /register, /dashboard, /stats/*, /api-keys, /api/*
 
 User-agent: *
-Allow: /$
 Disallow: /login
 Disallow: /register
 Disallow: /dashboard
@@ -17,7 +16,6 @@ Disallow: /stats/
 Disallow: /api-keys
 Disallow: /api/
 
-# Allow short URL redirects to be followed (crawlers see 302s, not content)
-Allow: /
+# Everything else (root + 6-char redirect slugs) is implicitly allowed.
 
 Sitemap: https://mikrou.li/sitemap.xml
