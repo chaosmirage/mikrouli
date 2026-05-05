@@ -6,7 +6,7 @@ Stack: NestJS + React + MUI v5 + PostgreSQL + Redis (primary + replica) + ClickH
 
 ## Prerequisites
 
-- Node.js 20 (see `.nvmrc`)
+- Node.js 24 (see `.nvmrc`)
 - pnpm 9+
 - Docker and Docker Compose v2
 

@@ -25,7 +25,7 @@ spec:
       serviceAccountName: api
       securityContext:
         runAsNonRoot: true
-        # NestJS runs as node user (UID 1000) in node:20-alpine
+        # NestJS runs as node user (UID 1000) in node:24-alpine
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000

@@ -8,7 +8,7 @@
 # =============================================================================
 # Stage 1: builder
 # =============================================================================
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -29,7 +29,7 @@ RUN pnpm --filter api build
 # =============================================================================
 # Stage 2: production
 # =============================================================================
-FROM node:20-alpine AS production
+FROM node:24-alpine AS production
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 

@@ -17,7 +17,7 @@
     "spec:all": "pnpm --filter api spec:compile && pnpm spec:types"
   },
   "engines": {
-    "node": ">=20",
+    "node": ">=24",
     "pnpm": ">=9"
   },
   "devDependencies": {

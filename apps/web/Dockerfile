@@ -3,7 +3,7 @@
 # Development image for the React/Vite application.
 # Vite dev server binds to 0.0.0.0 so Nginx can reach it.
 
-FROM node:20-alpine
+FROM node:24-alpine
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
