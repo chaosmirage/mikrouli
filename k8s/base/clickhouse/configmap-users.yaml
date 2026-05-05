@@ -7,11 +7,11 @@ data:
   users.xml.tmpl: |
     <?xml version="1.0"?>
     <clickhouse>
-      <users>
-        <!-- replace="replace" overrides the default-user entry shipped in
-             /etc/clickhouse-server/users.xml entirely. Without it, the base
-             <no_password/> field collides with our <password_sha256_hex>. -->
-        <default replace="replace">
+      <!-- replace="replace" on <users> overrides the entire user list shipped
+           in the base /etc/clickhouse-server/users.xml. Without this, the base
+           default user (with <no_password/>) collides with our hash entry. -->
+      <users replace="replace">
+        <default>
           <!-- The placeholder below is substituted at pod startup by the
                init container, which reads CLICKHOUSE_PASSWORD from the
                mikrouli-secrets Secret and computes its SHA-256. The hash
