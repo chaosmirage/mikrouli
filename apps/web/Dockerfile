@@ -1,9 +1,14 @@
 # apps/web/Dockerfile
 #
-# Development image for the React/Vite application.
-# Vite dev server binds to 0.0.0.0 so Nginx can reach it.
+# Multi-stage build for the React/Vite frontend.
+#
+# Stage 1 (builder)    — install deps + build the SPA bundle
+# Stage 2 (production) — nginx-unprivileged serving static assets only
 
-FROM node:24-alpine
+# =============================================================================
+# Stage 1: builder
+# =============================================================================
+FROM node:24-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -14,16 +19,20 @@ COPY package.json pnpm-workspace.yaml ./
 COPY pnpm-lock.yaml* ./
 COPY apps/web/package.json ./apps/web/
 
-# Install dependencies
-RUN pnpm install --filter web...
+RUN pnpm install --filter web... --frozen-lockfile
 
 # Copy web source
 COPY apps/web/ ./apps/web/
 
-# Vite needs write access to its temp files in the source directory
-RUN chown -R node:node /app/apps/web
+# Build static SPA → apps/web/dist
+RUN pnpm --filter web build
 
-USER node
-EXPOSE 5173
+# =============================================================================
+# Stage 2: production (nginx serving static assets)
+# =============================================================================
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS production
 
-CMD ["pnpm", "--filter", "web", "dev", "--", "--host", "0.0.0.0"]
+# Replace stock welcome page with our built SPA
+COPY --from=builder /app/apps/web/dist/ /usr/share/nginx/html/
+
+EXPOSE 8080

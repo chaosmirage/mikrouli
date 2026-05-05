@@ -37,7 +37,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: web
-          image: nginxinc/nginx-unprivileged:1.27-alpine
+          image: ghcr.io/chaosmirage/mikrouli-web
           ports:
             - containerPort: 8080
               name: http
