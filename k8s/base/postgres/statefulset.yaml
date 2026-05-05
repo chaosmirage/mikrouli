@@ -44,6 +44,24 @@ spec:
           env:
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
+            # Postgres init script reads POSTGRES_USER/PASSWORD/DB; we keep
+            # the canonical names DB_USER/DB_PASS/DB_NAME in the Secret and
+            # remap them here so the same Secret is reused by api/migrations.
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mikrouli-secrets
+                  key: DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mikrouli-secrets
+                  key: DB_PASS
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: mikrouli-secrets
+                  key: DB_NAME
           envFrom:
             - secretRef:
                 name: mikrouli-secrets

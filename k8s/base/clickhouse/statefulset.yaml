@@ -37,11 +37,24 @@ spec:
           image: busybox:1.37
           command:
             - sh
-            - -ec
+            - -exc
             - |
+              if [ -z "${CLICKHOUSE_PASSWORD}" ]; then
+                echo "ERROR: CLICKHOUSE_PASSWORD env is empty" >&2
+                exit 1
+              fi
               SHA256=$(printf '%s' "$CLICKHOUSE_PASSWORD" | sha256sum | awk '{print $1}')
               sed "s|__SHA256__|${SHA256}|" /tmpl/users.xml.tmpl > /rendered/users.xml
-              chmod 0440 /rendered/users.xml
+              chmod 0444 /rendered/users.xml
+              # Sanity: make sure the placeholder was actually replaced.
+              if grep -q __SHA256__ /rendered/users.xml; then
+                echo "ERROR: __SHA256__ placeholder was not substituted" >&2
+                exit 1
+              fi
+              # Print structure (no secrets) for debugging crashloops.
+              echo "users.xml lines:"
+              wc -l /rendered/users.xml
+              head -3 /rendered/users.xml
           envFrom:
             - secretRef:
                 name: mikrouli-secrets
