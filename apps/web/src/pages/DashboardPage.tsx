@@ -66,6 +66,17 @@ function extractSlug(shortUrl: string): string {
   return parts[parts.length - 1] ?? shortUrl;
 }
 
+// API stores `shortUrl` as a bare slug ("GYa6kx") — the public URL is
+// produced by composing it with the current origin. Pre-resolved URLs
+// (test fixtures, future API change) are passed through unchanged.
+function resolveFullShortUrl(raw: string): string {
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw.trim();
+  if (typeof window === 'undefined') return raw;
+  const origin = window.location.origin;
+  if (!origin || origin === 'null') return raw;
+  return `${origin}/${raw}`;
+}
+
 function copyToClipboard(text: string): void {
   if (!navigator.clipboard) return;
   void navigator.clipboard.writeText(text);
@@ -81,14 +92,15 @@ interface NewLinkResultProps {
   onCopy: (text: string) => void;
 }
 function NewLinkResult({ link, onCopy }: NewLinkResultProps) {
+  const fullUrl = resolveFullShortUrl(link.shortUrl);
   const copyBtn = (
-    <IconButton size="small" onClick={() => onCopy(link.shortUrl)} data-testid="copy-link">
+    <IconButton size="small" onClick={() => onCopy(fullUrl)} data-testid="copy-link">
       <ContentCopyIcon fontSize="inherit" />
     </IconButton>
   );
   return (
     <Alert severity="success" sx={{ mt: 1 }} action={copyBtn} data-testid="new-link-alert">
-      {link.shortUrl}
+      {fullUrl}
     </Alert>
   );
 }
@@ -153,12 +165,13 @@ interface LinkTableRowProps {
 }
 function LinkTableRow({ link, onCopy, onDelete, onStats }: LinkTableRowProps) {
   const slug = extractSlug(link.shortUrl);
+  const fullUrl = resolveFullShortUrl(link.shortUrl);
   const { t } = useTranslation('common');
   return (
-    <TableRow data-testid={`link-row-${link.shortUrl}`} hover>
-      <TableCell sx={ELLIPSIS_CELL_SX} title={link.shortUrl}>
-        <MuiLink href={link.shortUrl} target="_blank" rel="noopener noreferrer" underline="hover">
-          {link.shortUrl}
+    <TableRow data-testid={`link-row-${slug}`} hover>
+      <TableCell sx={ELLIPSIS_CELL_SX} title={fullUrl}>
+        <MuiLink href={fullUrl} target="_blank" rel="noopener noreferrer" underline="hover">
+          {fullUrl}
         </MuiLink>
       </TableCell>
       <TableCell sx={ELLIPSIS_CELL_SX} title={link.originalUrl}>
@@ -171,7 +184,7 @@ function LinkTableRow({ link, onCopy, onDelete, onStats }: LinkTableRowProps) {
           <Tooltip title={t('copy')}>
             <IconButton
               size="small"
-              onClick={() => onCopy(link.shortUrl)}
+              onClick={() => onCopy(fullUrl)}
               data-testid={`copy-${slug}`}
               aria-label={t('copy')}
             >

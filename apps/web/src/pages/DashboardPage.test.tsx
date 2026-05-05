@@ -43,7 +43,7 @@ describe('DashboardPage', () => {
     fireEvent.change(screen.getByTestId('shorten-url'), { target: { value: 'http://long.com' } });
     fireEvent.click(screen.getByTestId('shorten-submit'));
     await waitFor(() => expect(screen.getByTestId('new-link-alert')).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByTestId('link-row-http://s.io/abc')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
   });
 
   it('copy button is present on new link alert', async () => {
