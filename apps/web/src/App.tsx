@@ -16,7 +16,7 @@ import ApiKeysPage from './pages/ApiKeysPage';
 // bottom-cta sections can occupy full viewport width with alternating backgrounds.
 function ContainedLayout() {
   return (
-    <Container maxWidth="md" sx={{ py: 5 }} data-testid="contained-layout">
+    <Container maxWidth="lg" sx={{ py: 5 }} data-testid="contained-layout">
       <Outlet />
     </Container>
   );

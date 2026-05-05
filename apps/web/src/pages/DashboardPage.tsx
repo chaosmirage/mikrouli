@@ -21,6 +21,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import IconButton from '@mui/material/IconButton';
+import MuiLink from '@mui/material/Link';
+import Tooltip from '@mui/material/Tooltip';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -54,6 +56,11 @@ async function attemptDelete(slug: string): Promise<string | null> {
   }
 }
 
+const COL_WIDTH_SHORT_URL = 220;
+const COL_WIDTH_DATE = 120;
+const COL_WIDTH_ACTIONS = 152;
+const ELLIPSIS_CELL_SX = { maxWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const };
+
 function extractSlug(shortUrl: string): string {
   const parts = shortUrl.split('/');
   return parts[parts.length - 1] ?? shortUrl;
@@ -62,6 +69,11 @@ function extractSlug(shortUrl: string): string {
 function copyToClipboard(text: string): void {
   if (!navigator.clipboard) return;
   void navigator.clipboard.writeText(text);
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return '—';
+  return iso.slice(0, 10);
 }
 
 interface NewLinkResultProps {
@@ -135,26 +147,58 @@ function ShortenCard({
 
 interface LinkTableRowProps {
   link: PublicLink;
+  onCopy: (text: string) => void;
   onDelete: (slug: string) => void;
   onStats: (slug: string) => void;
 }
-function LinkTableRow({ link, onDelete, onStats }: LinkTableRowProps) {
+function LinkTableRow({ link, onCopy, onDelete, onStats }: LinkTableRowProps) {
   const slug = extractSlug(link.shortUrl);
+  const { t } = useTranslation('common');
   return (
-    <TableRow data-testid={`link-row-${link.shortUrl}`}>
-      <TableCell>{link.shortUrl}</TableCell>
-      <TableCell>{link.originalUrl}</TableCell>
-      <TableCell>{link.createdAt.slice(0, 10)}</TableCell>
-      <TableCell>{link.expiresAt ? link.expiresAt.slice(0, 10) : '—'}</TableCell>
-      <TableCell>
-        <IconButton size="small" onClick={() => onStats(slug)} data-testid={`stats-${slug}`}>
-          <BarChartIcon fontSize="small" />
-        </IconButton>
+    <TableRow data-testid={`link-row-${link.shortUrl}`} hover>
+      <TableCell sx={ELLIPSIS_CELL_SX} title={link.shortUrl}>
+        <MuiLink href={link.shortUrl} target="_blank" rel="noopener noreferrer" underline="hover">
+          {link.shortUrl}
+        </MuiLink>
       </TableCell>
-      <TableCell>
-        <IconButton size="small" onClick={() => onDelete(slug)} data-testid={`delete-${slug}`}>
-          <DeleteIcon fontSize="small" />
-        </IconButton>
+      <TableCell sx={ELLIPSIS_CELL_SX} title={link.originalUrl}>
+        {link.originalUrl}
+      </TableCell>
+      <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(link.createdAt)}</TableCell>
+      <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(link.expiresAt)}</TableCell>
+      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+          <Tooltip title={t('copy')}>
+            <IconButton
+              size="small"
+              onClick={() => onCopy(link.shortUrl)}
+              data-testid={`copy-${slug}`}
+              aria-label={t('copy')}
+            >
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('statsLabel', { ns: 'dashboard' })}>
+            <IconButton
+              size="small"
+              onClick={() => onStats(slug)}
+              data-testid={`stats-${slug}`}
+              aria-label={t('statsLabel', { ns: 'dashboard' })}
+            >
+              <BarChartIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('delete')}>
+            <IconButton
+              size="small"
+              onClick={() => onDelete(slug)}
+              data-testid={`delete-${slug}`}
+              aria-label={t('delete')}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       </TableCell>
     </TableRow>
   );
@@ -164,31 +208,37 @@ interface LinksTableProps {
   links: PublicLink[];
   loading: boolean;
   fetchError: string | null;
+  onCopy: (text: string) => void;
   onDelete: (slug: string) => void;
   onStats: (slug: string) => void;
 }
-function LinksTable({ links, loading, fetchError, onDelete, onStats }: LinksTableProps) {
+function LinksTable({ links, loading, fetchError, onCopy, onDelete, onStats }: LinksTableProps) {
   const { t } = useTranslation('dashboard');
   if (loading) return <CircularProgress data-testid="dashboard-loading" />;
   if (fetchError) return <Alert severity="error">{fetchError}</Alert>;
   if (links.length === 0)
     return <Typography data-testid="no-links-message">{t('noLinks')}</Typography>;
   return (
-    <TableContainer component={Paper} data-testid="dashboard-links-table">
-      <Table size="small">
+    <TableContainer component={Paper} variant="outlined" data-testid="dashboard-links-table">
+      <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
         <TableHead>
           <TableRow>
-            <TableCell>{t('shortUrl')}</TableCell>
+            <TableCell sx={{ width: COL_WIDTH_SHORT_URL }}>{t('shortUrl')}</TableCell>
             <TableCell>{t('originalUrl')}</TableCell>
-            <TableCell>{t('createdAt')}</TableCell>
-            <TableCell>{t('expiresAt')}</TableCell>
-            <TableCell>{t('statsLabel')}</TableCell>
-            <TableCell>{t('delete', { ns: 'common' })}</TableCell>
+            <TableCell sx={{ width: COL_WIDTH_DATE, whiteSpace: 'nowrap' }}>{t('createdAt')}</TableCell>
+            <TableCell sx={{ width: COL_WIDTH_DATE, whiteSpace: 'nowrap' }}>{t('expiresAt')}</TableCell>
+            <TableCell sx={{ width: COL_WIDTH_ACTIONS, textAlign: 'right' }}>{t('actions')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {links.map((link) => (
-            <LinkTableRow key={link.shortUrl} link={link} onDelete={onDelete} onStats={onStats} />
+            <LinkTableRow
+              key={link.shortUrl}
+              link={link}
+              onCopy={onCopy}
+              onDelete={onDelete}
+              onStats={onStats}
+            />
           ))}
         </TableBody>
       </Table>
@@ -285,6 +335,7 @@ export default function DashboardPage() {
         links={links}
         loading={linksLoading}
         fetchError={linksError}
+        onCopy={handleCopy}
         onDelete={setDeleteCandidate}
         onStats={handleStats}
       />
