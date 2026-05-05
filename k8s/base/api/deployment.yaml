@@ -57,15 +57,15 @@ spec:
             - name: MIGRATIONS_RUN
               value: 'false'
             - name: DB_HOST
-              value: postgres
+              value: postgres.mikrouli.svc.cluster.local
             - name: DB_PORT
               value: '5432'
             - name: REDIS_HOST
-              value: redis-primary
+              value: redis-primary.mikrouli.svc.cluster.local
             - name: REDIS_PORT
               value: '6379'
             - name: CLICKHOUSE_HOST
-              value: clickhouse
+              value: clickhouse.mikrouli.svc.cluster.local
             - name: CLICKHOUSE_PORT
               value: '8123'
             - name: OTEL_ENABLED
