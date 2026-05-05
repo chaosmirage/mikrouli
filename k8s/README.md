@@ -37,7 +37,6 @@ grep -rl 'ghcr.io/OWNER' k8s/ | xargs sed -i 's|ghcr.io/OWNER|ghcr.io/your-org|g
 | Secret                  | Description                                     |
 | ----------------------- | ----------------------------------------------- |
 | `KUBECONFIG_PRODUCTION` | Full kubeconfig YAML for the production cluster |
-| `SEALED_SECRETS_CERT`   | Public cert from `kubeseal --fetch-cert`        |
 
 ---
 
@@ -89,26 +88,7 @@ helm install traefik traefik/traefik \
   --version 27.0.2
 ```
 
-### 5. Install sealed-secrets controller
-
-See `k8s/cluster/sealed-secrets-controller.md` for full instructions.
-
-Short version:
-
-```bash
-helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
-helm install sealed-secrets sealed-secrets/sealed-secrets \
-  --namespace kube-system \
-  --set fullnameOverride=sealed-secrets-controller
-
-# Export the public cert for local sealing
-kubeseal --fetch-cert \
-  --controller-name=sealed-secrets-controller \
-  --controller-namespace=kube-system \
-  > k8s/sealed-secrets.crt
-```
-
-### 6. Create the namespace
+### 5. Create the namespace
 
 ```bash
 kubectl apply -f k8s/base/namespace.yaml
@@ -118,56 +98,65 @@ kubectl apply -f k8s/base/namespace.yaml
 
 ## Secrets
 
-### Sealing secrets for the first time
+Application secrets are **never** committed to git and **never** stored in
+GitHub Secrets. The only credential GitHub holds is `KUBECONFIG_PRODUCTION`
+(needed for the workflow to reach the cluster).
+
+Application credentials (`DB_USER`, `DB_PASS`, `JWT_SECRET`, etc.) live as a
+Kubernetes `Secret` named `mikrouli-secrets` in the `mikrouli` namespace. The
+operator creates this Secret **manually**, **once**, from a trusted machine
+with `kubectl` access. The deploy workflow never sees plaintext.
+
+### First-time creation (replacing url-shortener — same credentials)
+
+If you are taking over `url-shortener`'s data, copy its existing Secret
+verbatim so mikrouli's postgres pod uses the same DB credentials and
+`pg_restore` accepts the dump's role grants:
 
 ```bash
-# Create the raw secret (NEVER commit this file)
-kubectl create secret generic mikrouli-secrets \
-  --namespace mikrouli \
-  --dry-run=client -o yaml \
-  --from-literal=DB_USER=mikrouli \
-  --from-literal=DB_PASS="$(openssl rand -hex 32)" \
-  --from-literal=DB_NAME=mikrouli \
-  --from-literal=JWT_SECRET="$(openssl rand -hex 64)" \
-  --from-literal=JWT_REFRESH_SECRET="$(openssl rand -hex 64)" \
-  --from-literal=S3_ACCESS_KEY=your-access-key \
-  --from-literal=S3_SECRET_KEY=your-secret-key \
-  --from-literal=S3_ENDPOINT=https://your-s3-endpoint \
-  --from-literal=S3_BUCKET=mikrouli-backups \
-  --from-literal=CLICKHOUSE_PASSWORD="$(openssl rand -hex 32)" \
-  > /tmp/raw-secret.yaml
+kubectl create namespace mikrouli --dry-run=client -o yaml | kubectl apply -f -
 
-# Seal with the controller's public key
-kubeseal --cert k8s/sealed-secrets.crt \
-  -o yaml < /tmp/raw-secret.yaml \
-  > k8s/base/secrets.sealed.yaml
-
-# Destroy the plaintext
-rm /tmp/raw-secret.yaml
-
-# Commit the sealed secret (safe to commit — encrypted asymmetrically)
-git add k8s/base/secrets.sealed.yaml
-git commit -m "chore: update sealed secrets"
+kubectl -n url-shortener get secret url-shortener-secrets -o json \
+  | jq '
+      .metadata = { name: "mikrouli-secrets", namespace: "mikrouli" }
+      | del(.metadata.creationTimestamp, .metadata.resourceVersion,
+            .metadata.uid, .metadata.ownerReferences, .metadata.managedFields)
+    ' \
+  | kubectl apply -n mikrouli -f -
 ```
 
-### Rotating the sealed-secrets controller certificate
+Plaintext exists only in kernel pipes between processes, never on disk,
+never as a CLI argument.
 
-If the controller key is compromised:
+### First-time creation (greenfield — no existing data)
 
 ```bash
-# Mark the active key as compromised
-kubectl label secret -n kube-system \
-  -l sealedsecrets.bitnami.com/sealed-secrets-key=active \
-  sealedsecrets.bitnami.com/sealed-secrets-key=compromised
+kubectl create namespace mikrouli --dry-run=client -o yaml | kubectl apply -f -
 
-# Restart to generate a new key
-kubectl rollout restart deployment/sealed-secrets-controller -n kube-system
+# Read values from your password manager (1Password CLI, pass, …) into shell
+# vars; or paste interactively. Then:
+kubectl -n mikrouli create secret generic mikrouli-secrets \
+  --from-literal=DB_USER="$DB_USER" \
+  --from-literal=DB_PASS="$DB_PASS" \
+  --from-literal=DB_NAME="$DB_NAME" \
+  --from-literal=JWT_SECRET="$JWT_SECRET" \
+  --from-literal=JWT_REFRESH_SECRET="$JWT_REFRESH_SECRET" \
+  --from-literal=CLICKHOUSE_PASSWORD="$CLICKHOUSE_PASSWORD" \
+  --from-literal=S3_ACCESS_KEY="$S3_ACCESS_KEY" \
+  --from-literal=S3_SECRET_KEY="$S3_SECRET_KEY" \
+  --from-literal=S3_ENDPOINT="$S3_ENDPOINT" \
+  --from-literal=S3_BUCKET="$S3_BUCKET"
 
-# Re-export the new cert and re-seal all secrets with the new cert
-kubeseal --fetch-cert \
-  --controller-name=sealed-secrets-controller \
-  --controller-namespace=kube-system \
-  > k8s/sealed-secrets.crt
+# Clear shell vars from history
+unset DB_PASS JWT_SECRET JWT_REFRESH_SECRET CLICKHOUSE_PASSWORD S3_SECRET_KEY
+history -c 2>/dev/null || true
+```
+
+### Rotating a secret
+
+```bash
+kubectl -n mikrouli edit secret mikrouli-secrets   # update base64 values
+kubectl rollout restart deployment/api -n mikrouli
 ```
 
 ---
@@ -322,8 +311,8 @@ kubectl exec -it clickhouse-0 -n mikrouli -- \
 If the entire cluster is lost:
 
 1. Re-provision via `hetzner-k3s create` (takes ~10 minutes).
-2. Install cert-manager, Traefik, sealed-secrets (see Provisioning section).
-3. Apply namespace and secrets: `kubectl apply -f k8s/base/namespace.yaml && kubectl apply -f k8s/base/secrets.sealed.yaml`
+2. Install cert-manager and Traefik (see Provisioning section).
+3. Recreate `mikrouli-secrets` from your password manager (see § Secrets — first-time creation).
 4. Run the migration job: `kubectl apply -f k8s/base/api/migration-job.yaml`
 5. Restore PostgreSQL from the latest S3 backup (see above).
 6. Deploy: `kubectl apply -k k8s/overlays/production`

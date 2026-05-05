@@ -5,7 +5,6 @@ resources:
   - namespace.yaml
   - serviceaccounts.yaml
   - network-policies.yaml
-  - secrets.sealed.yaml
   - ingress.yaml
   - api/deployment.yaml
   - api/service.yaml
