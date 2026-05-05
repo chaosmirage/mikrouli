@@ -11,7 +11,7 @@ patches:
 # Production ALWAYS pins to an exact git SHA — floating tags are forbidden.
 # CI replaces GITSHA-PLACEHOLDER with ${{ github.sha }} before kubectl apply -k.
 images:
-  - name: ghcr.io/OWNER/mikrouli-api
+  - name: ghcr.io/chaosmirage/mikrouli-api
     newTag: GITSHA-PLACEHOLDER
-  - name: ghcr.io/OWNER/mikrouli-web
+  - name: ghcr.io/chaosmirage/mikrouli-web
     newTag: GITSHA-PLACEHOLDER
