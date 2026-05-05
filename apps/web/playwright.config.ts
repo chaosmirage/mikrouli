@@ -16,7 +16,12 @@ export default defineConfig({
   expect: { timeout: EXPECT_TIMEOUT_MS },
   fullyParallel: true,
   retries: process.env.CI ? CI_RETRIES : 0,
-  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
+  // list reporter prints per-test progress to the runner log in real time
+  // (default github+html combo stays silent until the end, leaving CI logs
+  // blank for the entire run). html stays for the downloadable artifact.
+  reporter: process.env.CI
+    ? [['list'], ['github'], ['html', { open: 'never' }]]
+    : 'list',
   use: {
     baseURL: BASE_URL,
     trace: 'on-first-retry',
