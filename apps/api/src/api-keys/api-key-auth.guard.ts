@@ -1,10 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
+import type { AuthenticatedRequest } from '../common/authenticated-request';
 import { ApiKeysService } from './api-keys.service';
-
-interface AuthenticatedRequest extends Request {
-  user: { id: string };
-}
 
 function extractApiKeyHeader(request: Request): string | null {
   const header = request.headers['x-api-key'];
@@ -22,7 +19,7 @@ export class ApiKeyAuthGuard implements CanActivate {
     if (!apiKey) throw new UnauthorizedException();
     const result = await this.apiKeysService.validate(apiKey);
     if (!result) throw new UnauthorizedException();
-    (request as AuthenticatedRequest).user = { id: result.userId };
+    (request as unknown as AuthenticatedRequest).user = { id: result.userId };
     return true;
   }
 }

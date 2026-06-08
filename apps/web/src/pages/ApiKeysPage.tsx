@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -15,15 +15,13 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
 import IconButton from '@mui/material/IconButton';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import BlockIcon from '@mui/icons-material/Block';
 import { apiFetch, extractErrorMessage } from '../api/client';
 import type { ApiKeySummary, ApiKeyCreated } from '../api/types';
+import { useResourceList } from '../hooks/useResourceList';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 async function loadApiKeys(): Promise<[ApiKeySummary[], string | null]> {
   try {
@@ -195,51 +193,19 @@ function KeysTable({ keys, loading, fetchError, onRevoke }: KeysTableProps) {
   );
 }
 
-interface RevokeDialogProps {
-  candidate: string | null;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-function RevokeDialog({ candidate, onConfirm, onCancel }: RevokeDialogProps) {
-  const { t } = useTranslation('apiKeys');
-  return (
-    <Dialog open={!!candidate} onClose={onCancel} data-testid="revoke-dialog">
-      <DialogTitle>{t('revokeKey')}</DialogTitle>
-      <DialogContent>
-        <Typography>{t('revokeBody')}</Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onCancel} data-testid="revoke-cancel">
-          {t('cancel', { ns: 'common' })}
-        </Button>
-        <Button onClick={onConfirm} color="error" variant="contained" data-testid="revoke-confirm">
-          {t('revoke')}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
-
 export default function ApiKeysPage() {
-  const [keys, setKeys] = useState<ApiKeySummary[]>([]);
-  const [keysLoading, setKeysLoading] = useState(true);
-  const [keysError, setKeysError] = useState<string | null>(null);
+  const { t } = useTranslation('apiKeys');
+  const {
+    data: keys,
+    error: keysError,
+    loading: keysLoading,
+    refresh: triggerRefresh,
+  } = useResourceList(loadApiKeys);
   const [labelInput, setLabelInput] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [newKey, setNewKey] = useState<ApiKeyCreated | null>(null);
   const [revokeCandidate, setRevokeCandidate] = useState<string | null>(null);
-  const [refreshCount, setRefreshCount] = useState(0);
-
-  useEffect(() => {
-    void loadApiKeys().then(([ks, err]) => {
-      setKeys(ks);
-      setKeysError(err);
-      setKeysLoading(false);
-    });
-  }, [refreshCount]);
-
-  const triggerRefresh = () => setRefreshCount((c) => c + 1);
 
   const handleCreate = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -283,10 +249,16 @@ export default function ApiKeysPage() {
         fetchError={keysError}
         onRevoke={setRevokeCandidate}
       />
-      <RevokeDialog
-        candidate={revokeCandidate}
+      <ConfirmDialog
+        open={!!revokeCandidate}
+        title={t('revokeKey')}
+        description={t('revokeBody')}
+        confirmLabel={t('revoke')}
         onConfirm={handleRevoke}
         onCancel={() => setRevokeCandidate(null)}
+        dialogTestId="revoke-dialog"
+        cancelTestId="revoke-cancel"
+        confirmTestId="revoke-confirm"
       />
     </Stack>
   );

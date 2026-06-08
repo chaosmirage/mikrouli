@@ -39,14 +39,6 @@ interface ProblemDetails {
   message?: string;
 }
 
-const PROBLEM_TYPE_I18N_MAP: Record<string, string> = {
-  validation: 'errors:validation',
-  unauthorized: 'errors:unauthorized',
-  conflict: 'errors:conflict',
-  'not-found': 'errors:notFound',
-  forbidden: 'errors:forbidden',
-};
-
 export class ApiError extends Error {
   readonly status: number;
   readonly problemType?: string;
@@ -56,13 +48,6 @@ export class ApiError extends Error {
     this.status = status;
     this.problemType = problemType;
   }
-}
-
-export function mapProblemTypeToI18nKey(problemType: string | undefined): string {
-  if (!problemType) return 'errors:generic';
-  const parts = problemType.split('/');
-  const segment = parts[parts.length - 1] ?? problemType;
-  return PROBLEM_TYPE_I18N_MAP[segment] ?? 'errors:generic';
 }
 
 export function getAccessToken(): string | null {

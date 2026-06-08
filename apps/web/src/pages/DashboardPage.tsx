@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Card from '@mui/material/Card';
@@ -16,10 +16,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
 import IconButton from '@mui/material/IconButton';
 import MuiLink from '@mui/material/Link';
 import Tooltip from '@mui/material/Tooltip';
@@ -28,6 +24,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { apiFetch, extractErrorMessage } from '../api/client';
 import type { PublicLink } from '../api/types';
+import { useResourceList } from '../hooks/useResourceList';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 async function loadUserLinks(): Promise<[PublicLink[], string | null]> {
   try {
@@ -242,9 +240,15 @@ function LinksTable({ links, loading, fetchError, onCopy, onDelete, onStats }: L
           <TableRow>
             <TableCell sx={{ width: COL_WIDTH_SHORT_URL }}>{t('shortUrl')}</TableCell>
             <TableCell>{t('originalUrl')}</TableCell>
-            <TableCell sx={{ width: COL_WIDTH_DATE, whiteSpace: 'nowrap' }}>{t('createdAt')}</TableCell>
-            <TableCell sx={{ width: COL_WIDTH_DATE, whiteSpace: 'nowrap' }}>{t('expiresAt')}</TableCell>
-            <TableCell sx={{ width: COL_WIDTH_ACTIONS, textAlign: 'right' }}>{t('actions')}</TableCell>
+            <TableCell sx={{ width: COL_WIDTH_DATE, whiteSpace: 'nowrap' }}>
+              {t('createdAt')}
+            </TableCell>
+            <TableCell sx={{ width: COL_WIDTH_DATE, whiteSpace: 'nowrap' }}>
+              {t('expiresAt')}
+            </TableCell>
+            <TableCell sx={{ width: COL_WIDTH_ACTIONS, textAlign: 'right' }}>
+              {t('actions')}
+            </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -263,52 +267,20 @@ function LinksTable({ links, loading, fetchError, onCopy, onDelete, onStats }: L
   );
 }
 
-interface DeleteDialogProps {
-  candidate: string | null;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-function DeleteDialog({ candidate, onConfirm, onCancel }: DeleteDialogProps) {
-  const { t } = useTranslation('dashboard');
-  return (
-    <Dialog open={!!candidate} onClose={onCancel} data-testid="delete-dialog">
-      <DialogTitle data-testid="delete-dialog-title">{t('deleteLink')}</DialogTitle>
-      <DialogContent>
-        <Typography>{t('deleteLinkBody', { slug: candidate ?? '' })}</Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onCancel} data-testid="delete-cancel">
-          {t('cancel', { ns: 'common' })}
-        </Button>
-        <Button onClick={onConfirm} color="error" variant="contained" data-testid="delete-confirm">
-          {t('delete', { ns: 'common' })}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
-
 export default function DashboardPage() {
-  const [links, setLinks] = useState<PublicLink[]>([]);
-  const [linksLoading, setLinksLoading] = useState(true);
-  const [linksError, setLinksError] = useState<string | null>(null);
+  const { t } = useTranslation('dashboard');
+  const {
+    data: links,
+    error: linksError,
+    loading: linksLoading,
+    refresh: triggerRefresh,
+  } = useResourceList(loadUserLinks);
   const [urlInput, setUrlInput] = useState('');
   const [shortenLoading, setShortenLoading] = useState(false);
   const [shortenError, setShortenError] = useState<string | null>(null);
   const [newLink, setNewLink] = useState<PublicLink | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null);
-  const [refreshCount, setRefreshCount] = useState(0);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    void loadUserLinks().then(([ls, err]) => {
-      setLinks(ls);
-      setLinksError(err);
-      setLinksLoading(false);
-    });
-  }, [refreshCount]);
-
-  const triggerRefresh = () => setRefreshCount((c) => c + 1);
 
   const handleShorten = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -356,10 +328,17 @@ export default function DashboardPage() {
         onDelete={setDeleteCandidate}
         onStats={handleStats}
       />
-      <DeleteDialog
-        candidate={deleteCandidate}
+      <ConfirmDialog
+        open={!!deleteCandidate}
+        title={t('deleteLink')}
+        description={t('deleteLinkBody', { slug: deleteCandidate ?? '' })}
+        confirmLabel={t('delete', { ns: 'common' })}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteCandidate(null)}
+        dialogTestId="delete-dialog"
+        titleTestId="delete-dialog-title"
+        cancelTestId="delete-cancel"
+        confirmTestId="delete-confirm"
       />
     </Stack>
   );

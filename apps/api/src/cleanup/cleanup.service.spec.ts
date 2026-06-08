@@ -2,6 +2,7 @@ import { ModuleMetadata } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { CleanupService } from './cleanup.service';
+import { LinkCacheService } from '../cache/link-cache.service';
 import { RedisService } from '../redis/redis.service';
 import { Link } from '../links/entities/link.entity';
 
@@ -14,6 +15,7 @@ const mockRedis = { del: jest.fn(), get: jest.fn(), set: jest.fn() };
 const moduleMetadata: ModuleMetadata = {
   providers: [
     CleanupService,
+    LinkCacheService,
     { provide: DataSource, useValue: mockDataSource },
     { provide: RedisService, useValue: mockRedis },
   ],

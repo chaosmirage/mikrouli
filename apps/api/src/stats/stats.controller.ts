@@ -7,15 +7,11 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
 import { BearerOrApiKeyGuard } from '../api-keys/bearer-or-api-key.guard';
+import type { AuthenticatedRequest } from '../common/authenticated-request';
 import { LinksService } from '../links/links.service';
 import { AggregatedStats, StatsService } from './stats.service';
 import type { StatsAggregateResponse } from '../types/openapi';
-
-interface AuthenticatedRequest extends Request {
-  user: { id: string };
-}
 
 function toStatsResponse(slug: string, stats: AggregatedStats): StatsAggregateResponse {
   return {

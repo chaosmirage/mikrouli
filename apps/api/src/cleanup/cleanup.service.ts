@@ -2,12 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Cron } from '@nestjs/schedule';
 import { DataSource, LessThan } from 'typeorm';
+import { LinkCacheService } from '../cache/link-cache.service';
 import { Link } from '../links/entities/link.entity';
-import { RedisService } from '../redis/redis.service';
 
 const CLEANUP_BATCH_SIZE = 1_000;
 const CLEANUP_CRON = '0 * * * *';
-const REDIS_KEY_PREFIX = 'link:';
 
 async function findExpiredLinks(ds: DataSource, now: Date): Promise<Link[]> {
   return ds.manager.find(Link, {
@@ -19,21 +18,21 @@ async function findExpiredLinks(ds: DataSource, now: Date): Promise<Link[]> {
 
 async function removeFromDbAndCache(
   ds: DataSource,
-  redis: RedisService,
+  linkCache: LinkCacheService,
   slug: string,
 ): Promise<void> {
   await ds.manager.delete(Link, { shortUrl: slug });
-  await redis.del(`${REDIS_KEY_PREFIX}${slug.trim()}`);
+  await linkCache.del(slug);
 }
 
 async function deleteOneSafely(
   ds: DataSource,
-  redis: RedisService,
+  linkCache: LinkCacheService,
   link: Link,
   logger: Logger,
 ): Promise<boolean> {
   try {
-    await removeFromDbAndCache(ds, redis, link.shortUrl);
+    await removeFromDbAndCache(ds, linkCache, link.shortUrl);
     return true;
   } catch (err) {
     logger.error(`cleanup failed for slug ${link.shortUrl}: ${(err as Error).message}`);
@@ -43,13 +42,13 @@ async function deleteOneSafely(
 
 async function processBatch(
   ds: DataSource,
-  redis: RedisService,
+  linkCache: LinkCacheService,
   expired: Link[],
   logger: Logger,
 ): Promise<number> {
   let count = 0;
   for (const link of expired) {
-    const ok = await deleteOneSafely(ds, redis, link, logger);
+    const ok = await deleteOneSafely(ds, linkCache, link, logger);
     if (ok) count++;
   }
   return count;
@@ -61,13 +60,13 @@ export class CleanupService {
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    private readonly redisService: RedisService,
+    private readonly linkCache: LinkCacheService,
   ) {}
 
   @Cron(CLEANUP_CRON)
   async handleCleanup(): Promise<number> {
     const expired = await findExpiredLinks(this.dataSource, new Date());
     if (expired.length === 0) return 0;
-    return processBatch(this.dataSource, this.redisService, expired, this.logger);
+    return processBatch(this.dataSource, this.linkCache, expired, this.logger);
   }
 }

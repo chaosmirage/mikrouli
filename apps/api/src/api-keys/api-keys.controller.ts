@@ -10,8 +10,8 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { AuthenticatedRequest } from '../common/authenticated-request';
 import { ApiKeysService, ApiKeySummary, CreatedApiKey } from './api-keys.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
 import type {
@@ -19,10 +19,6 @@ import type {
   ApiKeysListResponse,
   ApiKeySummarySchema,
 } from '../types/openapi';
-
-interface AuthenticatedRequest extends Request {
-  user: { id: string };
-}
 
 function toApiKeyCreatedResponse(key: CreatedApiKey): CreateApiKeyResponse {
   return {
