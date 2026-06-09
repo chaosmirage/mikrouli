@@ -65,6 +65,7 @@ jobs:
     name: Playwright E2E Tests
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -81,12 +82,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Install Playwright browsers
-        # Invoke the playwright binary directly rather than via `pnpm --filter
-        # web exec`: under pnpm 11 the exec/run wrapper runs a verify-deps-before-run
-        # check that hangs in CI (deps are already installed by the step above).
-        working-directory: apps/web
-        run: node_modules/.bin/playwright install --with-deps chromium
+        run: |
+          for i in 1 2 3; do
+            timeout 300 pnpm --filter web exec playwright install --with-deps chromium && exit 0
+            echo "playwright install attempt $i timed out or failed; retrying..."
+            sleep 10
+          done
+          echo "playwright install failed after 3 attempts"
+          exit 1
 
       - name: Seed CI .env from example
         run: cp .env.example .env
@@ -107,10 +117,7 @@ jobs:
           exit 1
 
       - name: Run Playwright e2e tests
-        # Direct binary invocation (see "Install Playwright browsers" above):
-        # avoids the pnpm 11 verify-deps-before-run wrapper that hangs in CI.
-        working-directory: apps/web
-        run: node_modules/.bin/playwright test
+        run: pnpm --filter web e2e
         env:
           CI: true
           E2E_BASE_URL: http://localhost:8888
