@@ -23,6 +23,12 @@ spec:
         app.kubernetes.io/component: primary
         app.kubernetes.io/part-of: mikrouli
     spec:
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
       serviceAccountName: redis
       securityContext:
         runAsNonRoot: true

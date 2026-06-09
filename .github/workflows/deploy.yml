@@ -15,7 +15,7 @@ env:
 jobs:
   build:
     name: Build and Push Images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
@@ -40,6 +40,7 @@ jobs:
           file: apps/api/Dockerfile
           push: true
           tags: ${{ env.API_IMAGE }}:${{ github.sha }}
+          platforms: linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -50,6 +51,7 @@ jobs:
           file: apps/web/Dockerfile
           push: true
           tags: ${{ env.WEB_IMAGE }}:${{ github.sha }}
+          platforms: linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

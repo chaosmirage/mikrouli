@@ -18,6 +18,12 @@ spec:
         app.kubernetes.io/name: clickhouse
         app.kubernetes.io/part-of: mikrouli
     spec:
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
       serviceAccountName: clickhouse
       securityContext:
         runAsNonRoot: true
