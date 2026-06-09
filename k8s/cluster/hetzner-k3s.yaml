@@ -5,15 +5,15 @@
 #   hetzner-k3s delete --config k8s/cluster/hetzner-k3s.yaml
 #
 # Cost breakdown (Hetzner Cloud, EUR/month, prices as of April 2026):
-#   1 x cax11 control-plane (workloads on master): EUR 3.29
-#   burst pool (cax11, 0->1):              EUR 0.00 - 3.29
-#   30 GB volumes (postgres+clickhouse+redis):      EUR 1.32
+#   1 x cx23 control-plane (workloads on master): EUR 3.99
+#   burst pool (cx23, 0->1):              EUR 0.00 - 3.99
+#   30 GB volumes (postgres+clickhouse+redis):     EUR 1.32
 #   1 x Hetzner Load Balancer (LB11):              EUR 5.39
 #   1 x IPv4 (primary, included in LB):            EUR 0.00
 #   ---------------------------------------------------
-#   TOTAL:                                  ~EUR 9.60 - 13.29 / month
+#   TOTAL:                                  ~EUR 10.70 - 14.70 / month
 #
-# Topology: 1 x cax11 master (workloads on master) + burst pool (cax11, 0->1,
+# Topology: 1 x cx23 master (workloads on master) + burst pool (cx23, 0->1,
 # cap 1). The single-master setup means a control-plane failure halts new
 # deployments until the node is replaced; running workloads continue serving.
 # This is an explicit cost-vs-availability trade-off.
@@ -21,6 +21,7 @@
 # provided by hetzner-k3s built-in autoscaling (the autoscaling: block below).
 
 cluster_name: mikrouli
+protect_against_deletion: false
 kubeconfig_path: ~/.kube/mikrouli.yaml
 k3s_version: v1.29.4+k3s1
 public_ssh_key_path: ~/.ssh/id_ed25519.pub
@@ -40,14 +41,16 @@ disable_flannel: false
 schedule_workloads_on_masters: true
 
 masters_pool:
-  instance_type: cax11
+  instance_type: cx23
   instance_count: 1
-  location: nbg1
+  locations:
+    - nbg1
 
 worker_node_pools:
   - name: burst
-    instance_type: cax11
-    location: nbg1
+    instance_type: cx23
+    locations:
+      - nbg1
     autoscaling:
       enabled: true
       min_instances: 0
