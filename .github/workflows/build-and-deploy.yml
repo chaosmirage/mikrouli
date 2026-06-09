@@ -82,7 +82,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: pnpm --filter web exec playwright install --with-deps chromium
+        # Invoke the playwright binary directly rather than via `pnpm --filter
+        # web exec`: under pnpm 11 the exec/run wrapper runs a verify-deps-before-run
+        # check that hangs in CI (deps are already installed by the step above).
+        working-directory: apps/web
+        run: node_modules/.bin/playwright install --with-deps chromium
 
       - name: Seed CI .env from example
         run: cp .env.example .env
@@ -103,7 +107,10 @@ jobs:
           exit 1
 
       - name: Run Playwright e2e tests
-        run: pnpm --filter web e2e
+        # Direct binary invocation (see "Install Playwright browsers" above):
+        # avoids the pnpm 11 verify-deps-before-run wrapper that hangs in CI.
+        working-directory: apps/web
+        run: node_modules/.bin/playwright test
         env:
           CI: true
           E2E_BASE_URL: http://localhost:8888
