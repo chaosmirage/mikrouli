@@ -10,7 +10,7 @@
 # =============================================================================
 FROM node:24-alpine AS builder
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 
 WORKDIR /app
 
@@ -31,7 +31,7 @@ RUN pnpm --filter api build
 # =============================================================================
 FROM node:24-alpine AS production
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 
 ENV NODE_ENV=production
 WORKDIR /app

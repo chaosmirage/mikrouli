@@ -13,7 +13,7 @@
 # =============================================================================
 FROM node:24-alpine AS builder
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 
 WORKDIR /app
 
@@ -36,7 +36,7 @@ RUN pnpm --filter web build
 # =============================================================================
 FROM node:24-alpine AS dev
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 
 WORKDIR /app
 
@@ -48,8 +48,8 @@ RUN pnpm install --filter web... --frozen-lockfile
 
 COPY apps/web/ ./apps/web/
 
-# Vite needs write access to its temp files in the source directory
-RUN chown -R node:node /app/apps/web
+# Vite needs write access to the whole workspace root for its temp files
+RUN chown -R node:node /app
 
 USER node
 EXPOSE 5173
@@ -63,5 +63,8 @@ FROM nginxinc/nginx-unprivileged:1.27-alpine AS production
 
 # Replace stock welcome page with our built SPA
 COPY --from=builder /app/apps/web/dist/ /usr/share/nginx/html/
+
+# SPA history-fallback server config (serves index.html for client-side routes)
+COPY apps/web/nginx-spa.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 8080
