@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -25,19 +26,23 @@ const HORIZONTAL_CHART_HEIGHT_PER_ROW = 32;
 const HORIZONTAL_CHART_MIN_HEIGHT = 160;
 const UNKNOWN_LABEL_FALLBACK = '—';
 
+// Module-level style constants (static, evaluated once)
+const CARD_SECTION_TITLE_SX = { mb: 2, color: 'grey.700' } as const;
+const CARD_SECTION_SX = { p: 3 } as const;
+const CHART_BOX_SX = { width: '100%', height: CHART_HEIGHT } as const;
+const STATS_SUBTITLE_SX = { color: 'text.secondary' } as const;
+const TOTAL_OVERLINE_SX = { color: 'text.secondary', letterSpacing: '0.06em' } as const;
+const TOTAL_NUMBER_SX = { fontVariantNumeric: 'tabular-nums', color: 'text.primary' } as const;
+const STATS_BODY2_SX = { color: 'text.secondary' } as const;
+
 function mapStatsError(err: unknown): string {
   if (err instanceof ApiError && err.status === HTTP_NOT_FOUND) return 'errors:noSuchLink';
   if (err instanceof ApiError && err.status === HTTP_FORBIDDEN) return 'errors:notLinkOwner';
   return 'errors:generic';
 }
 
-async function loadStats(slug: string): Promise<[StatsAggregate | null, string | null]> {
-  try {
-    const data = await apiFetch('/api/stats/{slug}', 'get', { pathParams: { slug } });
-    return [data, null];
-  } catch (err) {
-    return [null, mapStatsError(err)];
-  }
+async function loadStats(slug: string): Promise<StatsAggregate> {
+  return apiFetch('/api/stats/{slug}', 'get', { pathParams: { slug } });
 }
 
 function horizontalChartHeight(rowCount: number): number {
@@ -84,8 +89,8 @@ interface CardSectionProps {
 }
 function CardSection({ title, testId, children }: CardSectionProps) {
   return (
-    <Paper variant="outlined" data-testid={testId} sx={{ p: 3 }}>
-      <Typography variant="h6" sx={{ mb: 2, color: 'grey.700' }}>
+    <Paper variant="outlined" data-testid={testId} sx={CARD_SECTION_SX}>
+      <Typography variant="h6" sx={CARD_SECTION_TITLE_SX}>
         {title}
       </Typography>
       {children}
@@ -112,7 +117,7 @@ function ClicksOverTimeChart({ rows, title, emptyLabel, clicksLabel, color }: Cl
   const clicks = rows.map((r) => r.clicks);
   return (
     <CardSection title={title} testId="stats-clicks-chart">
-      <Box sx={{ width: '100%', height: CHART_HEIGHT }}>
+      <Box sx={CHART_BOX_SX}>
         <BarChart
           xAxis={[{ scaleType: 'band', data: labels }]}
           series={[{ data: clicks, label: clicksLabel, color }]}
@@ -133,6 +138,8 @@ interface HorizontalChartProps {
   testId: string;
 }
 function HorizontalChart({ rows, title, emptyLabel, clicksLabel, color, testId }: HorizontalChartProps) {
+  const height = horizontalChartHeight(rows.length);
+  const chartBoxSx = useMemo(() => ({ width: '100%', height }), [height]);
   if (rows.length === 0) {
     return (
       <CardSection title={title} testId={testId}>
@@ -140,12 +147,11 @@ function HorizontalChart({ rows, title, emptyLabel, clicksLabel, color, testId }
       </CardSection>
     );
   }
-  const height = horizontalChartHeight(rows.length);
   const labels = rows.map((r) => r.name);
   const clicks = rows.map((r) => r.clicks);
   return (
     <CardSection title={title} testId={testId}>
-      <Box sx={{ width: '100%', height }}>
+      <Box sx={chartBoxSx}>
         <BarChart
           layout="horizontal"
           yAxis={[{ scaleType: 'band', data: labels }]}
@@ -165,7 +171,7 @@ function DayTable({ rows }: DayTableProps) {
   const { t } = useTranslation('stats');
   return (
     <Stack spacing={1} data-testid="stats-days-section">
-      <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+      <Typography variant="subtitle2" sx={STATS_SUBTITLE_SX}>
         {t('byDay')}
       </Typography>
       <TableContainer component={Paper} variant="outlined">
@@ -190,7 +196,7 @@ function CountryTable({ rows, title }: CountryTableProps) {
   const { t } = useTranslation('stats');
   return (
     <Stack spacing={1} data-testid="stats-countries-section">
-      <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+      <Typography variant="subtitle2" sx={STATS_SUBTITLE_SX}>
         {title}
       </Typography>
       <TableContainer component={Paper} variant="outlined">
@@ -215,7 +221,7 @@ function BrowserTable({ rows, title }: BrowserTableProps) {
   const { t } = useTranslation('stats');
   return (
     <Stack spacing={1} data-testid="stats-browsers-section">
-      <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+      <Typography variant="subtitle2" sx={STATS_SUBTITLE_SX}>
         {title}
       </Typography>
       <TableContainer component={Paper} variant="outlined">
@@ -238,18 +244,11 @@ interface TotalCardProps {
 }
 function TotalCard({ total, label }: TotalCardProps) {
   return (
-    <Paper variant="outlined" sx={{ p: 3 }} data-testid="stats-total-card">
-      <Typography
-        variant="overline"
-        sx={{ color: 'text.secondary', letterSpacing: '0.06em' }}
-      >
+    <Paper variant="outlined" sx={CARD_SECTION_SX} data-testid="stats-total-card">
+      <Typography variant="overline" sx={TOTAL_OVERLINE_SX}>
         {label}
       </Typography>
-      <Typography
-        variant="h3"
-        data-testid="stats-total"
-        sx={{ fontVariantNumeric: 'tabular-nums', color: 'text.primary' }}
-      >
+      <Typography variant="h3" data-testid="stats-total" sx={TOTAL_NUMBER_SX}>
         {total.toLocaleString()}
       </Typography>
     </Paper>
@@ -274,7 +273,7 @@ function StatsView({ slug, stats }: StatsViewProps) {
         <Typography variant="h4" data-testid="stats-slug">
           {slug}
         </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+        <Typography variant="body2" sx={STATS_BODY2_SX}>
           {t('title', { slug })}
         </Typography>
       </Stack>
@@ -312,25 +311,21 @@ function StatsView({ slug, stats }: StatsViewProps) {
 export default function StatsPage() {
   const { t } = useTranslation('stats');
   const { slug = '' } = useParams<{ slug: string }>();
-  const [stats, setStats] = useState<StatsAggregate | null>(null);
-  const [errorKey, setErrorKey] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    void loadStats(slug).then(([s, key]) => {
-      setStats(s);
-      setErrorKey(key);
-      setLoading(false);
-    });
-  }, [slug]);
+  const { data: stats, error, isLoading } = useQuery({
+    queryKey: ['stats', slug],
+    queryFn: () => loadStats(slug),
+  });
 
-  if (loading) return <CircularProgress data-testid="stats-loading" />;
-  if (errorKey)
+  if (isLoading) return <CircularProgress data-testid="stats-loading" />;
+  if (error) {
+    const errorKey = mapStatsError(error);
     return (
       <Alert severity="error" data-testid="stats-error">
         {t(errorKey)}
       </Alert>
     );
+  }
   if (!stats) return <Alert severity="warning">{t('noData')}</Alert>;
   return <StatsView slug={slug} stats={stats} />;
 }

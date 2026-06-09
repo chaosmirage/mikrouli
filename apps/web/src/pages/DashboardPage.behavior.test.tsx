@@ -3,6 +3,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { TestQueryClientProvider } from '../test/queryClient';
 import DashboardPage from './DashboardPage';
 
 function makeOk(data: unknown) {
@@ -15,7 +16,9 @@ function makeErr(status: number, body: unknown) {
 function renderDashboard() {
   render(
     <MemoryRouter>
-      <DashboardPage />
+      <TestQueryClientProvider>
+        <DashboardPage />
+      </TestQueryClientProvider>
     </MemoryRouter>,
   );
 }

@@ -1,6 +1,7 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
@@ -24,40 +25,35 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { apiFetch, extractErrorMessage } from '../api/client';
 import type { PublicLink } from '../api/types';
-import { useResourceList } from '../hooks/useResourceList';
 import ConfirmDialog from '../components/ConfirmDialog';
 
-async function loadUserLinks(): Promise<[PublicLink[], string | null]> {
-  try {
-    const response = await apiFetch('/api/urls', 'get');
-    return [response.data, null];
-  } catch (err) {
-    return [[], extractErrorMessage(err)];
-  }
+async function loadUserLinks(): Promise<PublicLink[]> {
+  const response = await apiFetch('/api/urls', 'get');
+  return response.data;
 }
 
-async function attemptShorten(url: string): Promise<[PublicLink | null, string | null]> {
-  try {
-    const link = await apiFetch('/api/urls', 'post', { body: { url } });
-    return [link, null];
-  } catch (err) {
-    return [null, extractErrorMessage(err)];
-  }
+async function attemptShorten(url: string): Promise<PublicLink> {
+  return apiFetch('/api/urls', 'post', { body: { url } });
 }
 
-async function attemptDelete(slug: string): Promise<string | null> {
-  try {
-    await apiFetch('/api/urls/{slug}', 'delete', { pathParams: { slug } });
-    return null;
-  } catch (err) {
-    return extractErrorMessage(err);
-  }
+async function attemptDelete(slug: string): Promise<void> {
+  await apiFetch('/api/urls/{slug}', 'delete', { pathParams: { slug } });
 }
 
 const COL_WIDTH_SHORT_URL = 220;
 const COL_WIDTH_DATE = 120;
 const COL_WIDTH_ACTIONS = 152;
 const ELLIPSIS_CELL_SX = { maxWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const };
+
+const SHORTEN_URL_INPUT_PROPS = { 'data-testid': 'shorten-url' } as const;
+const SHORTEN_SUBMIT_SX = { whiteSpace: 'nowrap' } as const;
+const SHORTEN_FIELD_SX = { flex: 1 } as const;
+const NEW_LINK_ALERT_SX = { mt: 1 } as const;
+const TABLE_LAYOUT_SX = { tableLayout: 'fixed', width: '100%' } as const;
+const NOWRAP_CELL_SX = { whiteSpace: 'nowrap' } as const;
+const COL_WIDTH_DATE_SX = { width: COL_WIDTH_DATE, whiteSpace: 'nowrap' } as const;
+const COL_WIDTH_SHORT_URL_SX = { width: COL_WIDTH_SHORT_URL } as const;
+const COL_WIDTH_ACTIONS_SX = { width: COL_WIDTH_ACTIONS, textAlign: 'right' } as const;
 
 function extractSlug(shortUrl: string): string {
   const parts = shortUrl.split('/');
@@ -91,13 +87,14 @@ interface NewLinkResultProps {
 }
 function NewLinkResult({ link, onCopy }: NewLinkResultProps) {
   const fullUrl = resolveFullShortUrl(link.shortUrl);
+  const handleCopyFull = useCallback(() => onCopy(fullUrl), [onCopy, fullUrl]);
   const copyBtn = (
-    <IconButton size="small" onClick={() => onCopy(fullUrl)} data-testid="copy-link">
+    <IconButton size="small" onClick={handleCopyFull} data-testid="copy-link">
       <ContentCopyIcon fontSize="inherit" />
     </IconButton>
   );
   return (
-    <Alert severity="success" sx={{ mt: 1 }} action={copyBtn} data-testid="new-link-alert">
+    <Alert severity="success" sx={NEW_LINK_ALERT_SX} action={copyBtn} data-testid="new-link-alert">
       {fullUrl}
     </Alert>
   );
@@ -122,6 +119,10 @@ function ShortenCard({
   onCopy,
 }: ShortenCardProps) {
   const { t } = useTranslation('dashboard');
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
+    [onChange],
+  );
   return (
     <Card data-testid="dashboard-shorten-card">
       <CardContent>
@@ -131,17 +132,17 @@ function ShortenCard({
               <TextField
                 label={t('longUrl')}
                 value={urlInput}
-                onChange={(e) => onChange(e.target.value)}
-                inputProps={{ 'data-testid': 'shorten-url' }}
+                onChange={handleChange}
+                inputProps={SHORTEN_URL_INPUT_PROPS}
                 required
-                sx={{ flex: 1 }}
+                sx={SHORTEN_FIELD_SX}
               />
               <Button
                 type="submit"
                 variant="contained"
                 disabled={loading}
                 data-testid="shorten-submit"
-                sx={{ whiteSpace: 'nowrap' }}
+                sx={SHORTEN_SUBMIT_SX}
               >
                 {t('shortenLabel')}
               </Button>
@@ -169,6 +170,9 @@ function LinkTableRow({ link, onCopy, onDelete, onStats }: LinkTableRowProps) {
   const slug = extractSlug(link.shortUrl);
   const fullUrl = resolveFullShortUrl(link.shortUrl);
   const { t } = useTranslation('common');
+  const handleCopy = useCallback(() => onCopy(fullUrl), [onCopy, fullUrl]);
+  const handleStats = useCallback(() => onStats(slug), [onStats, slug]);
+  const handleDelete = useCallback(() => onDelete(slug), [onDelete, slug]);
   return (
     <TableRow data-testid={`link-row-${slug}`} hover>
       <TableCell sx={ELLIPSIS_CELL_SX} title={fullUrl}>
@@ -179,14 +183,14 @@ function LinkTableRow({ link, onCopy, onDelete, onStats }: LinkTableRowProps) {
       <TableCell sx={ELLIPSIS_CELL_SX} title={link.originalUrl}>
         {link.originalUrl}
       </TableCell>
-      <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(link.createdAt)}</TableCell>
-      <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(link.expiresAt)}</TableCell>
-      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+      <TableCell sx={NOWRAP_CELL_SX}>{formatDate(link.createdAt)}</TableCell>
+      <TableCell sx={NOWRAP_CELL_SX}>{formatDate(link.expiresAt)}</TableCell>
+      <TableCell sx={NOWRAP_CELL_SX}>
         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
           <Tooltip title={t('copy')}>
             <IconButton
               size="small"
-              onClick={() => onCopy(fullUrl)}
+              onClick={handleCopy}
               data-testid={`copy-${slug}`}
               aria-label={t('copy')}
             >
@@ -196,7 +200,7 @@ function LinkTableRow({ link, onCopy, onDelete, onStats }: LinkTableRowProps) {
           <Tooltip title={t('statsLabel', { ns: 'dashboard' })}>
             <IconButton
               size="small"
-              onClick={() => onStats(slug)}
+              onClick={handleStats}
               data-testid={`stats-${slug}`}
               aria-label={t('statsLabel', { ns: 'dashboard' })}
             >
@@ -206,7 +210,7 @@ function LinkTableRow({ link, onCopy, onDelete, onStats }: LinkTableRowProps) {
           <Tooltip title={t('delete')}>
             <IconButton
               size="small"
-              onClick={() => onDelete(slug)}
+              onClick={handleDelete}
               data-testid={`delete-${slug}`}
               aria-label={t('delete')}
             >
@@ -235,18 +239,18 @@ function LinksTable({ links, loading, fetchError, onCopy, onDelete, onStats }: L
     return <Typography data-testid="no-links-message">{t('noLinks')}</Typography>;
   return (
     <TableContainer component={Paper} variant="outlined" data-testid="dashboard-links-table">
-      <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
+      <Table size="small" sx={TABLE_LAYOUT_SX}>
         <TableHead>
           <TableRow>
-            <TableCell sx={{ width: COL_WIDTH_SHORT_URL }}>{t('shortUrl')}</TableCell>
+            <TableCell sx={COL_WIDTH_SHORT_URL_SX}>{t('shortUrl')}</TableCell>
             <TableCell>{t('originalUrl')}</TableCell>
-            <TableCell sx={{ width: COL_WIDTH_DATE, whiteSpace: 'nowrap' }}>
+            <TableCell sx={COL_WIDTH_DATE_SX}>
               {t('createdAt')}
             </TableCell>
-            <TableCell sx={{ width: COL_WIDTH_DATE, whiteSpace: 'nowrap' }}>
+            <TableCell sx={COL_WIDTH_DATE_SX}>
               {t('expiresAt')}
             </TableCell>
-            <TableCell sx={{ width: COL_WIDTH_ACTIONS, textAlign: 'right' }}>
+            <TableCell sx={COL_WIDTH_ACTIONS_SX}>
               {t('actions')}
             </TableCell>
           </TableRow>
@@ -269,12 +273,15 @@ function LinksTable({ links, loading, fetchError, onCopy, onDelete, onStats }: L
 
 export default function DashboardPage() {
   const { t } = useTranslation('dashboard');
+  const queryClient = useQueryClient();
   const {
-    data: links,
+    data: links = [],
     error: linksError,
-    loading: linksLoading,
-    refresh: triggerRefresh,
-  } = useResourceList(loadUserLinks);
+    isLoading: linksLoading,
+  } = useQuery({
+    queryKey: ['links'],
+    queryFn: loadUserLinks,
+  });
   const [urlInput, setUrlInput] = useState('');
   const [shortenLoading, setShortenLoading] = useState(false);
   const [shortenError, setShortenError] = useState<string | null>(null);
@@ -282,32 +289,41 @@ export default function DashboardPage() {
   const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleShorten = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setShortenLoading(true);
-    const [link, error] = await attemptShorten(urlInput);
-    setNewLink(link);
-    setShortenError(error);
-    setShortenLoading(false);
-    if (!error) {
-      setUrlInput('');
-      triggerRefresh();
-    }
-  };
+  const handleShorten = useCallback(
+    async (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      setShortenLoading(true);
+      try {
+        const link = await attemptShorten(urlInput);
+        setNewLink(link);
+        setShortenError(null);
+        setUrlInput('');
+        void queryClient.invalidateQueries({ queryKey: ['links'] });
+      } catch (err) {
+        setShortenError(extractErrorMessage(err));
+      }
+      setShortenLoading(false);
+    },
+    [urlInput, queryClient],
+  );
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!deleteCandidate) return;
-    const error = await attemptDelete(deleteCandidate);
-    setDeleteCandidate(null);
-    if (error) {
-      setShortenError(error);
-      return;
+    try {
+      await attemptDelete(deleteCandidate);
+      setDeleteCandidate(null);
+      void queryClient.invalidateQueries({ queryKey: ['links'] });
+    } catch (err) {
+      setDeleteCandidate(null);
+      setShortenError(extractErrorMessage(err));
     }
-    triggerRefresh();
-  };
+  }, [deleteCandidate, queryClient]);
 
-  const handleCopy = (text: string) => copyToClipboard(text);
-  const handleStats = (slug: string) => navigate(`/stats/${slug}`);
+  const handleCopy = useCallback((text: string) => copyToClipboard(text), []);
+  const handleStats = useCallback((slug: string) => navigate(`/stats/${slug}`), [navigate]);
+  const handleCancelDelete = useCallback(() => setDeleteCandidate(null), []);
+
+  const fetchError = linksError ? extractErrorMessage(linksError) : null;
 
   return (
     <Stack spacing={4} data-testid="dashboard-page">
@@ -323,7 +339,7 @@ export default function DashboardPage() {
       <LinksTable
         links={links}
         loading={linksLoading}
-        fetchError={linksError}
+        fetchError={fetchError}
         onCopy={handleCopy}
         onDelete={setDeleteCandidate}
         onStats={handleStats}
@@ -334,7 +350,7 @@ export default function DashboardPage() {
         description={t('deleteLinkBody', { slug: deleteCandidate ?? '' })}
         confirmLabel={t('delete', { ns: 'common' })}
         onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteCandidate(null)}
+        onCancel={handleCancelDelete}
         dialogTestId="delete-dialog"
         titleTestId="delete-dialog-title"
         cancelTestId="delete-cancel"

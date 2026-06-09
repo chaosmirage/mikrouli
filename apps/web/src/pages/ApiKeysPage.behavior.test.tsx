@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { TestQueryClientProvider } from '../test/queryClient';
 import ApiKeysPage from './ApiKeysPage';
 
 function makeOk(data: unknown) {
@@ -16,7 +17,9 @@ function makeErr(status: number, body: unknown) {
 function renderApiKeys() {
   render(
     <MemoryRouter>
-      <ApiKeysPage />
+      <TestQueryClientProvider>
+        <ApiKeysPage />
+      </TestQueryClientProvider>
     </MemoryRouter>,
   );
 }

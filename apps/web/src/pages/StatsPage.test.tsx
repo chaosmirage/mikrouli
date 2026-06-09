@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
+import { TestQueryClientProvider } from '../test/queryClient';
 import StatsPage from './StatsPage';
 import { theme } from '../theme';
 import * as client from '../api/client';
@@ -31,11 +32,13 @@ const STATS_FIXTURE: StatsAggregate = {
 function renderStatsAt(slug: string) {
   render(
     <ThemeProvider theme={theme}>
-      <MemoryRouter initialEntries={[`/stats/${slug}`]}>
-        <Routes>
-          <Route path="/stats/:slug" element={<StatsPage />} />
-        </Routes>
-      </MemoryRouter>
+      <TestQueryClientProvider>
+        <MemoryRouter initialEntries={[`/stats/${slug}`]}>
+          <Routes>
+            <Route path="/stats/:slug" element={<StatsPage />} />
+          </Routes>
+        </MemoryRouter>
+      </TestQueryClientProvider>
     </ThemeProvider>,
   );
 }
@@ -73,13 +76,13 @@ describe('StatsPage', () => {
   });
 
   it('shows an error alert when the api returns 404', async () => {
-    vi.spyOn(client, 'apiFetch').mockRejectedValue(new client.ApiError('not found', 404));
+    vi.spyOn(client, 'apiFetch').mockRejectedValue(new client.ApiError(404, 'not found'));
     renderStatsAt(SLUG);
     await waitFor(() => expect(screen.getByTestId('stats-error')).toBeInTheDocument());
   });
 
   it('shows an error alert when the api returns 403', async () => {
-    vi.spyOn(client, 'apiFetch').mockRejectedValue(new client.ApiError('forbidden', 403));
+    vi.spyOn(client, 'apiFetch').mockRejectedValue(new client.ApiError(403, 'forbidden'));
     renderStatsAt(SLUG);
     await waitFor(() => expect(screen.getByTestId('stats-error')).toBeInTheDocument());
   });

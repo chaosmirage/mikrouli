@@ -5,11 +5,10 @@ import {
   PropsWithChildren,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, clearTokens, getAccessToken, setTokens } from '../api/client';
 import type { MeResponse, LoginResponse } from '../api/types';
 
@@ -37,50 +36,68 @@ async function registerRequest(email: string, password: string): Promise<User> {
   return apiFetch('/api/auth/register', 'post', { body: { email, password } });
 }
 
-async function bootstrapUser(): Promise<User | null> {
-  if (!getAccessToken()) return null;
-  try {
-    return await fetchMe();
-  } catch {
-    clearTokens();
-    return null;
-  }
-}
-
-async function performLogin(email: string, password: string): Promise<User> {
-  const tokens = await loginRequest(email, password);
-  setTokens(tokens.accessToken, tokens.refreshToken);
-  return fetchMe();
-}
-
 export function AuthProvider({ children }: PropsWithChildren) {
-  const [user, setUser] = useState<User | null>(null);
-  const [bootstrapping, setBootstrapping] = useState(true);
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    void bootstrapUser()
-      .then(setUser)
-      .finally(() => setBootstrapping(false));
-  }, []);
+  const { data: user, isLoading: bootstrapping } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      if (!getAccessToken()) return null;
+      try {
+        return await fetchMe();
+      } catch {
+        clearTokens();
+        return null;
+      }
+    },
+    staleTime: Infinity,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+  });
 
-  const login = useCallback(async (email: string, password: string) => {
-    const me = await performLogin(email, password);
-    setUser(me);
-  }, []);
+  const loginMutation = useMutation({
+    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+      const tokens = await loginRequest(email, password);
+      setTokens(tokens.accessToken, tokens.refreshToken);
+      const me = await fetchMe();
+      return me;
+    },
+    onSuccess: (me) => {
+      queryClient.setQueryData(['user'], me);
+    },
+  });
 
-  const register = useCallback(async (email: string, password: string) => {
-    await registerRequest(email, password);
-  }, []);
+  const registerMutation = useMutation({
+    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+      await registerRequest(email, password);
+    },
+  });
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      await loginMutation.mutateAsync({ email, password });
+    },
+    [loginMutation],
+  );
+
+  const register = useCallback(
+    async (email: string, password: string) => {
+      await registerMutation.mutateAsync({ email, password });
+    },
+    [registerMutation],
+  );
 
   const logout = useCallback(() => {
     clearTokens();
-    setUser(null);
+    queryClient.setQueryData(['user'], null);
     navigate('/login');
-  }, [navigate]);
+  }, [queryClient, navigate]);
 
   const value = useMemo(
-    () => ({ user, bootstrapping, login, register, logout }),
+    () => ({ user: user ?? null, bootstrapping, login, register, logout }),
     [user, bootstrapping, login, register, logout],
   );
 

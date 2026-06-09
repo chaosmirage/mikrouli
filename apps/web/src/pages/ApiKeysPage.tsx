@@ -1,5 +1,6 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
@@ -20,35 +21,24 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import BlockIcon from '@mui/icons-material/Block';
 import { apiFetch, extractErrorMessage } from '../api/client';
 import type { ApiKeySummary, ApiKeyCreated } from '../api/types';
-import { useResourceList } from '../hooks/useResourceList';
 import ConfirmDialog from '../components/ConfirmDialog';
 
-async function loadApiKeys(): Promise<[ApiKeySummary[], string | null]> {
-  try {
-    const response = await apiFetch('/api/api-keys', 'get');
-    return [response.data, null];
-  } catch (err) {
-    return [[], extractErrorMessage(err)];
-  }
+async function loadApiKeys(): Promise<ApiKeySummary[]> {
+  const response = await apiFetch('/api/api-keys', 'get');
+  return response.data;
 }
 
-async function attemptCreateKey(label: string): Promise<[ApiKeyCreated | null, string | null]> {
-  try {
-    const key = await apiFetch('/api/api-keys', 'post', { body: { label } });
-    return [key, null];
-  } catch (err) {
-    return [null, extractErrorMessage(err)];
-  }
+async function attemptCreateKey(label: string): Promise<ApiKeyCreated> {
+  return apiFetch('/api/api-keys', 'post', { body: { label } });
 }
 
-async function attemptRevokeKey(id: string): Promise<string | null> {
-  try {
-    await apiFetch('/api/api-keys/{id}', 'delete', { pathParams: { id } });
-    return null;
-  } catch (err) {
-    return extractErrorMessage(err);
-  }
+async function attemptRevokeKey(id: string): Promise<void> {
+  await apiFetch('/api/api-keys/{id}', 'delete', { pathParams: { id } });
 }
+
+const KEY_LABEL_INPUT_PROPS = { 'data-testid': 'key-label' } as const;
+const CREATE_BUTTON_SX = { whiteSpace: 'nowrap' } as const;
+const CREATE_FIELD_SX = { flex: 1 } as const;
 
 interface CreateKeyCardProps {
   label: string;
@@ -59,6 +49,10 @@ interface CreateKeyCardProps {
 }
 function CreateKeyCard({ label, loading, error, onChange, onSubmit }: CreateKeyCardProps) {
   const { t } = useTranslation('apiKeys');
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
+    [onChange],
+  );
   return (
     <Card data-testid="create-key-card">
       <CardContent>
@@ -68,17 +62,17 @@ function CreateKeyCard({ label, loading, error, onChange, onSubmit }: CreateKeyC
               <TextField
                 label={t('label')}
                 value={label}
-                onChange={(e) => onChange(e.target.value)}
-                inputProps={{ 'data-testid': 'key-label' }}
+                onChange={handleChange}
+                inputProps={KEY_LABEL_INPUT_PROPS}
                 required
-                sx={{ flex: 1 }}
+                sx={CREATE_FIELD_SX}
               />
               <Button
                 type="submit"
                 variant="contained"
                 disabled={loading}
                 data-testid="key-create"
-                sx={{ whiteSpace: 'nowrap' }}
+                sx={CREATE_BUTTON_SX}
               >
                 {t('create')}
               </Button>
@@ -102,8 +96,9 @@ interface NewKeyAlertProps {
 }
 function NewKeyAlert({ apiKey, onDismiss, onCopy }: NewKeyAlertProps) {
   const { t } = useTranslation('apiKeys');
+  const handleCopyKey = useCallback(() => onCopy(apiKey.key), [onCopy, apiKey.key]);
   const copyBtn = (
-    <IconButton size="small" onClick={() => onCopy(apiKey.key)} data-testid="copy-key-secret">
+    <IconButton size="small" onClick={handleCopyKey} data-testid="copy-key-secret">
       <ContentCopyIcon fontSize="inherit" />
     </IconButton>
   );
@@ -137,6 +132,7 @@ function KeyTableRow({ apiKey, onRevoke }: KeyTableRowProps) {
   const isRevoked = apiKey.revokedAt !== null;
   const status = isRevoked ? t('revoked') : t('active');
   const lastUsed = apiKey.lastUsedAt ? apiKey.lastUsedAt.slice(0, 10) : '—';
+  const handleRevoke = useCallback(() => onRevoke(apiKey.id), [onRevoke, apiKey.id]);
   return (
     <TableRow>
       <TableCell>{apiKey.label}</TableCell>
@@ -147,7 +143,7 @@ function KeyTableRow({ apiKey, onRevoke }: KeyTableRowProps) {
       <TableCell>
         <IconButton
           size="small"
-          onClick={() => onRevoke(apiKey.id)}
+          onClick={handleRevoke}
           disabled={isRevoked}
           data-testid={`revoke-${apiKey.id}`}
         >
@@ -195,41 +191,58 @@ function KeysTable({ keys, loading, fetchError, onRevoke }: KeysTableProps) {
 
 export default function ApiKeysPage() {
   const { t } = useTranslation('apiKeys');
+  const queryClient = useQueryClient();
   const {
-    data: keys,
+    data: keys = [],
     error: keysError,
-    loading: keysLoading,
-    refresh: triggerRefresh,
-  } = useResourceList(loadApiKeys);
+    isLoading: keysLoading,
+  } = useQuery({
+    queryKey: ['api-keys'],
+    queryFn: loadApiKeys,
+  });
   const [labelInput, setLabelInput] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [newKey, setNewKey] = useState<ApiKeyCreated | null>(null);
   const [revokeCandidate, setRevokeCandidate] = useState<string | null>(null);
 
-  const handleCreate = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setCreateLoading(true);
-    const [key, error] = await attemptCreateKey(labelInput);
-    setCreateError(error);
-    setCreateLoading(false);
-    if (!error && key) {
-      setNewKey(key);
-      setLabelInput('');
-      triggerRefresh();
-    }
-  };
+  const handleCreate = useCallback(
+    async (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      setCreateLoading(true);
+      try {
+        const key = await attemptCreateKey(labelInput);
+        setNewKey(key);
+        setCreateError(null);
+        setLabelInput('');
+        void queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      } catch (err) {
+        setCreateError(extractErrorMessage(err));
+      }
+      setCreateLoading(false);
+    },
+    [labelInput, queryClient],
+  );
 
-  const handleRevoke = async () => {
+  const handleRevoke = useCallback(async () => {
     if (!revokeCandidate) return;
-    await attemptRevokeKey(revokeCandidate);
+    try {
+      await attemptRevokeKey(revokeCandidate);
+    } catch {
+      // Revoke failure is surfaced on next list refresh; avoid blocking the dialog close
+    }
     setRevokeCandidate(null);
-    triggerRefresh();
-  };
+    void queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+  }, [revokeCandidate, queryClient]);
 
-  const handleCopy = (text: string) => {
+  const handleCopy = useCallback((text: string) => {
     void navigator.clipboard.writeText(text);
-  };
+  }, []);
+
+  const handleDismissNewKey = useCallback(() => setNewKey(null), []);
+  const handleCancelRevoke = useCallback(() => setRevokeCandidate(null), []);
+
+  const fetchError = keysError ? extractErrorMessage(keysError) : null;
 
   return (
     <Stack spacing={4} data-testid="api-keys-page">
@@ -241,12 +254,12 @@ export default function ApiKeysPage() {
         onSubmit={handleCreate}
       />
       {newKey && (
-        <NewKeyAlert apiKey={newKey} onDismiss={() => setNewKey(null)} onCopy={handleCopy} />
+        <NewKeyAlert apiKey={newKey} onDismiss={handleDismissNewKey} onCopy={handleCopy} />
       )}
       <KeysTable
         keys={keys}
         loading={keysLoading}
-        fetchError={keysError}
+        fetchError={fetchError}
         onRevoke={setRevokeCandidate}
       />
       <ConfirmDialog
@@ -255,7 +268,7 @@ export default function ApiKeysPage() {
         description={t('revokeBody')}
         confirmLabel={t('revoke')}
         onConfirm={handleRevoke}
-        onCancel={() => setRevokeCandidate(null)}
+        onCancel={handleCancelRevoke}
         dialogTestId="revoke-dialog"
         cancelTestId="revoke-cancel"
         confirmTestId="revoke-confirm"
