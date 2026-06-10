@@ -4,6 +4,23 @@ URL shortener: registered users turn long URLs into 6-character short links that
 
 Stack: NestJS + React + MUI v5 + PostgreSQL + Redis (primary + replica) + ClickHouse + Nginx, orchestrated via Docker Compose.
 
+## Architecture & Technical Decisions
+
+The system is built around three persistence stores chosen for distinct access patterns (PostgreSQL as the relational source of truth, Redis for the redirect cache, ClickHouse for click analytics), a contract-first API defined in TypeSpec and compiled to OpenAPI, and a Kubernetes deployment on Hetzner with default-deny network policies under a stated cost ceiling. A full topology walkthrough and the rationale for every major choice are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Each decision is recorded as a lightweight Architecture Decision Record in [docs/adr/README.md](docs/adr/README.md).
+
+Headline decisions:
+
+- [ADR-0001](docs/adr/0001-three-store-persistence-split.md) -- three-store persistence: PostgreSQL (relational truth), Redis (redirect cache), ClickHouse (analytics)
+- [ADR-0003](docs/adr/0003-redis-cache-aside-redirect-hot-path.md) -- Redis cache-aside on the redirect hot path with read-replica for availability
+- [ADR-0004](docs/adr/0004-fire-and-forget-click-recording.md) -- fire-and-forget click recording so redirect latency never waits on analytics
+- [ADR-0006](docs/adr/0006-contract-first-api-typespec-openapi-rfc9457.md) -- contract-first API via TypeSpec/OpenAPI with RFC 9457 problem-details errors
+- [ADR-0007](docs/adr/0007-dual-auth-jwt-and-hashed-api-keys.md) -- dual authentication: JWT bearer for the SPA, bcrypt-hashed API keys for programmatic clients
+- [ADR-0008](docs/adr/0008-k3s-hetzner-default-deny-network-policies.md) -- k3s on Hetzner with zero-trust namespace networking and an explicit EUR 30/month cost ceiling
+
+## Development Approach
+
+This project is engineered spec-first: the TypeSpec contract is the source of truth for the API; handlers are written to match the spec, not the other way around. Every feature is covered by unit tests (colocated with the source) and validated by end-to-end Playwright tests against the full Docker Compose stack. CI blocks merges on failing tests, lint errors, or build failures. Changes land as small, focused commits with conventional subjects; each commit represents a single coherent concern.
+
 ## Prerequisites
 
 - Node.js 24 (see `.nvmrc`)
@@ -47,57 +64,24 @@ pnpm lint
 pnpm format
 ```
 
-## Observability — viewing OpenTelemetry traces
+## Observability
 
-OpenTelemetry itself is just an emitter — it does not bundle a UI. A separate backend
-receives + stores + visualises the OTLP data. The docker-compose stack ships with
-**Jaeger all-in-one** for local development:
+The API and web app emit OpenTelemetry traces, propagated across the browser/server boundary via the W3C `traceparent` header. Tracing is off by default and enabled via env. The docker-compose stack ships Jaeger all-in-one for local viewing:
 
 ```bash
 docker compose up -d jaeger
-open http://localhost:16686    # Jaeger UI
+open http://localhost:16686    # pick the mikrouli-api service, then Find Traces
 ```
 
-The api container points its OTLP exporter at `jaeger:4318` automatically when started
-via docker compose. After making a few API calls, refresh the Jaeger UI, pick the
-`mikrouli-api` service from the dropdown, and click **Find Traces** to see request spans.
+Configuration:
 
-### Other free / open-source backends
+| Variable                      | Default                 | Purpose                              |
+| ----------------------------- | ----------------------- | ------------------------------------ |
+| `OTEL_ENABLED`                | `false`                 | Set `true` to activate the SDK       |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Collector OTLP/HTTP base URL         |
+| `OTEL_SERVICE_NAME`           | `mikrouli-api`          | `service.name` resource attribute    |
 
-| Tool                 | Storage                                            | UI port | Best for                                      |
-| -------------------- | -------------------------------------------------- | ------- | --------------------------------------------- |
-| **Jaeger**           | in-memory (or Cassandra/Elasticsearch)             | 16686   | Traces only, dead-simple — what we ship       |
-| **SigNoz**           | ClickHouse                                         | 3301    | Full self-hosted APM (traces + metrics + logs) |
-| **Grafana stack**    | Tempo (traces) + Loki (logs) + Mimir (metrics)     | 3000    | Maximum flexibility, most moving parts        |
-| **OpenObserve**      | local FS or S3                                     | 5080    | Lightweight Rust binary, single executable    |
-| **HyperDX / Uptrace**| ClickHouse                                         | 8080    | Modern alternatives to SigNoz                 |
-| **Aspire Dashboard** | in-memory                                          | 18888   | Dev-only ephemeral viewer, single container   |
-
-For production at the €30/month Hetzner budget, self-hosting Tempo + Grafana would
-bust the cost ceiling. Use a free hosted tier instead:
-
-| Service              | Free tier                                          |
-| -------------------- | -------------------------------------------------- |
-| **Honeycomb**        | 20M events/month free                              |
-| **Grafana Cloud**    | 50 GB traces / 10 k metrics free                   |
-| **New Relic**        | 100 GB ingest free                                 |
-| **Datadog**          | 14-day trial; otherwise paid                       |
-
-Point the api Deployment env at the chosen collector:
-
-```yaml
-env:
-  - name: OTEL_ENABLED
-    value: 'true'
-  - name: OTEL_EXPORTER_OTLP_ENDPOINT
-    value: 'https://<your-collector>.example.com'
-  - name: OTEL_EXPORTER_OTLP_HEADERS
-    value: 'authorization=Bearer <your-token>'   # if the backend requires auth
-```
-
-The frontend SDK is gated by `VITE_OTEL_ENABLED` and `VITE_OTEL_EXPORTER_OTLP_ENDPOINT`
-(set at build time via Vite). Browser traces are propagated to backend traces via the
-W3C `traceparent` header automatically (`@opentelemetry/instrumentation-fetch`).
+The web frontend uses `VITE_OTEL_ENABLED` and `VITE_OTEL_EXPORTER_OTLP_ENDPOINT` (set at build time) and can point at any OTLP/HTTP collector.
 
 ## E2E tests
 
@@ -122,33 +106,6 @@ pnpm --filter web e2e:ui
 
 The test runner expects the stack at `http://localhost:8888` by default. Override with `E2E_BASE_URL=http://...` if needed.
 
-### Local OpenTelemetry tracing
-
-The API ships with an OTel SDK that is disabled by default. To enable it locally,
-point it at any OTLP/HTTP collector (Jaeger all-in-one, Grafana Tempo, SigNoz, …):
-
-```bash
-# Start a collector first — example with Jaeger all-in-one (Docker):
-docker run --rm -p 4318:4318 -p 16686:16686 jaegertracing/all-in-one:latest
-
-# Run the API with tracing enabled
-OTEL_ENABLED=true \
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
-pnpm --filter api start:dev
-```
-
-Then open `http://localhost:16686` to explore traces.
-
-| Variable                      | Default                 | Purpose                              |
-| ----------------------------- | ----------------------- | ------------------------------------ |
-| `OTEL_ENABLED`                | `false`                 | Set `true` to activate the SDK       |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Collector OTLP/HTTP base URL         |
-| `OTEL_SERVICE_NAME`           | `mikrouli-api`          | `service.name` resource attribute    |
-| `SERVICE_VERSION`             | `dev`                   | `service.version` resource attribute |
-
-The web frontend uses `VITE_OTEL_ENABLED` and `VITE_OTEL_EXPORTER_OTLP_ENDPOINT` for
-browser traces (set them in `apps/web/.env.local`).
-
 ## Testing
 
 ```bash
@@ -162,19 +119,18 @@ pnpm --filter web test:e2e       # Playwright
 | Method | Path                 | Auth                | Purpose                    |
 | ------ | -------------------- | ------------------- | -------------------------- |
 | GET    | `/api/health`        | none                | Liveness probe             |
-| POST   | `/api/auth/register` | none                | Create user           |
-| POST   | `/api/auth/login`    | none                | Issue JWT pair        |
-| POST   | `/api/auth/refresh`  | refresh token       | Rotate access+refresh |
-| GET    | `/api/auth/me`       | Bearer JWT          | Current profile       |
-| POST   | `/api/urls`          | Bearer or X-API-Key | Create short link     |
-| GET    | `/api/urls`          | Bearer or X-API-Key | List own links        |
-| DELETE | `/api/urls/:slug`    | Bearer or X-API-Key | Delete own link       |
-| GET    | `/:slug`             | none (public)       | 302 redirect          |
-| GET    | `/api/stats/:slug`   | Bearer or X-API-Key | Per-link stats        |
-| POST   | `/api/api-keys`      | Bearer JWT          | Issue API key         |
-| GET    | `/api/api-keys`      | Bearer JWT          | List own keys         |
-| DELETE | `/api/api-keys/:id`  | Bearer JWT          | Revoke key            |
-
+| POST   | `/api/auth/register` | none                | Create user                |
+| POST   | `/api/auth/login`    | none                | Issue JWT pair             |
+| POST   | `/api/auth/refresh`  | refresh token       | Rotate access+refresh      |
+| GET    | `/api/auth/me`       | Bearer JWT          | Current profile            |
+| POST   | `/api/urls`          | Bearer or X-API-Key | Create short link          |
+| GET    | `/api/urls`          | Bearer or X-API-Key | List own links             |
+| DELETE | `/api/urls/:slug`    | Bearer or X-API-Key | Delete own link            |
+| GET    | `/:slug`             | none (public)       | 302 redirect               |
+| GET    | `/api/stats/:slug`   | Bearer or X-API-Key | Per-link stats             |
+| POST   | `/api/api-keys`      | Bearer JWT          | Issue API key              |
+| GET    | `/api/api-keys`      | Bearer JWT          | List own keys              |
+| DELETE | `/api/api-keys/:id`  | Bearer JWT          | Revoke key                 |
 
 ## Auth Flow
 

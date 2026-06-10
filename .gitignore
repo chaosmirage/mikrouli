@@ -29,10 +29,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Override user-global gitignore that hides .nvmrc
+# Keep .nvmrc tracked (overrides a global ignore)
 !.nvmrc
-
-
 
 # TypeSpec stray output (correct path is apps/api/spec/tsp-output/)
 apps/api/tsp-output/
