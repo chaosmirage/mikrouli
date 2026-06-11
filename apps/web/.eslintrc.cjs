@@ -37,4 +37,16 @@ module.exports = {
       version: 'detect',
     },
   },
+  overrides: [
+    {
+      // CSF3 story files export a default meta object alongside named story
+      // objects, which structurally trips react-refresh/only-export-components.
+      // This override scopes the relaxation to story files only; all app-code
+      // rules remain at full strength.
+      files: ['src/**/*.stories.tsx'],
+      rules: {
+        'react-refresh/only-export-components': 'off',
+      },
+    },
+  ],
 };

@@ -23,7 +23,17 @@ pnpm --filter api migration:run  # apply database migrations (run on first start
 pnpm --filter web e2e            # Playwright e2e (the stack must be up on :8888)
 
 pnpm spec:all                    # recompile TypeSpec -> OpenAPI -> TypeScript types
+
+pnpm --filter web storybook      # start component workbench on :6006 (no backend needed)
+pnpm --filter web build-storybook  # build static component catalog to apps/web/storybook-static
 ```
+
+## Manual setup (one-time, GitHub Pages)
+
+Enable GitHub Pages in repository Settings -> Pages with Source set to
+"GitHub Actions". This is required for `.github/workflows/storybook-pages.yml`
+to publish the static catalog on every push to `main`. The workflow will fail at
+the deploy step until this setting is enabled.
 
 ## Architecture
 

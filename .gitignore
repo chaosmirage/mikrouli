@@ -3,6 +3,7 @@ node_modules/
 
 # Build artefacts
 dist/
+storybook-static/
 *.tsbuildinfo
 
 # Environment / secrets
