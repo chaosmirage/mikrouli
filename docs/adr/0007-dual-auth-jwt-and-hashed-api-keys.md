@@ -1,6 +1,6 @@
 # 0007 - Dual Authentication: JWT Sessions and Bcrypt-Hashed API Keys
 
-**Status:** Accepted
+**Status:** Superseded by: 0011 (JWT tokens are now delivered via HttpOnly cookies instead of being returned in the response body; refresh-token revocation was added)
 
 ## Context
 
