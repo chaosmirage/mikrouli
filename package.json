@@ -3,6 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "description": "URL shortener — NestJS + React + MUI v5 + PostgreSQL + Redis + ClickHouse",
+  "license": "MIT",
+  "author": "Adel Khamatov <hamatovadel@gmail.com>",
   "scripts": {
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
