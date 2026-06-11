@@ -1,6 +1,11 @@
 packages:
   - 'apps/*'
 
+overrides:
+  multer: '>=2.1.0'
+  lodash: '>=4.17.23'
+  qs: '>=6.15.2'
+
 # pnpm 11 build-script approval. These deps ship postinstall build scripts that
 # must run (nest core wiring, protobufjs codegen, esbuild native binary). pnpm 10+
 # refuses to run unapproved build scripts (ERR_PNPM_IGNORED_BUILDS) unless listed.

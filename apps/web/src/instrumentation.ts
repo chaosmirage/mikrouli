@@ -47,9 +47,28 @@ function redactSensitiveAttributes(span: Span): void {
   });
 }
 
+/**
+ * Builds a RegExp that matches only URLs whose origin equals the given API
+ * origin. Restricting propagation to the API origin ensures the `traceparent`
+ * header is never forwarded to third-party services.
+ */
+export function buildApiOriginPattern(apiOrigin: string): RegExp {
+  const escaped = apiOrigin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escaped}(/|$)`);
+}
+
+function resolveApiOrigin(): string {
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return (import.meta.env['VITE_API_BASE_URL'] as string | undefined) ?? '';
+}
+
 function buildFetchOptions() {
+  const apiOrigin = resolveApiOrigin();
+  const propagateTraceHeaderCorsUrls = apiOrigin ? [buildApiOriginPattern(apiOrigin)] : [];
   return {
-    propagateTraceHeaderCorsUrls: [/.*/],
+    propagateTraceHeaderCorsUrls,
     clearTimingResources: true,
     applyCustomAttributesOnSpan: (span: Span) => redactSensitiveAttributes(span),
   };

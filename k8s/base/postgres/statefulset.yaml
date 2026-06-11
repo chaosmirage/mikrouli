@@ -68,9 +68,6 @@ spec:
                 secretKeyRef:
                   name: mikrouli-secrets
                   key: DB_NAME
-          envFrom:
-            - secretRef:
-                name: mikrouli-secrets
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data

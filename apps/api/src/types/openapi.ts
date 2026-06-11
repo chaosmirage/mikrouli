@@ -5,10 +5,9 @@ export type RegisterRequest = components['schemas']['RegisterRequest'];
 export type RegisterResponse = components['schemas']['RegisterResponse'];
 
 export type LoginRequest = components['schemas']['LoginRequest'];
-export type LoginResponse = components['schemas']['LoginResponse'];
-
-export type RefreshRequest = components['schemas']['RefreshRequest'];
-export type RefreshResponse = components['schemas']['LoginResponse'];
+// Login and refresh both return UserProfile; tokens travel in HttpOnly cookies.
+export type LoginResponse = components['schemas']['UserProfile'];
+export type RefreshResponse = components['schemas']['UserProfile'];
 
 export type MeResponse = components['schemas']['UserProfile'];
 

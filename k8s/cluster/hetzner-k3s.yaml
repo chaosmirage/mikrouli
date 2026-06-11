@@ -28,11 +28,13 @@ public_ssh_key_path: ~/.ssh/id_ed25519.pub
 private_ssh_key_path: ~/.ssh/id_ed25519
 use_ssh_agent: true
 
-# Restrict SSH and API access to trusted CIDRs in production
+# Replace <OPERATOR_CIDR> with your egress CIDR (e.g. 203.0.113.0/24) before
+# applying this config. The placeholder intentionally prevents world-open SSH
+# and API access; the cluster will not be reachable until a real CIDR is set.
 ssh_allowed_networks:
-  - 0.0.0.0/0
+  - <OPERATOR_CIDR>
 api_allowed_networks:
-  - 0.0.0.0/0
+  - <OPERATOR_CIDR>
 
 private_network_subnet: 10.0.0.0/16
 disable_flannel: false

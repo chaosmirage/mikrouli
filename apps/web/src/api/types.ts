@@ -6,8 +6,8 @@ export type { paths };
 export type RegisterRequest = components['schemas']['RegisterRequest'];
 export type RegisterResponse = components['schemas']['RegisterResponse'];
 export type LoginRequest = components['schemas']['LoginRequest'];
-export type LoginResponse = components['schemas']['LoginResponse'];
-export type RefreshRequest = components['schemas']['RefreshRequest'];
+// Login and refresh both return the UserProfile (tokens are in HttpOnly cookies).
+export type LoginResponse = components['schemas']['UserProfile'];
 export type MeResponse = components['schemas']['UserProfile'];
 
 // Links

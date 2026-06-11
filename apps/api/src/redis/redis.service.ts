@@ -65,7 +65,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {
     const host = this.configService.get<string>('REDIS_HOST', DEFAULT_REDIS_HOST);
     const port = this.configService.get<number>('REDIS_PORT', DEFAULT_REDIS_PORT);
-    this.client = new Redis({ host, port, lazyConnect: true });
+    // Throws at module init when REDIS_PASSWORD is absent so the service
+    // refuses to boot rather than connecting unauthenticated (design C3).
+    const password = this.configService.getOrThrow<string>('REDIS_PASSWORD');
+    this.client = new Redis({ host, port, password, lazyConnect: true });
     this.client.on('error', (err: Error) =>
       this.logger.error(`Redis error: ${err.message}`, err.stack),
     );
@@ -81,6 +84,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.client.quit();
   }
 
+  // ── Cache accessors (degrade-to-null on error; suitable for the redirect hot path) ──
+
   async get(key: string): Promise<string | null> {
     return safeGet(this.client, key, this.logger);
   }
@@ -91,5 +96,21 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async del(key: string): Promise<void> {
     return safeDel(this.client, key, this.logger);
+  }
+
+  // ── Revocation-store accessors (fail-closed; propagate errors to the caller) ──
+  // These must NOT be used for the cache: a revocation check that silently
+  // degrades to "allowed" would wave revoked tokens through on Redis outage.
+
+  async getOrThrow(key: string): Promise<string | null> {
+    return this.client.get(key);
+  }
+
+  async setOrThrow(key: string, value: string, ttlSeconds?: number): Promise<void> {
+    await setWithOptionalTtl(this.client, key, value, ttlSeconds);
+  }
+
+  async delOrThrow(key: string): Promise<void> {
+    await this.client.del(key);
   }
 }

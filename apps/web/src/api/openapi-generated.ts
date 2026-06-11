@@ -48,8 +48,25 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description Authenticate and receive JWT tokens */
+    /** @description Authenticate with credentials; sets HttpOnly session cookies on success */
     post: operations['Auth_login'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/logout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Revoke the current session and clear the session cookies */
+    post: operations['Auth_logout'];
     delete?: never;
     options?: never;
     head?: never;
@@ -82,7 +99,7 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** @description Rotate refresh token and issue new token pair */
+    /** @description Rotate the refresh token cookie and issue a new session cookie pair */
     post: operations['Auth_refresh'];
     delete?: never;
     options?: never;
@@ -296,10 +313,6 @@ export interface components {
       email: string;
       password: string;
     };
-    LoginResponse: {
-      accessToken: string;
-      refreshToken: string;
-    };
     NotFoundError: {
       /** Format: uri */
       type?: string;
@@ -325,9 +338,6 @@ export interface components {
       originalUrl: string;
       /** Format: date-time */
       expiresAt: string | null;
-    };
-    RefreshRequest: {
-      refreshToken: string;
     };
     RegisterRequest: {
       /** Format: email */
@@ -526,10 +536,11 @@ export interface operations {
       /** @description The request has succeeded. */
       200: {
         headers: {
+          'set-cookie': string;
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['LoginResponse'];
+          'application/json': components['schemas']['UserProfile'];
         };
       };
       /** @description The server could not understand the request due to invalid syntax. */
@@ -540,6 +551,33 @@ export interface operations {
         content: {
           'application/problem+json': components['schemas']['BadRequestError'];
         };
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
+        };
+      };
+    };
+  };
+  Auth_logout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description There is no content to send for this request, but the headers may be useful. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Access is unauthorized. */
       401: {
@@ -588,19 +626,16 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['RefreshRequest'];
-      };
-    };
+    requestBody?: never;
     responses: {
       /** @description The request has succeeded. */
       200: {
         headers: {
+          'set-cookie': string;
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['LoginResponse'];
+          'application/json': components['schemas']['UserProfile'];
         };
       };
       /** @description Access is unauthorized. */
@@ -643,15 +678,6 @@ export interface operations {
         };
         content: {
           'application/problem+json': components['schemas']['BadRequestError'];
-        };
-      };
-      /** @description The request conflicts with the current state of the server. */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/problem+json': components['schemas']['ConflictError'];
         };
       };
       /** @description Client error */

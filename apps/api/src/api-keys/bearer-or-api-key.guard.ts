@@ -1,15 +1,24 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { firstValueFrom, isObservable, Observable } from 'rxjs';
 import { IncomingHttpHeaders } from 'http';
+import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiKeyAuthGuard } from './api-key-auth.guard';
+
+const ACCESS_COOKIE_NAME = 'mikrouli_access';
 
 type AuthMethod = 'jwt' | 'api-key' | null;
 type GuardResult = boolean | Promise<boolean> | Observable<boolean>;
 
-function chooseAuthMethod(headers: IncomingHttpHeaders): AuthMethod {
+function hasCookieToken(req: Request): boolean {
+  const cookies = req.cookies as Record<string, string | undefined> | undefined;
+  return Boolean(cookies?.[ACCESS_COOKIE_NAME]);
+}
+
+function chooseAuthMethod(headers: IncomingHttpHeaders, req: Request): AuthMethod {
   if (headers.authorization?.startsWith('Bearer ')) return 'jwt';
   if (headers['x-api-key']) return 'api-key';
+  if (hasCookieToken(req)) return 'jwt';
   return null;
 }
 
@@ -32,8 +41,8 @@ export class BearerOrApiKeyGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<{ headers: IncomingHttpHeaders }>();
-    const method = chooseAuthMethod(request.headers);
+    const request = context.switchToHttp().getRequest<Request>();
+    const method = chooseAuthMethod(request.headers, request);
     if (!method) throw new UnauthorizedException();
     return this.runGuard(method, context);
   }

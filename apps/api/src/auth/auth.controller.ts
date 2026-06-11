@@ -4,25 +4,29 @@ import {
   Get,
   HttpCode,
   Post,
-  Request,
+  Req,
+  Res,
+  ServiceUnavailableException,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { AuthService, PublicUser } from './auth.service';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
+import type { Request, Response } from 'express';
+import { AuthService, buildClearCookieValue, PublicUser } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { RefreshDto } from './dto/refresh.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RequestUser } from './jwt.strategy';
-import type {
-  RegisterResponse,
-  LoginResponse,
-  RefreshResponse,
-  MeResponse,
-} from '../types/openapi';
+import { AUTH_THROTTLE_NAME } from '../app.module';
+import type { RegisterResponse, MeResponse } from '../types/openapi';
 
-interface AuthenticatedRequest {
+const ACCESS_COOKIE_NAME = 'mikrouli_access';
+const REFRESH_COOKIE_NAME = 'mikrouli_refresh';
+const ACCESS_COOKIE_PATH = '/api';
+const REFRESH_COOKIE_PATH = '/api/auth';
+
+interface AuthenticatedRequest extends Request {
   user: RequestUser;
 }
 
@@ -34,6 +38,18 @@ function toUserProfileResponse(user: PublicUser): MeResponse {
   return { id: user.id, email: user.email, createdAt: user.createdAt.toISOString() };
 }
 
+function applySessionCookies(res: Response, cookies: [string, string]): void {
+  // Express setHeader with an array sets multiple Set-Cookie headers.
+  res.setHeader('Set-Cookie', cookies);
+}
+
+function applyClearCookies(res: Response): void {
+  res.setHeader('Set-Cookie', [
+    buildClearCookieValue(ACCESS_COOKIE_NAME, ACCESS_COOKIE_PATH),
+    buildClearCookieValue(REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH),
+  ]);
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -43,6 +59,7 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(201)
+  @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
   async register(@Body() dto: RegisterDto): Promise<RegisterResponse> {
     const user = await this.authService.register(dto);
     return toRegisterResponse(user);
@@ -50,21 +67,68 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  async login(@Body() dto: LoginDto): Promise<LoginResponse> {
+  @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
+  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response): Promise<MeResponse> {
     const user = await this.authService.validateCredentials(dto.email, dto.password);
     if (!user) throw new UnauthorizedException();
-    return this.authService.issueTokens(user) as LoginResponse;
+    const { cookies } = await this.authService.issueTokens(user);
+    applySessionCookies(res, cookies);
+    return toUserProfileResponse({ id: user.id, email: user.email, createdAt: user.createdAt });
   }
 
   @Post('refresh')
   @HttpCode(200)
-  async refresh(@Body() dto: RefreshDto): Promise<RefreshResponse> {
-    return this.authService.rotateRefresh(dto.refreshToken) as Promise<RefreshResponse>;
+  @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<MeResponse> {
+    const cookies = req.cookies as Record<string, string | undefined>;
+    const refreshToken = cookies[REFRESH_COOKIE_NAME];
+    if (!refreshToken) throw new UnauthorizedException();
+
+    const { tokens, cookies: newCookies } = await this.authService.rotateRefresh(refreshToken);
+    applySessionCookies(res, newCookies);
+
+    // Decode the issued access token to read the user profile without a DB round-trip.
+    // The token was just signed so it is guaranteed valid.
+    const payloadB64 = tokens.accessToken.split('.')[1];
+    if (!payloadB64) throw new UnauthorizedException();
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64').toString('utf-8')) as {
+      sub: string;
+      email: string;
+    };
+
+    const user = await this.usersService.findById(payload.sub);
+    if (!user) throw new UnauthorizedException();
+    return toUserProfileResponse({ id: user.id, email: user.email, createdAt: user.createdAt });
+  }
+
+  @Post('logout')
+  @HttpCode(204)
+  @SkipThrottle()
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
+    const cookies = req.cookies as Record<string, string | undefined>;
+    const refreshToken = cookies[REFRESH_COOKIE_NAME];
+
+    if (!refreshToken) {
+      // No session present — idempotent: clear cookies and return 204.
+      applyClearCookies(res);
+      return;
+    }
+
+    try {
+      await this.authService.revokeRefresh(refreshToken);
+    } catch {
+      // Redis error during revocation — return 503 WITHOUT clearing cookies.
+      // Clearing cookies would falsely claim server-side revocation succeeded.
+      throw new ServiceUnavailableException('Session revocation temporarily unavailable');
+    }
+
+    applyClearCookies(res);
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async me(@Request() req: AuthenticatedRequest): Promise<MeResponse> {
+  @SkipThrottle()
+  async me(@Req() req: AuthenticatedRequest): Promise<MeResponse> {
     const user = await this.usersService.findById(req.user.id);
     if (!user) throw new UnauthorizedException();
     return toUserProfileResponse({ id: user.id, email: user.email, createdAt: user.createdAt });

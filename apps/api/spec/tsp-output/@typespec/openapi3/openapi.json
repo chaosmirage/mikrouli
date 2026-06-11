@@ -65,6 +65,9 @@
         },
         "security": [
           {
+            "ApiKeyAuth": []
+          },
+          {
             "BearerAuth": []
           }
         ]
@@ -96,6 +99,9 @@
           }
         },
         "security": [
+          {
+            "ApiKeyAuth": []
+          },
           {
             "BearerAuth": []
           }
@@ -143,6 +149,9 @@
         },
         "security": [
           {
+            "ApiKeyAuth": []
+          },
+          {
             "BearerAuth": []
           }
         ]
@@ -151,15 +160,23 @@
     "/api/auth/login": {
       "post": {
         "operationId": "Auth_login",
-        "description": "Authenticate and receive JWT tokens",
+        "description": "Authenticate with credentials; sets HttpOnly session cookies on success",
         "parameters": [],
         "responses": {
           "200": {
             "description": "The request has succeeded.",
+            "headers": {
+              "set-cookie": {
+                "required": true,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
+                  "$ref": "#/components/schemas/UserProfile"
                 }
               }
             }
@@ -197,6 +214,36 @@
         }
       }
     },
+    "/api/auth/logout": {
+      "post": {
+        "operationId": "Auth_logout",
+        "description": "Revoke the current session and clear the session cookies",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "There is no content to send for this request, but the headers may be useful. "
+          },
+          "401": {
+            "description": "Access is unauthorized.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/auth/me": {
       "get": {
         "operationId": "Auth_me",
@@ -226,6 +273,9 @@
         },
         "security": [
           {
+            "ApiKeyAuth": []
+          },
+          {
             "BearerAuth": []
           }
         ]
@@ -234,15 +284,23 @@
     "/api/auth/refresh": {
       "post": {
         "operationId": "Auth_refresh",
-        "description": "Rotate refresh token and issue new token pair",
+        "description": "Rotate the refresh token cookie and issue a new session cookie pair",
         "parameters": [],
         "responses": {
           "200": {
             "description": "The request has succeeded.",
+            "headers": {
+              "set-cookie": {
+                "required": true,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
+                  "$ref": "#/components/schemas/UserProfile"
                 }
               }
             }
@@ -254,16 +312,6 @@
                 "schema": {
                   "$ref": "#/components/schemas/UnauthorizedError"
                 }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshRequest"
               }
             }
           }
@@ -292,16 +340,6 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/BadRequestError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The request conflicts with the current state of the server.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConflictError"
                 }
               }
             }
@@ -407,6 +445,9 @@
         },
         "security": [
           {
+            "ApiKeyAuth": []
+          },
+          {
             "BearerAuth": []
           }
         ]
@@ -471,6 +512,9 @@
         },
         "security": [
           {
+            "ApiKeyAuth": []
+          },
+          {
             "BearerAuth": []
           }
         ]
@@ -512,6 +556,9 @@
           }
         },
         "security": [
+          {
+            "ApiKeyAuth": []
+          },
           {
             "BearerAuth": []
           }
@@ -569,6 +616,9 @@
           }
         },
         "security": [
+          {
+            "ApiKeyAuth": []
+          },
           {
             "BearerAuth": []
           }
@@ -630,7 +680,13 @@
     "schemas": {
       "ApiKeyCreated": {
         "type": "object",
-        "required": ["createdAt", "id", "label", "key", "keyPrefix"],
+        "required": [
+          "createdAt",
+          "id",
+          "label",
+          "key",
+          "keyPrefix"
+        ],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -652,7 +708,14 @@
       },
       "ApiKeySummary": {
         "type": "object",
-        "required": ["createdAt", "id", "label", "keyPrefix", "lastUsedAt", "revokedAt"],
+        "required": [
+          "createdAt",
+          "id",
+          "label",
+          "keyPrefix",
+          "lastUsedAt",
+          "revokedAt"
+        ],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -681,7 +744,9 @@
       },
       "ApiKeysList": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "array",
@@ -715,7 +780,10 @@
       },
       "ClickByBrowser": {
         "type": "object",
-        "required": ["browser", "clicks"],
+        "required": [
+          "browser",
+          "clicks"
+        ],
         "properties": {
           "browser": {
             "type": "string"
@@ -727,7 +795,10 @@
       },
       "ClickByCountry": {
         "type": "object",
-        "required": ["country", "clicks"],
+        "required": [
+          "country",
+          "clicks"
+        ],
         "properties": {
           "country": {
             "type": "string"
@@ -739,7 +810,10 @@
       },
       "ClickByPeriod": {
         "type": "object",
-        "required": ["period", "clicks"],
+        "required": [
+          "period",
+          "clicks"
+        ],
         "properties": {
           "period": {
             "type": "string"
@@ -773,7 +847,9 @@
       },
       "CreateApiKeyRequest": {
         "type": "object",
-        "required": ["label"],
+        "required": [
+          "label"
+        ],
         "properties": {
           "label": {
             "type": "string",
@@ -784,7 +860,9 @@
       },
       "CreateLinkRequest": {
         "type": "object",
-        "required": ["url"],
+        "required": [
+          "url"
+        ],
         "properties": {
           "url": {
             "type": "string",
@@ -843,11 +921,15 @@
       },
       "HealthResponse": {
         "type": "object",
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["ok"]
+            "enum": [
+              "ok"
+            ]
           }
         }
       },
@@ -875,7 +957,9 @@
       },
       "LinksList": {
         "type": "object",
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "properties": {
           "data": {
             "type": "array",
@@ -887,25 +971,16 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
           "email": {
             "type": "string",
             "format": "email"
           },
           "password": {
-            "type": "string"
-          }
-        }
-      },
-      "LoginResponse": {
-        "type": "object",
-        "required": ["accessToken", "refreshToken"],
-        "properties": {
-          "accessToken": {
-            "type": "string"
-          },
-          "refreshToken": {
             "type": "string"
           }
         }
@@ -956,7 +1031,12 @@
       },
       "PublicLink": {
         "type": "object",
-        "required": ["createdAt", "shortUrl", "originalUrl", "expiresAt"],
+        "required": [
+          "createdAt",
+          "shortUrl",
+          "originalUrl",
+          "expiresAt"
+        ],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -975,18 +1055,12 @@
           }
         }
       },
-      "RefreshRequest": {
-        "type": "object",
-        "required": ["refreshToken"],
-        "properties": {
-          "refreshToken": {
-            "type": "string"
-          }
-        }
-      },
       "RegisterRequest": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
           "email": {
             "type": "string",
@@ -1002,7 +1076,11 @@
       },
       "RegisterResponse": {
         "type": "object",
-        "required": ["createdAt", "id", "email"],
+        "required": [
+          "createdAt",
+          "id",
+          "email"
+        ],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -1019,7 +1097,13 @@
       },
       "StatsAggregate": {
         "type": "object",
-        "required": ["slug", "totalClicks", "byDay", "byCountry", "byBrowser"],
+        "required": [
+          "slug",
+          "totalClicks",
+          "byDay",
+          "byCountry",
+          "byBrowser"
+        ],
         "properties": {
           "slug": {
             "type": "string"
@@ -1049,7 +1133,9 @@
       },
       "Timestamps": {
         "type": "object",
-        "required": ["createdAt"],
+        "required": [
+          "createdAt"
+        ],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -1081,7 +1167,11 @@
       },
       "UserProfile": {
         "type": "object",
-        "required": ["createdAt", "id", "email"],
+        "required": [
+          "createdAt",
+          "id",
+          "email"
+        ],
         "properties": {
           "createdAt": {
             "type": "string",
@@ -1098,7 +1188,9 @@
       },
       "ValidationError": {
         "type": "object",
-        "required": ["errors"],
+        "required": [
+          "errors"
+        ],
         "properties": {
           "type": {
             "type": "string",
@@ -1127,7 +1219,11 @@
       },
       "ValidationErrorItem": {
         "type": "object",
-        "required": ["field", "message", "rule"],
+        "required": [
+          "field",
+          "message",
+          "rule"
+        ],
         "properties": {
           "field": {
             "type": "string"
@@ -1142,6 +1238,11 @@
       }
     },
     "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "mikrouli_access"
+      },
       "BearerAuth": {
         "type": "http",
         "scheme": "bearer"

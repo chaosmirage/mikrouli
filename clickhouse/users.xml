@@ -2,13 +2,12 @@
     <users>
         <default>
             <!--
-                Allow connections from any network interface, including the
-                Docker bridge IP that the host uses when connecting through
-                port-mapped container ports (e.g. localhost:8123).
-
-                The built-in default restricts access to 127.0.0.1/::1,
-                which blocks test clients that reach ClickHouse via the
-                Docker bridge (source IP is the bridge gateway, not loopback).
+                Password is supplied via the CLICKHOUSE_PASSWORD environment
+                variable, which the official clickhouse/clickhouse-server image
+                reads directly to set the default user's password at startup.
+                No SHA-256 templating is needed in compose — the image handles it.
+                Network access is open to any Docker bridge IP so the api
+                container can reach ClickHouse over the internal Docker network.
             -->
             <networks>
                 <ip>::/0</ip>

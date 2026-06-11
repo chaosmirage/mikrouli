@@ -6,6 +6,8 @@ import { StatsService } from './stats.service';
 const TEST_SLUG = 'abc123';
 const TEST_IP = '1.2.3.4';
 const TEST_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120';
+// A slug containing SQL injection characters; must arrive as a bound param, not spliced into SQL.
+const CRAFTED_SLUG = "it's'; DROP TABLE stats_buffer;--";
 
 const mockClickHouseService = { insert: jest.fn(), query: jest.fn() };
 
@@ -64,5 +66,37 @@ describe('StatsService', () => {
     expect(result.clicksByDay).toHaveLength(0);
     expect(result.topCountries).toHaveLength(0);
     expect(result.topBrowsers).toHaveLength(0);
+  });
+
+  it('getStats passes the slug as a bound query_params value, not spliced into the SQL string', async () => {
+    // Each of the four analytics queries must carry the slug in query_params so the
+    // ClickHouse client handles quoting — never concatenated into the SQL text.
+    seedQueryMocks();
+    await service.getStats(TEST_SLUG);
+
+    const calls = mockClickHouseService.query.mock.calls as Array<[string, Record<string, unknown>]>;
+    expect(calls).toHaveLength(4);
+    for (const [sql, params] of calls) {
+      // The SQL must contain the named placeholder, not the literal slug value.
+      expect(sql).toContain('{slug:String}');
+      expect(sql).not.toContain(TEST_SLUG);
+      // The slug must arrive via query_params.
+      expect(params).toEqual(expect.objectContaining({ slug: TEST_SLUG }));
+    }
+  });
+
+  it('getStats passes a crafted slug with quotes as a bound param without altering the SQL', async () => {
+    // A slug containing quote characters must be forwarded as-is in query_params;
+    // the SQL template must remain unchanged regardless of what the slug contains.
+    seedQueryMocks();
+    await service.getStats(CRAFTED_SLUG);
+
+    const calls = mockClickHouseService.query.mock.calls as Array<[string, Record<string, unknown>]>;
+    expect(calls).toHaveLength(4);
+    for (const [sql, params] of calls) {
+      expect(sql).toContain('{slug:String}');
+      expect(sql).not.toContain(CRAFTED_SLUG);
+      expect(params).toEqual(expect.objectContaining({ slug: CRAFTED_SLUG }));
+    }
   });
 });

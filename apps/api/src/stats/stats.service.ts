@@ -30,25 +30,10 @@ interface BrowserRow {
   clicks: string;
 }
 
-function escapeSlug(slug: string): string {
-  return slug.replace(/'/g, "''");
-}
-
-function totalQuery(slug: string): string {
-  return `SELECT count() AS total FROM stats_buffer WHERE short_url = '${escapeSlug(slug)}'`;
-}
-
-function byDayQuery(slug: string): string {
-  return `SELECT toDate(timestamp) AS date, count() AS clicks FROM stats_buffer WHERE short_url = '${escapeSlug(slug)}' GROUP BY date ORDER BY date`;
-}
-
-function topCountriesQuery(slug: string): string {
-  return `SELECT country_id, count() AS clicks FROM stats_buffer WHERE short_url = '${escapeSlug(slug)}' GROUP BY country_id ORDER BY clicks DESC LIMIT ${TOP_LIMIT}`;
-}
-
-function topBrowsersQuery(slug: string): string {
-  return `SELECT browser_id, count() AS clicks FROM stats_buffer WHERE short_url = '${escapeSlug(slug)}' GROUP BY browser_id ORDER BY clicks DESC LIMIT ${TOP_LIMIT}`;
-}
+const TOTAL_QUERY = `SELECT count() AS total FROM stats_buffer WHERE short_url = {slug:String}`;
+const BY_DAY_QUERY = `SELECT toDate(timestamp) AS date, count() AS clicks FROM stats_buffer WHERE short_url = {slug:String} GROUP BY date ORDER BY date`;
+const TOP_COUNTRIES_QUERY = `SELECT country_id, count() AS clicks FROM stats_buffer WHERE short_url = {slug:String} GROUP BY country_id ORDER BY clicks DESC LIMIT ${TOP_LIMIT}`;
+const TOP_BROWSERS_QUERY = `SELECT browser_id, count() AS clicks FROM stats_buffer WHERE short_url = {slug:String} GROUP BY browser_id ORDER BY clicks DESC LIMIT ${TOP_LIMIT}`;
 
 function buildStatRow(
   shortUrl: string,
@@ -130,10 +115,11 @@ export class StatsService {
   }
 
   async getStats(shortUrl: string): Promise<AggregatedStats> {
-    const totalP = this.clickHouseService.query<TotalRow>(totalQuery(shortUrl));
-    const byDayP = this.clickHouseService.query<DayRow>(byDayQuery(shortUrl));
-    const countriesP = this.clickHouseService.query<CountryRow>(topCountriesQuery(shortUrl));
-    const browsersP = this.clickHouseService.query<BrowserRow>(topBrowsersQuery(shortUrl));
+    const params = { slug: shortUrl };
+    const totalP = this.clickHouseService.query<TotalRow>(TOTAL_QUERY, params);
+    const byDayP = this.clickHouseService.query<DayRow>(BY_DAY_QUERY, params);
+    const countriesP = this.clickHouseService.query<CountryRow>(TOP_COUNTRIES_QUERY, params);
+    const browsersP = this.clickHouseService.query<BrowserRow>(TOP_BROWSERS_QUERY, params);
     const [total, byDay, countries, browsers] = await Promise.all([
       totalP,
       byDayP,
