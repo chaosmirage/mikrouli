@@ -70,4 +70,31 @@ describe('web instrumentation', () => {
     expect(serviceName).toBe('mikrouli-web');
     expect(resource.attributes[SemanticResourceAttributes.SERVICE_VERSION]).toBe('2.0.0');
   });
+
+  describe('buildApiOriginPattern', () => {
+    it('matches a request to the API origin', async () => {
+      const { buildApiOriginPattern } = await import('./instrumentation');
+      const pattern = buildApiOriginPattern('http://localhost:8888');
+      expect(pattern.test('http://localhost:8888/api/links')).toBe(true);
+    });
+
+    it('does not match a third-party origin', async () => {
+      const { buildApiOriginPattern } = await import('./instrumentation');
+      const pattern = buildApiOriginPattern('http://localhost:8888');
+      expect(pattern.test('https://example.com/track')).toBe(false);
+    });
+
+    it('does not match a different port on the same host', async () => {
+      const { buildApiOriginPattern } = await import('./instrumentation');
+      const pattern = buildApiOriginPattern('http://localhost:8888');
+      expect(pattern.test('http://localhost:4318/v1/traces')).toBe(false);
+    });
+
+    it('matches the production API origin', async () => {
+      const { buildApiOriginPattern } = await import('./instrumentation');
+      const pattern = buildApiOriginPattern('https://app.mikrouli.com');
+      expect(pattern.test('https://app.mikrouli.com/api/auth/me')).toBe(true);
+      expect(pattern.test('https://cdn.example.com/asset.js')).toBe(false);
+    });
+  });
 });

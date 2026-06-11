@@ -1,5 +1,6 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { randomUUID } from 'crypto';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
 
@@ -19,11 +20,25 @@ function isDuplicateEmailError(err: unknown): boolean {
   );
 }
 
-async function saveOrThrowConflict(repo: Repository<User>, user: User): Promise<User> {
+// Fabricate an unpersisted result indistinguishable in shape from a persisted
+// one — callers receive id/email/createdAt without any account being created
+// a second time and without exposing the existing account's data.
+function buildDecoyUser(email: string): User {
+  const decoy = new User();
+  decoy.id = randomUUID();
+  decoy.email = email;
+  decoy.createdAt = new Date();
+  decoy.updatedAt = decoy.createdAt;
+  decoy.passwordHash = '';
+  return decoy;
+}
+
+async function saveOrDecoy(repo: Repository<User>, user: User, email: string): Promise<User> {
   try {
     return await repo.save(user);
   } catch (err: unknown) {
-    throw isDuplicateEmailError(err) ? new ConflictException('Email already registered') : err;
+    if (isDuplicateEmailError(err)) return buildDecoyUser(email);
+    throw err;
   }
 }
 
@@ -44,6 +59,6 @@ export class UsersService {
 
   async create(params: CreateUserParams): Promise<User> {
     const user = this.usersRepository.create(params);
-    return saveOrThrowConflict(this.usersRepository, user);
+    return saveOrDecoy(this.usersRepository, user, params.email);
   }
 }

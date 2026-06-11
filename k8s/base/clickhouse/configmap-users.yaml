@@ -12,14 +12,10 @@ data:
            default user (with <no_password/>) collides with our hash entry. -->
       <users replace="replace">
         <default>
-          <!-- ClickHouse auth disabled: API client does not pass a password
-               (see apps/api/src/clickhouse/clickhouse.service.ts buildClient).
-               Network access is enforced at the K8s NetworkPolicy layer —
-               only api pods in this namespace can reach ClickHouse, so this
-               matches the url-shortener pattern. The init container still
-               renders this file from a template for parity with future
-               auth-enabled setups; __SHA256__ is harmless if unused. -->
-          <no_password/>
+          <!-- SHA-256 of CLICKHOUSE_PASSWORD, substituted at pod startup
+               by the render-users-xml init container from mikrouli-secrets.
+               This keeps the password hash out of git entirely. -->
+          <password_sha256_hex>__SHA256__</password_sha256_hex>
           <networks>
             <ip>::/0</ip>
           </networks>

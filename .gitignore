@@ -38,3 +38,4 @@ apps/api/tsp-output/
 # Playwright e2e artefacts
 apps/web/playwright-report/
 apps/web/test-results/
+apps/web/e2e/.auth/

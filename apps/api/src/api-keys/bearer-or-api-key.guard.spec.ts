@@ -5,9 +5,12 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiKeyAuthGuard } from './api-key-auth.guard';
 import { BearerOrApiKeyGuard } from './bearer-or-api-key.guard';
 
-function buildMockContext(headers: Record<string, string>): ExecutionContext {
+function buildMockContext(
+  headers: Record<string, string>,
+  cookies: Record<string, string> = {},
+): ExecutionContext {
   return {
-    switchToHttp: () => ({ getRequest: () => ({ headers }) }),
+    switchToHttp: () => ({ getRequest: () => ({ headers, cookies }) }),
   } as unknown as ExecutionContext;
 }
 
@@ -46,7 +49,14 @@ describe('BearerOrApiKeyGuard', () => {
     expect(mockJwtGuard.canActivate).not.toHaveBeenCalled();
   });
 
-  it('throws UnauthorizedException when neither header present', async () => {
+  it('delegates to JwtAuthGuard when access cookie present', async () => {
+    const context = buildMockContext({}, { mikrouli_access: 'sometoken' });
+    await guard.canActivate(context);
+    expect(mockJwtGuard.canActivate).toHaveBeenCalledWith(context);
+    expect(mockApiKeyGuard.canActivate).not.toHaveBeenCalled();
+  });
+
+  it('throws UnauthorizedException when neither header nor cookie present', async () => {
     const context = buildMockContext({});
     await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
   });

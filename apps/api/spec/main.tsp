@@ -11,6 +11,14 @@ using TypeSpec.OpenAPI;
 @server("https://mikrou.li", "Production")
 namespace MikrouliApi;
 
+// Cookie-based auth scheme for the browser SPA. The access token travels in
+// an HttpOnly cookie so page scripts cannot read it.
+alias CookieAuth = ApiKeyAuth<ApiKeyLocation.cookie, "mikrouli_access">;
+
+// Combined scheme: cookie for browser clients, bearer for machine clients.
+// The guard accepts either; both share the same JWT verification path.
+alias BrowserOrMachineAuth = CookieAuth | BearerAuth;
+
 // ---------------------------------------------------------------------------
 // Shared models
 // ---------------------------------------------------------------------------
@@ -107,13 +115,14 @@ model LoginRequest {
   password: string;
 }
 
-model LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-}
-
-model RefreshRequest {
-  refreshToken: string;
+// Session response: tokens leave the body and arrive as HttpOnly cookies set
+// by the server. The body carries the user profile so the SPA can render
+// immediately without a follow-up /me call.
+model SessionResponse {
+  @statusCode _: 200;
+  @header("set-cookie") accessCookie: string;
+  @header("set-cookie") refreshCookie: string;
+  @body body: UserProfile;
 }
 
 model UserProfile {
@@ -223,27 +232,34 @@ namespace Auth {
   op register(@body body: RegisterRequest):
     | { @statusCode _: 201; @body body: RegisterResponse; }
     | BadRequestError
-    | ConflictError
     | ValidationError;
 
   @post
   @route("/login")
-  @doc("Authenticate and receive JWT tokens")
+  @doc("Authenticate with credentials; sets HttpOnly session cookies on success")
   op login(@body body: LoginRequest):
-    | { @statusCode _: 200; @body body: LoginResponse; }
+    | SessionResponse
     | BadRequestError
     | UnauthorizedError;
 
   @post
   @route("/refresh")
-  @doc("Rotate refresh token and issue new token pair")
-  op refresh(@body body: RefreshRequest):
-    | { @statusCode _: 200; @body body: LoginResponse; }
+  @doc("Rotate the refresh token cookie and issue a new session cookie pair")
+  op refresh():
+    | SessionResponse
+    | UnauthorizedError;
+
+  @post
+  @route("/logout")
+  @useAuth(BrowserOrMachineAuth)
+  @doc("Revoke the current session and clear the session cookies")
+  op logout():
+    | { @statusCode _: 204; }
     | UnauthorizedError;
 
   @get
   @route("/me")
-  @useAuth(BearerAuth)
+  @useAuth(BrowserOrMachineAuth)
   @doc("Return authenticated user profile")
   op me():
     | { @statusCode _: 200; @body body: UserProfile; }
@@ -255,7 +271,7 @@ namespace Auth {
 // ---------------------------------------------------------------------------
 
 @route("/api/urls")
-@useAuth(BearerAuth)
+@useAuth(BrowserOrMachineAuth)
 namespace Links {
   @post
   @doc("Shorten a URL")
@@ -305,7 +321,7 @@ namespace Redirect {
 // ---------------------------------------------------------------------------
 
 @route("/api/api-keys")
-@useAuth(BearerAuth)
+@useAuth(BrowserOrMachineAuth)
 namespace ApiKeys {
   @post
   @doc("Create a new API key")
@@ -335,7 +351,7 @@ namespace ApiKeys {
 // ---------------------------------------------------------------------------
 
 @route("/api/stats")
-@useAuth(BearerAuth)
+@useAuth(BrowserOrMachineAuth)
 namespace Stats {
   @get
   @route("/{slug}")

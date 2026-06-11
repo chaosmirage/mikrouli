@@ -6,7 +6,6 @@ resources:
   - serviceaccounts.yaml
   - network-policies.yaml
   - ingress.yaml
-  - hsts-middleware.yaml
   - api/deployment.yaml
   - api/service.yaml
   - api/hpa.yaml

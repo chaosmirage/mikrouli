@@ -9,8 +9,8 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiFetch, clearTokens, getAccessToken, setTokens } from '../api/client';
-import type { MeResponse, LoginResponse } from '../api/types';
+import { apiFetch } from '../api/client';
+import type { MeResponse } from '../api/types';
 
 export type User = MeResponse;
 
@@ -19,21 +19,31 @@ export interface AuthContextValue {
   bootstrapping: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
-async function fetchMe(): Promise<User> {
-  return apiFetch('/api/auth/me', 'get');
+async function fetchMe(): Promise<User | null> {
+  try {
+    return await apiFetch('/api/auth/me', 'get');
+  } catch {
+    // 401 means no active session — return null to indicate logged-out state.
+    return null;
+  }
 }
 
-async function loginRequest(email: string, password: string): Promise<LoginResponse> {
+async function loginRequest(email: string, password: string): Promise<User> {
+  // The API sets HttpOnly cookies on success; the body carries the UserProfile.
   return apiFetch('/api/auth/login', 'post', { body: { email, password } });
 }
 
 async function registerRequest(email: string, password: string): Promise<User> {
   return apiFetch('/api/auth/register', 'post', { body: { email, password } });
+}
+
+async function logoutRequest(): Promise<void> {
+  await apiFetch('/api/auth/logout', 'post');
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
@@ -42,15 +52,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const { data: user, isLoading: bootstrapping } = useQuery({
     queryKey: ['user'],
-    queryFn: async () => {
-      if (!getAccessToken()) return null;
-      try {
-        return await fetchMe();
-      } catch {
-        clearTokens();
-        return null;
-      }
-    },
+    // Always probe /me to determine session state — the HttpOnly cookie is sent
+    // automatically by the browser via credentials:'include' in apiFetch.
+    queryFn: fetchMe,
     staleTime: Infinity,
     retry: false,
     refetchOnWindowFocus: false,
@@ -59,12 +63,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      const tokens = await loginRequest(email, password);
-      setTokens(tokens.accessToken, tokens.refreshToken);
-      const me = await fetchMe();
-      return me;
-    },
+    mutationFn: async ({ email, password }: { email: string; password: string }) =>
+      loginRequest(email, password),
     onSuccess: (me) => {
       queryClient.setQueryData(['user'], me);
     },
@@ -90,8 +90,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [registerMutation],
   );
 
-  const logout = useCallback(() => {
-    clearTokens();
+  const logout = useCallback(async () => {
+    await logoutRequest();
+    // Invalidate all cached data after the server-side session is revoked.
+    await queryClient.invalidateQueries();
     queryClient.setQueryData(['user'], null);
     navigate('/login');
   }, [queryClient, navigate]);
