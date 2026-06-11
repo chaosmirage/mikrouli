@@ -144,18 +144,34 @@ redirect at `GET /{slug}`.
 Two authentication mechanisms coexist, dispatched by `BearerOrApiKeyGuard`
 (`apps/api/src/api-keys/bearer-or-api-key.guard.ts`):
 
-- **JWT bearer tokens** (`Authorization: Bearer <token>`): issued on login as an
-  access/refresh pair. The access token is a short-lived JWT signed with `JWT_SECRET`;
-  the refresh token is signed with a separate `JWT_REFRESH_SECRET` and carries
-  `type: "refresh"` to prevent its use as an access token. Implemented via
-  `passport-jwt` (`auth/jwt.strategy.ts`).
+- **JWT via HttpOnly cookies**: on login or refresh, `auth.service.ts` returns two
+  `Set-Cookie` headers — `mikrouli_access` (short-lived, path `/api`) and
+  `mikrouli_refresh` (7-day, path `/api/auth/refresh`). Both are `HttpOnly`,
+  `Secure` (in production), and `SameSite=Strict`. The Passport JWT strategy
+  (`jwt.strategy.ts`) uses an extractor chain: cookie first, then
+  `Authorization: Bearer` as a fallback for CLI and test clients. Tokens are
+  signed with `HS256` only; other algorithms are rejected before the validate
+  callback runs.
 
-- **API keys** (`X-Api-Key: <key>`): hashed with bcrypt (10 rounds) before storage
-  (`api-keys.service.ts`). The raw key is shown once at creation and never stored
-  in plaintext. Comparison is done against the stored hash on each request.
+- **Refresh-token revocation**: each `issueTokens` call generates a `jti` and
+  a `family` UUID. The `jti` is stored in Redis under `refresh-family:<family>`
+  (TTL = refresh token lifetime). On `rotateRefresh`, the stored `jti` must
+  match the presented token's `jti`; a mismatch deletes the entire family from
+  Redis (replay containment) and returns 401. Redis unavailability surfaces as
+  503 (fail-closed). `POST /api/auth/logout` deletes the family key and clears
+  both cookies.
+
+- **API keys** (`X-Api-Key: <key>`): hashed with bcrypt (10 rounds) before
+  storage (`api-keys.service.ts`). The raw key is shown once at creation and
+  never stored in plaintext. Comparison is done against the stored hash on each
+  request.
 
 The guard inspects the incoming headers and delegates to the appropriate sub-guard; a
 request with neither credential receives 401.
+
+**Non-enumerable register**: `UsersService.create` returns a decoy result
+(locally constructed, not persisted) on duplicate email rather than throwing
+409, preventing account enumeration via the register endpoint.
 
 ---
 
@@ -198,7 +214,9 @@ The service name is `mikrouli-api`.
 **SPA** (`apps/web/src/instrumentation.ts`): `WebTracerProvider` with
 `DocumentLoadInstrumentation`, `FetchInstrumentation`, and
 `UserInteractionInstrumentation`. Sensitive headers are similarly redacted on fetch spans.
-The service name is `mikrouli-web`.
+The service name is `mikrouli-web`. `propagateTraceHeaderCorsUrls` is restricted to a
+pattern matching only the same origin as `window.location.origin`; `traceparent` headers
+are not sent to cross-origin requests.
 
 In Kubernetes the `OTEL_EXPORTER_OTLP_ENDPOINT` env var on the API Deployment points to
 `http://otel-collector.observability.svc.cluster.local:4318`; operators supply their own
@@ -207,6 +225,29 @@ collector (Jaeger, Tempo, SigNoz, etc.) -- see `k8s/README.md`.
 ---
 
 ## 8. Deployment
+
+### API security controls
+
+The following controls are applied at startup in `apps/api/src/main.ts`:
+
+- **Trust proxy**: `app.set('trust proxy', N)` is called before any middleware.
+  `N` defaults to `1` (one nginx hop in compose); the `TRUST_PROXY_HOPS` env var
+  overrides it for k8s (set to `2` — Traefik + web-nginx).
+- **Security headers**: `helmet` is mounted with `hsts: false` (HSTS is handled by
+  the k8s production overlay) and `x-powered-by` disabled.
+- **Cookie parser**: `cookieParser()` is registered before guards so the JWT strategy
+  can extract tokens from `mikrouli_access`.
+- **Swagger UI**: only mounted when `NODE_ENV` is not `"production"`, preventing API
+  schema disclosure in the production environment.
+- **Rate limiting**: `ThrottlerModule` applies per-IP in-memory counters: a default
+  limit (300 req/min), a strict auth limit (30 req/min on login/register/refresh), and
+  a redirect limit (120 req/10 s on the hot path).
+
+nginx (`nginx/nginx.conf`, `k8s/base/web/configmap-nginx.yaml`) sets
+`X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, and
+`Content-Security-Policy` on every response, and suppresses server version disclosure
+with `server_tokens off`. Dotfile paths are blocked; oversized User-Agent strings
+(> 1 024 characters) return 400.
 
 ### Docker Compose (local / CI)
 
@@ -247,10 +288,15 @@ posture in the `mikrouli` namespace. Explicit `NetworkPolicy` objects allow only
 required paths: Traefik ingress -> web, web -> API, API -> Postgres/Redis/ClickHouse.
 No other east-west traffic is permitted.
 
-Application secrets (`DB_PASS`, `JWT_SECRET`, etc.) are stored in a Kubernetes `Secret`
-named `mikrouli-secrets`, created manually by the operator from a trusted machine.
-The CI/CD workflow never handles plaintext credentials; the only secret it holds is
-`KUBECONFIG_PRODUCTION` for cluster access.
+Application secrets (`DB_PASS`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `REDIS_PASSWORD`,
+and the ClickHouse password) are stored in a Kubernetes `Secret` named `mikrouli-secrets`,
+created manually by the operator from a trusted machine. The CI/CD workflow never handles
+plaintext credentials; the only secret it holds is `KUBECONFIG_PRODUCTION` for cluster
+access.
+
+**Operator follow-up**: the cluster private CIDR placeholder (`10.43.0.0/16`) in
+`k8s/cluster/hetzner-k3s.yaml` must be replaced with the actual k3s pod CIDR before
+applying the cluster manifests.
 
 ---
 
@@ -285,3 +331,16 @@ consumer (notifications, webhooks, analytics pipeline feed), but none is impleme
 **Single Redis client per service instance.** The API connects to `redis-primary` only;
 the replica declared in compose is available but not used by the application code today.
 A read/write split (writes to primary, reads from replica) would be the next step.
+
+**In-memory rate limiting does not synchronise across pods.** `ThrottlerModule` uses
+per-process counters; horizontal scaling would require a Redis-backed throttle store to
+enforce limits accurately across replicas.
+
+**SSRF check covers only literal IP addresses.** The `@IsPublicHttpUrl` validator blocks
+URLs whose host is a literal private, loopback, or link-local IP. Hostnames that resolve
+to private IPs at request time are not checked; a DNS-rebinding or split-horizon DNS
+attack could bypass the static check.
+
+**Swagger UI is disabled in production.** `NODE_ENV=production` gates `mountSwagger`;
+the API schema is accessible only when running the stack locally with a non-production
+`NODE_ENV`.
