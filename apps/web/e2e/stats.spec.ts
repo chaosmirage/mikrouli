@@ -52,7 +52,7 @@ test('stats page renders totals reflecting the redirect count', async ({ page, a
   const slug = slugFromShortUrl(((await createResp.json()) as CreateLinkResponse).shortUrl);
 
   for (let i = 0; i < REDIRECT_HITS; i += 1) {
-    // Redirect fetch: unauthenticated (noAuth so no bearer is sent)
+    // Redirect fetch: unauthenticated (noAuth so no session cookies are forwarded)
     await api.call('GET', `/${slug}`, { noAuth: true });
   }
 
@@ -79,19 +79,27 @@ test('stats page renders totals reflecting the redirect count', async ({ page, a
 });
 
 test('stats endpoint returns 403 when called by another user', async ({ page, request }) => {
+  // Clear shared session cookies so registerAndLogin can navigate to /register
+  // without GuestRoute bouncing the page to /dashboard.
+  await page.context().clearCookies();
+  // Owner logs in and creates a link.
   const owner = await registerAndLogin(page);
-  const ownerAuth = { Authorization: `Bearer ${owner.accessToken ?? ''}` };
-  const createResp = await apiCall(request, 'POST', '/api/urls', {
-    headers: ownerAuth,
+  const createResp = await page.request.fetch('http://localhost:8888/api/urls', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     data: { url: TARGET_URL },
   });
   const slug = slugFromShortUrl(((await createResp.json()) as CreateLinkResponse).shortUrl);
 
-  // Second user shouldn't see other users' stats.
+  // Switch to a second identity: clear cookies from the browser context and register a new user.
   await page.context().clearCookies();
-  await page.evaluate(() => localStorage.clear());
-  const intruder = await registerAndLogin(page);
-  const intruderAuth = { Authorization: `Bearer ${intruder.accessToken ?? ''}` };
-  const resp = await apiCall(request, 'GET', `/api/stats/${slug}`, { headers: intruderAuth });
+  await registerAndLogin(page);
+
+  // The intruder's session cookies are now in the browser context.
+  const resp = await page.request.fetch(`http://localhost:8888/api/stats/${slug}`);
   expect(resp.status()).toBe(403);
+
+  // Suppress unused variable warning
+  void owner;
+  void request;
 });

@@ -1,4 +1,3 @@
-import { ConflictException } from '@nestjs/common';
 import { ModuleMetadata } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -32,13 +31,38 @@ describe('UsersService', () => {
     expect(service).toBeDefined();
   });
 
-  it('create throws ConflictException on duplicate email', async () => {
-    const user = { email: 'test@example.com', passwordHash: 'hash' } as User;
-    repo.create.mockReturnValue(user);
+  it('create returns a user-shaped result on fresh email', async () => {
+    const persisted = {
+      id: 'uuid-fresh',
+      email: 'new@example.com',
+      passwordHash: 'hash',
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01'),
+    } as User;
+    repo.create.mockReturnValue(persisted);
+    repo.save.mockResolvedValue(persisted);
+    const result = await service.create({ email: 'new@example.com', passwordHash: 'hash' });
+    expect(result.id).toBe('uuid-fresh');
+    expect(result.email).toBe('new@example.com');
+    expect(result.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('create resolves with the same shape on duplicate email without persisting again', async () => {
+    const partial = { email: 'dup@example.com', passwordHash: 'hash' } as User;
+    repo.create.mockReturnValue(partial);
     repo.save.mockRejectedValue(DUPLICATE_EMAIL_ERROR);
-    await expect(
-      service.create({ email: 'test@example.com', passwordHash: 'hash' }),
-    ).rejects.toThrow(ConflictException);
+    const result = await service.create({ email: 'dup@example.com', passwordHash: 'hash' });
+    // Must resolve (not reject)
+    expect(result).toBeDefined();
+    // Must carry the submitted email
+    expect(result.email).toBe('dup@example.com');
+    // Must have an id (a new one, not the existing user's)
+    expect(typeof result.id).toBe('string');
+    expect(result.id.length).toBeGreaterThan(0);
+    // Must have a createdAt date
+    expect(result.createdAt).toBeInstanceOf(Date);
+    // save was called exactly once (no retry / second persist)
+    expect(repo.save).toHaveBeenCalledTimes(1);
   });
 
   it('create propagates non-unique errors', async () => {

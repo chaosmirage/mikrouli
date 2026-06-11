@@ -9,6 +9,9 @@ data:
     # without requiring an nginx reload.
     resolver kube-dns.kube-system.svc.cluster.local valid=30s ipv6=off;
 
+    # Suppress server version disclosure in headers and error pages.
+    server_tokens off;
+
     server {
         listen 8080;
         server_name _;
@@ -35,6 +38,26 @@ data:
             image/svg+xml;
         gzip_min_length 256;
 
+        # Reject requests with a User-Agent header longer than 1024 characters.
+        # Oversized UAs are a hallmark of scanner/exploit traffic.
+        if ($http_user_agent ~* "^.{1025,}") {
+            return 400;
+        }
+
+        # Deny access to dotfiles (e.g. .env, .git, .htaccess).
+        location ~ /\. {
+            deny all;
+            return 404;
+        }
+
+        # Security headers applied at server level — repeated in every location
+        # that declares its own add_header directives (nginx inheritance rule).
+        # style-src 'unsafe-inline' is required by MUI/Emotion for runtime CSS-in-JS injection.
+        add_header X-Content-Type-Options    "nosniff"                     always;
+        add_header X-Frame-Options           "DENY"                        always;
+        add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
+        add_header Content-Security-Policy   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+
         # Proxy API calls to the api Deployment.
         location /api/ {
             set $api_upstream "api.mikrouli.svc.cluster.local";
@@ -44,6 +67,13 @@ data:
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
             proxy_read_timeout 30s;
+
+            # Repeat security headers: nginx clears parent add_header directives
+            # when a location block declares its own (nginx inheritance rule).
+            add_header X-Content-Type-Options    "nosniff"                     always;
+            add_header X-Frame-Options           "DENY"                        always;
+            add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
+            add_header Content-Security-Policy   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
         }
 
         # 6-character short-link redirect — slugs are alphanumeric, length 6.
@@ -65,6 +95,13 @@ data:
             proxy_buffer_size 64k;
             proxy_buffers 4 64k;
             proxy_busy_buffers_size 64k;
+
+            # Repeat security headers: nginx clears parent add_header directives
+            # when a location block declares its own (nginx inheritance rule).
+            add_header X-Content-Type-Options    "nosniff"                     always;
+            add_header X-Frame-Options           "DENY"                        always;
+            add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
+            add_header Content-Security-Policy   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
         }
 
         # Static assets — long-lived cache (content-addressed filenames from Vite)
@@ -72,11 +109,25 @@ data:
             expires 1y;
             add_header Cache-Control "public, immutable";
             access_log off;
+
+            # Repeat security headers: nginx clears parent add_header directives
+            # when a location block declares its own (nginx inheritance rule).
+            add_header X-Content-Type-Options    "nosniff"                     always;
+            add_header X-Frame-Options           "DENY"                        always;
+            add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
+            add_header Content-Security-Policy   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
         }
 
         # SPA fallback — all unmatched paths return index.html for React Router
         location / {
             try_files $uri $uri/ /index.html;
             add_header Cache-Control "no-cache";
+
+            # Repeat security headers: nginx clears parent add_header directives
+            # when a location block declares its own (nginx inheritance rule).
+            add_header X-Content-Type-Options    "nosniff"                     always;
+            add_header X-Frame-Options           "DENY"                        always;
+            add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
+            add_header Content-Security-Policy   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
         }
     }

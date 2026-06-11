@@ -8,9 +8,11 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { StatsService } from '../stats/stats.service';
 import { RedirectService, RedirectResolution } from './redirect.service';
+import { REDIRECT_THROTTLE_NAME } from '../app.module';
 
 const REDIRECT_STATUS = HttpStatus.FOUND; // 302
 const SLUG_LENGTH = 6;
@@ -57,6 +59,7 @@ export class RedirectController {
   ) {}
 
   @Get()
+  @Throttle({ [REDIRECT_THROTTLE_NAME]: { limit: 120, ttl: 10_000 } })
   async redirect(
     @Param('slug') slug: string,
     @Res() res: Response,

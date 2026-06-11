@@ -68,6 +68,9 @@ spec:
               value: clickhouse.mikrouli.svc.cluster.local
             - name: CLICKHOUSE_PORT
               value: '8123'
+            # k8s topology: traefik (L7 LB) + web-nginx both append XFF headers
+            - name: TRUST_PROXY_HOPS
+              value: '2'
             - name: OTEL_ENABLED
               value: 'true'
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
@@ -80,9 +83,41 @@ spec:
                   fieldPath: metadata.labels['app.kubernetes.io/version']
             - name: DEPLOYMENT_ENVIRONMENT
               value: 'production'
-          envFrom:
-            - secretRef:
-                name: mikrouli-secrets
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mikrouli-secrets
+                  key: DB_USER
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: mikrouli-secrets
+                  key: DB_PASS
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: mikrouli-secrets
+                  key: DB_NAME
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: mikrouli-secrets
+                  key: JWT_SECRET
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: mikrouli-secrets
+                  key: JWT_REFRESH_SECRET
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mikrouli-secrets
+                  key: REDIS_PASSWORD
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mikrouli-secrets
+                  key: CLICKHOUSE_PASSWORD
           volumeMounts:
             - name: tmp
               mountPath: /tmp

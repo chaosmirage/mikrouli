@@ -15,6 +15,16 @@ function isExpired(link: Pick<Link, 'expiresAt'>): boolean {
   return link.expiresAt.getTime() <= Date.now();
 }
 
+/** Returns true only for http and https URLs — guards against non-http schemes stored in legacy rows. */
+function hasHttpScheme(url: string): boolean {
+  try {
+    const { protocol } = new URL(url);
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 @Injectable()
 export class RedirectService {
   constructor(
@@ -26,13 +36,17 @@ export class RedirectService {
     const link = await this.linksService.findBySlug(slug);
     if (link === null) return { status: 'not-found' };
     if (isExpired(link)) return { status: 'expired' };
+    if (!hasHttpScheme(link.originalUrl)) return { status: 'not-found' };
     await this.linkCache.set(slug, link.originalUrl, link.expiresAt);
     return { status: 'active', originalUrl: link.originalUrl };
   }
 
   async resolve(slug: string): Promise<RedirectResolution> {
     const cached = await this.linkCache.get(slug);
-    if (cached !== null) return { status: 'active', originalUrl: cached };
+    if (cached !== null) {
+      if (!hasHttpScheme(cached)) return { status: 'not-found' };
+      return { status: 'active', originalUrl: cached };
+    }
     return this.resolveFromDatabase(slug);
   }
 }

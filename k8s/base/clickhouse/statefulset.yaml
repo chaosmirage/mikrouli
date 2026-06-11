@@ -61,9 +61,12 @@ spec:
               echo "users.xml lines:"
               wc -l /rendered/users.xml
               head -3 /rendered/users.xml
-          envFrom:
-            - secretRef:
-                name: mikrouli-secrets
+          env:
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mikrouli-secrets
+                  key: CLICKHOUSE_PASSWORD
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -91,9 +94,12 @@ spec:
             capabilities:
               drop:
                 - ALL
-          envFrom:
-            - secretRef:
-                name: mikrouli-secrets
+          env:
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mikrouli-secrets
+                  key: CLICKHOUSE_PASSWORD
           volumeMounts:
             - name: data
               mountPath: /var/lib/clickhouse

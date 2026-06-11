@@ -52,11 +52,17 @@ const DICTIONARY_TABLES = [
   { table: 'cities', rows: CITY_SEED },
 ];
 
+// Builds the authenticated ClickHouse client. Throws at module init when
+// CLICKHOUSE_PASSWORD is absent so the service refuses to boot rather than
+// connecting unauthenticated (design constraint C3).
 function buildClient(configService: ConfigService): ClickHouseClient {
   const host = configService.get<string>('CLICKHOUSE_HOST', 'localhost');
   const port = configService.get<number>('CLICKHOUSE_PORT', DEFAULT_CH_PORT);
+  const password = configService.getOrThrow<string>('CLICKHOUSE_PASSWORD');
   return createClient({
     url: `http://${host}:${port}`,
+    username: 'default',
+    password,
     database: 'default',
     request_timeout: REQUEST_TIMEOUT_MS,
   });
@@ -126,8 +132,8 @@ export class ClickHouseService implements OnModuleInit, OnModuleDestroy {
     await this.client.insert({ table, values, format: 'JSONEachRow' });
   }
 
-  async query<T>(sql: string): Promise<T[]> {
-    const result = await this.client.query({ query: sql, format: 'JSONEachRow' });
+  async query<T>(sql: string, query_params?: Record<string, unknown>): Promise<T[]> {
+    const result = await this.client.query({ query: sql, format: 'JSONEachRow', query_params });
     return result.json<T>();
   }
 }
