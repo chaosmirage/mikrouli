@@ -19,6 +19,7 @@ Headline decisions:
 - [ADR-0007](docs/adr/0007-dual-auth-jwt-and-hashed-api-keys.md) -- dual authentication: JWT bearer for the SPA, bcrypt-hashed API keys for programmatic clients
 - [ADR-0008](docs/adr/0008-k3s-hetzner-default-deny-network-policies.md) -- k3s on Hetzner with zero-trust namespace networking and an explicit EUR 30/month cost ceiling
 - [ADR-0013](docs/adr/0013-github-oauth-sign-in-and-account-linking.md) -- GitHub OAuth sign-in with Redis-backed single-use CSRF state, verified-email gating, and find-or-create-or-link account resolution
+- [ADR-0014](docs/adr/0014-correlation-id-request-tracing.md) -- end-to-end correlation-ID request tracing via AsyncLocalStorage, nginx pass-through, and OTel span attribute
 
 ## Development Approach
 
