@@ -11,10 +11,10 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const WEB_PUBLIC = path.resolve(__dirname, '../../public');
+const WEB_PUBLIC = path.resolve(__dirname, '../public');
 const OPENAPI_PATH = path.resolve(
   __dirname,
-  '../../../api/spec/tsp-output/@typespec/openapi3/openapi.json',
+  '../../api/spec/tsp-output/@typespec/openapi3/openapi.json',
 );
 
 function readLlmsTxt(): string {
