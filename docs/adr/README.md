@@ -24,3 +24,4 @@ accordingly and a new record describes the replacement decision.
 | [0011](0011-cookie-based-jwt-auth-and-refresh-token-revocation.md) | Cookie-Based JWT Auth and Refresh-Token Revocation | Accepted |
 | [0012](0012-api-and-infrastructure-security-hardening.md) | API and Infrastructure Security Hardening | Accepted |
 | [0013](0013-github-oauth-sign-in-and-account-linking.md) | GitHub OAuth Sign-In and Account Linking | Accepted |
+| [0014](0014-correlation-id-request-tracing.md) | Correlation-ID Request Tracing | Accepted |

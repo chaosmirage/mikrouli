@@ -30,7 +30,7 @@ NestJS API also writes to:
 ```
 
 - **nginx** (`nginx/nginx.conf`, `docker-compose.yml`) is the single public entry point on
-  port 8888 (compose) / 80 (Kubernetes). It routes 6-character slug paths directly to the
+  port 8888 (compose) / 80 (Kubernetes). It passes the `X-Correlation-ID` request header through to the API so that per-request tracing survives the reverse-proxy hop. It routes 6-character slug paths directly to the
   NestJS API, `/api/*` to the API, and everything else to the React SPA.
 - **NestJS API** (`apps/api`) handles all business logic: auth, link management, redirect
   resolution, click recording, and background cleanup.
@@ -129,7 +129,7 @@ Error responses follow **RFC 9457 Problem Details** (`application/problem+json`)
 Every error model in `main.tsp` spreads `ProblemDetails` (`type`, `title`, `status`,
 `detail`, `instance`). The runtime implementation in `apps/api/src/common/problem-details.ts`
 builds URIs in the form `https://mikrou.li/problems/{slug}` and
-`problem-details.filter.ts` maps NestJS HTTP exceptions to this shape uniformly.
+`problem-details.filter.ts` maps NestJS HTTP exceptions to this shape uniformly. Every error response also includes an `X-Correlation-ID` response header so callers can report the request-specific identifier for support lookup.
 
 Endpoints covered by the spec: `POST /api/auth/register`, `POST /api/auth/login`,
 `POST /api/auth/refresh`, `GET /api/auth/me`, `GET /api/auth/github`,
