@@ -7,11 +7,12 @@ import { MemoryRouter } from 'react-router-dom';
 import { TestQueryClientProvider } from '../test/queryClient';
 import ApiKeysPage from './ApiKeysPage';
 
+function makeHeaders() { return { get: () => null }; }
 function makeOk(data: unknown) {
-  return { ok: true, status: 200, json: () => Promise.resolve(data) };
+  return { ok: true, status: 200, json: () => Promise.resolve(data), headers: makeHeaders() };
 }
 function makeErr(status: number, body: unknown) {
-  return { ok: false, status, json: () => Promise.resolve(body) };
+  return { ok: false, status, json: () => Promise.resolve(body), headers: makeHeaders() };
 }
 
 function renderApiKeys() {
