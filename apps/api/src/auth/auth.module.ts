@@ -3,10 +3,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from '../users/users.module';
+import { RedisModule } from '../redis/redis.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { GithubStrategy, GithubOauthGuard } from './github.strategy';
 
 const ACCESS_TOKEN_TTL = '15m';
 
@@ -24,8 +26,8 @@ const jwtModule = JwtModule.registerAsync({
 });
 
 @Module({
-  imports: [UsersModule, PassportModule, jwtModule],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard],
+  imports: [UsersModule, PassportModule, RedisModule, jwtModule],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, GithubStrategy, GithubOauthGuard],
   controllers: [AuthController],
   exports: [JwtAuthGuard, jwtModule],
 })

@@ -6,6 +6,7 @@ import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
 import { RedisService } from '../redis/redis.service';
 import { User } from '../users/user.entity';
+import type { GithubIdentity } from './github-oauth.errors';
 
 const BCRYPT_SALT_ROUNDS = 10;
 const REFRESH_TOKEN_TTL = '7d';
@@ -22,6 +23,13 @@ const REFRESH_COOKIE_PATH = '/api/auth';
 // Redis key prefix for the refresh-token revocation allowlist.
 // Key: auth:refresh:<family>  Value: current jti  TTL: refresh TTL
 const REVOCATION_KEY_PREFIX = 'auth:refresh:';
+
+// Pre-computed bcrypt hash used when the account has no password (GitHub-only)
+// or when the user is not found. Running a real bcrypt.compare against this hash
+// keeps the response time indistinguishable from a wrong-password attempt,
+// preventing timing oracles that would reveal whether an account exists or has
+// no password credential. The constant is intentionally unguessable.
+const DECOY_PASSWORD_HASH = '$2b$10$abcdefghijklmnopqrstuuVGLMaGqJ8N6mAqfITwHNYOfhBFUEiPi';
 
 export interface JwtPayload {
   sub: string;
@@ -110,11 +118,16 @@ export class AuthService {
     return { id: user.id, email: user.email, createdAt: user.createdAt };
   }
 
+  // Returns the authenticated user, or null when credentials do not match.
+  // Runs bcrypt.compare against a decoy hash in all failure cases (user not found,
+  // null passwordHash) to keep response time constant and prevent timing oracles
+  // that would reveal account existence or the absence of a password credential.
   async validateCredentials(email: string, password: string): Promise<User | null> {
     const user = await this.usersService.findByEmail(email);
-    if (!user) return null;
-    const match = await bcrypt.compare(password, user.passwordHash);
-    return match ? user : null;
+    const hashToCompare = user?.passwordHash ?? DECOY_PASSWORD_HASH;
+    const match = await bcrypt.compare(password, hashToCompare);
+    if (!user || !user.passwordHash || !match) return null;
+    return user;
   }
 
   async issueTokens(user: User): Promise<{ tokens: TokenPair; cookies: [string, string] }> {
@@ -139,6 +152,16 @@ export class AuthService {
     ];
 
     return { tokens: { accessToken, refreshToken }, cookies };
+  }
+
+  // Issues a session for a GitHub-authenticated identity by resolving the mikrouli
+  // account (find-or-create-or-link) and then reusing the same issueTokens join
+  // point as credential login. Once the User is resolved, the session is identical.
+  async loginWithGithub(
+    identity: GithubIdentity,
+  ): Promise<{ tokens: TokenPair; cookies: [string, string] }> {
+    const user = await this.usersService.findOrCreateFromProvider(identity);
+    return this.issueTokens(user);
   }
 
   async rotateRefresh(token: string): Promise<{ tokens: TokenPair; cookies: [string, string] }> {

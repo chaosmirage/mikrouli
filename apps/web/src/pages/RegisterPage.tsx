@@ -8,6 +8,7 @@ import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
+import Divider from '@mui/material/Divider';
 import { ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 
@@ -67,7 +68,7 @@ export default function RegisterPage() {
   const [formErrors, setFormErrors] = useState<RegisterFormErrors>({});
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, loginWithGithub } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = useCallback(
@@ -136,6 +137,14 @@ export default function RegisterPage() {
               {t(errorKey)}
             </Alert>
           )}
+          <Divider />
+          <Button
+            variant="outlined"
+            onClick={loginWithGithub}
+            data-testid="register-github"
+          >
+            {t('auth:continueWithGithub')}
+          </Button>
           <Button variant="text" onClick={handleGoLogin} data-testid="register-to-login">
             {t('auth:hasAccount')}
           </Button>

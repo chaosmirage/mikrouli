@@ -264,6 +264,29 @@ namespace Auth {
   op me():
     | { @statusCode _: 200; @body body: UserProfile; }
     | UnauthorizedError;
+
+  @get
+  @route("/github")
+  @doc("Redirect browser to GitHub OAuth authorization page; mints a one-time CSRF state token")
+  op githubAuthorize():
+    | { @statusCode _: 302; @header location: string; }
+    | InternalServerError;
+
+  @get
+  @route("/github/callback")
+  @doc("OAuth callback from GitHub; validates state, exchanges code, resolves account, sets session cookies, redirects to SPA")
+  op githubCallback(
+    @query code?: string,
+    @query state?: string,
+    @query error?: string,
+  ):
+    | {
+        @statusCode _: 302;
+        @header location: string;
+        @header("set-cookie") accessCookie?: string;
+        @header("set-cookie") refreshCookie?: string;
+      }
+    | InternalServerError;
 }
 
 // ---------------------------------------------------------------------------

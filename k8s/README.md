@@ -155,6 +155,8 @@ kubectl -n mikrouli create secret generic mikrouli-secrets \
   --from-literal=DB_NAME="$DB_NAME" \
   --from-literal=JWT_SECRET="$JWT_SECRET" \
   --from-literal=JWT_REFRESH_SECRET="$JWT_REFRESH_SECRET" \
+  --from-literal=GITHUB_CLIENT_ID="$GITHUB_CLIENT_ID" \
+  --from-literal=GITHUB_CLIENT_SECRET="$GITHUB_CLIENT_SECRET" \
   --from-literal=CLICKHOUSE_PASSWORD="$CLICKHOUSE_PASSWORD" \
   --from-literal=S3_ACCESS_KEY="$S3_ACCESS_KEY" \
   --from-literal=S3_SECRET_KEY="$S3_SECRET_KEY" \
@@ -162,7 +164,7 @@ kubectl -n mikrouli create secret generic mikrouli-secrets \
   --from-literal=S3_BUCKET="$S3_BUCKET"
 
 # Clear shell vars from history
-unset DB_PASS JWT_SECRET JWT_REFRESH_SECRET CLICKHOUSE_PASSWORD S3_SECRET_KEY
+unset DB_PASS JWT_SECRET JWT_REFRESH_SECRET GITHUB_CLIENT_SECRET CLICKHOUSE_PASSWORD S3_SECRET_KEY
 history -c 2>/dev/null || true
 ```
 

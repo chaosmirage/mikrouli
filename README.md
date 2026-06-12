@@ -18,6 +18,7 @@ Headline decisions:
 - [ADR-0006](docs/adr/0006-contract-first-api-typespec-openapi-rfc9457.md) -- contract-first API via TypeSpec/OpenAPI with RFC 9457 problem-details errors
 - [ADR-0007](docs/adr/0007-dual-auth-jwt-and-hashed-api-keys.md) -- dual authentication: JWT bearer for the SPA, bcrypt-hashed API keys for programmatic clients
 - [ADR-0008](docs/adr/0008-k3s-hetzner-default-deny-network-policies.md) -- k3s on Hetzner with zero-trust namespace networking and an explicit EUR 30/month cost ceiling
+- [ADR-0013](docs/adr/0013-github-oauth-sign-in-and-account-linking.md) -- GitHub OAuth sign-in with Redis-backed single-use CSRF state, verified-email gating, and find-or-create-or-link account resolution
 
 ## Development Approach
 
@@ -125,6 +126,8 @@ pnpm --filter web test:e2e       # Playwright
 | POST   | `/api/auth/login`    | none                | Issue JWT pair             |
 | POST   | `/api/auth/refresh`  | refresh token       | Rotate access+refresh      |
 | GET    | `/api/auth/me`       | Bearer JWT          | Current profile            |
+| GET    | `/api/auth/github`          | none          | Start GitHub OAuth sign-in |
+| GET    | `/api/auth/github/callback` | none          | GitHub OAuth callback      |
 | POST   | `/api/urls`          | Bearer or X-API-Key | Create short link          |
 | GET    | `/api/urls`          | Bearer or X-API-Key | List own links             |
 | DELETE | `/api/urls/:slug`    | Bearer or X-API-Key | Delete own link            |
@@ -143,6 +146,23 @@ pnpm --filter web test:e2e       # Playwright
 5. **Logout**: client-side — discard both tokens.
 
 Login with wrong password OR non-existent email returns 401 with the same generic message — no user enumeration.
+
+### Sign in with GitHub
+
+The login and register pages also offer **Continue with GitHub**. The browser is
+sent to `GET /api/auth/github`, which mints a single-use CSRF state token (stored
+in Redis) and redirects to GitHub's authorization page. GitHub returns to
+`GET /api/auth/github/callback`, where the server validates the state token,
+requires a **verified** GitHub email, then finds the matching account, links the
+GitHub identity to an existing email/password account with the same verified
+email, or creates a new account (which has no password). On success the server
+sets the same session cookies as a password login and redirects to `/dashboard`;
+on failure it redirects to `/login?error=...` with a friendly message.
+
+GitHub sign-in requires `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and
+`GITHUB_CALLBACK_URL` to be set (see `.env.example`); create an OAuth App at
+<https://github.com/settings/developers> with the callback URL set to
+`GITHUB_CALLBACK_URL`.
 
 ## API Keys
 
