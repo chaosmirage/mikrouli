@@ -79,6 +79,7 @@ services:
       OTEL_SERVICE_NAME: 'mikrouli-api'
       SERVICE_VERSION: 'dev'
       DEPLOYMENT_ENVIRONMENT: 'docker-compose'
+      PUBLIC_BASE_URL: '${PUBLIC_BASE_URL:-https://mikrou.li}'
     depends_on:
       postgres:
         condition: service_healthy

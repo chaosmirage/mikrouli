@@ -2,40 +2,45 @@
 
 ## Purpose
 
-Top-level routed page components. Each file is a default-exported React
-component that maps to a single application route. Pages own their local UI
-state and delegate domain actions to hooks from `../auth/AuthContext` and
-`../api/`.
+Top-level page components for the React SPA. Each file exports one default
+page component; the router in `App.tsx` maps URL paths to these components.
+All copy is externalised via `react-i18next` -- no inline user-visible
+strings appear in page files.
 
 ## Key pieces
 
-- `LoginPage.tsx` -- email/password login form plus a "Continue with GitHub"
-  button. On mount, reads the `?error` search parameter to display OAuth
-  callback errors (e.g. `github-oauth-failed`, `github-no-verified-email`);
-  the raw slug is never rendered -- it is resolved through a fixed i18n key
-  map (`OAUTH_ERROR_SLUG_TO_I18N_KEY`) before display. Unknown slugs fall back
-  to `errors:generic`.
-- `RegisterPage.tsx` -- email/password registration form plus a "Continue with
-  GitHub" button. Performs client-side validation (email format, password
-  length + mixed-case + digit) before submitting, showing inline field errors.
-  On 409 from the API, displays `errors:emailAlreadyRegistered` (the API
-  returns a decoy success shape internally, so this error is only surfaced when
-  the email already exists in the same request's visible response).
-- `DashboardPage.tsx`, `LandingPage.tsx`, `StatsPage.tsx`, `ApiKeysPage.tsx` --
-  other routed pages; not part of the auth surface.
+- `LandingPage.tsx` -- guest-facing marketing page. Composed of four
+  sections: `HeroSection` (headline + primary CTAs), `FeaturesSection`
+  (three feature cards), `AgentSection` (advertises REST and MCP
+  programmatic access, links to `/connect`), and `BottomCtaSection`
+  (secondary conversion CTA). All copy uses the `landing` i18n namespace.
+  Every section carries a `data-testid` that `LandingPage.test.tsx` asserts
+  on (e.g. `landing-hero`, `landing-features`, `agent-section`).
+- `ConnectPage.tsx` -- public integration guide page at `/connect`. Carries
+  two sections: `RestSection` (`data-testid="connect-rest-section"`) with a
+  copy-pasteable `curl` example for `POST /api/urls`, and `McpSection`
+  (`data-testid="connect-mcp-section"`) with an MCP Streamable HTTP
+  initialization example. Uses the `connect` i18n namespace.
+- `DashboardPage.tsx` -- authenticated user dashboard. Lists the user's
+  shortened links with creation date and click count.
+- `StatsPage.tsx` -- per-link analytics. Reads the `slug` route parameter
+  and renders click-count time series from `GET /api/stats/:slug`.
+- `ApiKeysPage.tsx` -- API key management. Calls `POST /api/api-keys`
+  (JWT/cookie-guarded), displays the plaintext key once via `NewKeyAlert`
+  (`data-testid="key-secret-once"`), and lists / revokes existing keys.
+- `LoginPage.tsx`, `RegisterPage.tsx` -- authentication forms.
 
 ## How to extend safely
 
-- All user-facing strings must be added to all three locale files
-  (`en`, `de`, `el`) in `apps/web/src/i18n/locales/` in parity. The build
-  does not fail on missing keys, but the UI will show the key string instead.
-- OAuth error slugs shown in `LoginPage` are a fixed allowlist. To surface a
-  new slug, add it to `OAUTH_ERROR_SLUG_TO_I18N_KEY` and add the corresponding
-  i18n keys to all three locale files. Do not reflect the raw `?error` query
-  parameter value into the DOM without routing it through this map.
-- Both `LoginPage` and `RegisterPage` invoke `loginWithGithub` from
-  `useAuth()` for the GitHub button -- the handler performs a full-page
-  navigation, not a fetch. Do not wrap it in a `<form>` submit or replace it
-  with `navigate()`.
-- Client-side password validation in `RegisterPage` mirrors the server-side
-  rules in `RegisterDto`. If the server rules change, update both sides.
+- Every section in a page component must carry a unique `data-testid` and
+  a corresponding assertion in the companion `*.test.tsx` file.
+- All user-visible copy must live in the matching locale file under
+  `src/i18n/locales/`; add or remove every key in all three locales
+  (`en`, `de`, `el`) simultaneously to maintain parity.
+- A new public page accessible to unauthenticated users (including agents)
+  must NOT be wrapped in `GuestRoute` if it should remain reachable when
+  the user is logged in. `GuestRoute` redirects authenticated users away;
+  `ConnectPage` and the landing page are routed directly to avoid this.
+- `ApiKeysPage` shows the plaintext key exactly once after creation
+  (`secretOnce` state). Do not persist the plaintext secret beyond the
+  single-render display or expose it via any state-management layer.

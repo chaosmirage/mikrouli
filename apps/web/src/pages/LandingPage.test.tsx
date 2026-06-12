@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import LandingPage from './LandingPage';
@@ -50,5 +50,35 @@ describe('LandingPage', () => {
     const headline = screen.getByTestId('landing-headline');
     expect(headline).toHaveTextContent(/Shorten your links/i);
     expect(headline).toHaveTextContent(/track every click/i);
+  });
+
+  describe('agent section', () => {
+    it('renders the agent section between features and bottom CTA', () => {
+      renderLanding();
+      const page = screen.getByTestId('landing-page');
+      const sections = page.querySelectorAll('[data-testid]');
+      const ids = Array.from(sections).map((el) => el.getAttribute('data-testid'));
+      const featIdx = ids.indexOf('landing-features');
+      const agentIdx = ids.indexOf('agent-section');
+      const bottomIdx = ids.indexOf('landing-bottom-cta');
+      expect(agentIdx).toBeGreaterThan(-1);
+      expect(agentIdx).toBeGreaterThan(featIdx);
+      expect(agentIdx).toBeLessThan(bottomIdx);
+    });
+
+    it('agent section links to /connect', () => {
+      renderLanding();
+      const section = screen.getByTestId('agent-section');
+      // The CTA anchor inside the section must point to /connect
+      const connectLink = within(section).getByRole('link', { name: /connect/i });
+      expect(connectLink).toHaveAttribute('href', '/connect');
+    });
+
+    it('agent section names REST and MCP', () => {
+      renderLanding();
+      const section = screen.getByTestId('agent-section');
+      expect(section).toHaveTextContent(/REST/i);
+      expect(section).toHaveTextContent(/MCP/i);
+    });
   });
 });

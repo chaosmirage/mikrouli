@@ -12,6 +12,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import StatsPage from './pages/StatsPage';
 import ApiKeysPage from './pages/ApiKeysPage';
+import ConnectPage from './pages/ConnectPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,8 +63,12 @@ export default function App() {
       </AuthProvider>
     </QueryClientProvider>
   );
+  const publicRoutes = (
+    <Route path="/connect" element={<ConnectPage />} />
+  );
   const outerRoute = (
     <Route element={shell}>
+      {publicRoutes}
       {guestRoutes}
       {protectedRoutes}
     </Route>

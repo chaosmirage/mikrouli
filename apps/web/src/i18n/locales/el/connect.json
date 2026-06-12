@@ -1,0 +1,19 @@
+{
+  "pageTitle": "Σύνδεση agent",
+  "pageDescription": "Ενσωματώστε το mikrouli στα scripts και τους AI agents σας μέσω REST API ή του φιλοξενούμενου MCP server.",
+  "restSectionTitle": "REST API",
+  "restAuthHeader": "Header αυθεντικοποίησης",
+  "restAuthHeaderDesc": "Περάστε το API key σας στο header x-api-key σε κάθε αίτημα.",
+  "restKeyFormat": "Μορφή κλειδιού: mk_<το-κλειδί-σας>",
+  "restKeyObtain": "Αποκτήστε ένα mk_ κλειδί από τη σελίδα API Keys μετά από σύνδεση.",
+  "restEndpoint": "Δημιουργία σύντομου συνδέσμου",
+  "restEndpointDesc": "POST /api/urls με JSON body που περιέχει το URL στόχο.",
+  "restResponseDesc": "Η απάντηση είναι ένα αντικείμενο PublicLink. Το πεδίο shortUrl είναι ένα slug 6 χαρακτήρων (όχι πλήρες URL). Δημιουργήστε τον κοινοποιήσιμο σύνδεσμο προσθέτοντας τη βασική URL: https://mikrou.li/ + shortUrl.",
+  "mcpSectionTitle": "MCP Server",
+  "mcpSectionDesc": "Συνδέστε ένα MCP-compatible agent harness στο φιλοξενούμενο Streamable HTTP endpoint.",
+  "mcpEndpoint": "MCP endpoint",
+  "mcpProtocol": "Πρωτόκολλο: Streamable HTTP (MCP 2024-11-05)",
+  "mcpAuthNote": "Αυθεντικοποιηθείτε με τον ίδιο header x-api-key όπως στο REST API.",
+  "mcpToolDesc": "Το εργαλείο create_short_link επιστρέφει τον πλήρη χρησιμοποιήσιμο σύνδεσμο (π.χ. https://mikrou.li/abc123) ως έξοδο κειμένου.",
+  "llmsFileLink": "Μηχαναγνώσιμος οδηγός (llms.txt)"
+}

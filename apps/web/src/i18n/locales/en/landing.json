@@ -13,5 +13,9 @@
   "feature3Title": "API for Automation",
   "feature3Body": "Integrate link shortening into your scripts and CI/CD pipelines with a simple REST API.",
   "bottomCtaTitle": "Ready to get started?",
-  "bottomCtaBody": "Create an account in 30 seconds and start shortening links right now."
+  "bottomCtaBody": "Create an account in 30 seconds and start shortening links right now.",
+  "agentEyebrow": "For Developers & AI Agents",
+  "agentTitle": "Use mikrouli via REST or MCP",
+  "agentBody": "Agents and scripts can create short links directly through the REST API or connect a harness via the hosted MCP server — both authenticated with your API key.",
+  "agentCta": "Connect an agent"
 }

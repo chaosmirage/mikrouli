@@ -42,13 +42,19 @@ Example (copy-pasteable):
     -H "x-api-key: mk_<your-key>" \
     -d '{"url":"https://example.com/your-long-url"}' | jq .
 
-Response (201 Created):
+Response (201 Created) -- PublicLink shape:
   {
-    "slug": "abc123",
-    "shortUrl": "https://mikrou.li/abc123",
-    "url": "https://example.com/your-long-url",
-    "createdAt": "2026-01-01T00:00:00.000Z"
+    "shortUrl": "abc123",
+    "originalUrl": "https://example.com/your-long-url",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "expiresAt": null
   }
+
+IMPORTANT: "shortUrl" is a 6-character alphanumeric slug, NOT a full URL.
+There is no "slug" field; the field is named "shortUrl".
+To build the shareable link, prepend the base URL:
+  shareable link = https://mikrou.li + "/" + shortUrl
+  example: https://mikrou.li/abc123
 
 Error responses follow RFC 9457 application/problem+json.
 A missing or invalid key returns 401 with:
@@ -62,15 +68,24 @@ mikrouli exposes a hosted Model Context Protocol server.
 Endpoint: POST /api/mcp
 Protocol: Streamable HTTP (MCP 2024-11-05)
 Auth: x-api-key header (same mk_ key as REST)
+Required header: Accept: application/json, text/event-stream
+  (Streamable HTTP requires it; MCP client harnesses send it automatically.)
 
 Available tool: create_short_link
   Input:  { "url": "https://example.com/long-url" }
-  Output: { "shortUrl": "https://mikrou.li/abc123" }
+  Output text: the full usable link, e.g. "https://mikrou.li/abc123"
+  structuredContent fields:
+    shortUrl    -- 6-character slug (PublicLink contract, same as REST)
+    shortLink   -- full usable link: base URL + "/" + shortUrl
+    originalUrl -- the URL that was shortened
+    createdAt   -- ISO 8601 timestamp
+    expiresAt   -- ISO 8601 timestamp or null
 
 Example initialization call:
 
   curl -s -X POST https://mikrou.li/api/mcp \
     -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
     -H "x-api-key: mk_<your-key>" \
     -d '{
       "jsonrpc": "2.0",

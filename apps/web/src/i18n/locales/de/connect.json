@@ -1,0 +1,19 @@
+{
+  "pageTitle": "Agenten verbinden",
+  "pageDescription": "Binde mikrouli in deine Skripte und KI-Agenten über die REST-API oder den gehosteten MCP-Server ein.",
+  "restSectionTitle": "REST API",
+  "restAuthHeader": "Authentifizierungs-Header",
+  "restAuthHeaderDesc": "Übergib deinen API-Schlüssel im x-api-key-Request-Header bei jedem Aufruf.",
+  "restKeyFormat": "Schlüsselformat: mk_<dein-schlüssel>",
+  "restKeyObtain": "Erstelle einen mk_-Schlüssel auf der API-Schlüssel-Seite nach der Anmeldung.",
+  "restEndpoint": "Kurzlink erstellen",
+  "restEndpointDesc": "POST /api/urls mit einem JSON-Body, der die Ziel-URL enthält.",
+  "restResponseDesc": "Die Antwort ist ein PublicLink-Objekt. Das Feld shortUrl ist ein 6-stelliger Slug (keine vollständige URL). Den teilbaren Link erhältst du durch Voranstellen der Basis-URL: https://mikrou.li/ + shortUrl.",
+  "mcpSectionTitle": "MCP-Server",
+  "mcpSectionDesc": "Verbinde einen MCP-fähigen Agenten-Harness mit dem gehosteten Streamable-HTTP-Endpunkt.",
+  "mcpEndpoint": "MCP-Endpunkt",
+  "mcpProtocol": "Protokoll: Streamable HTTP (MCP 2024-11-05)",
+  "mcpAuthNote": "Authentifiziere dich mit demselben x-api-key-Header wie bei der REST-API.",
+  "mcpToolDesc": "Das Tool create_short_link gibt den vollständigen verwendbaren Link (z.B. https://mikrou.li/abc123) als Textausgabe zurück.",
+  "llmsFileLink": "Maschinenlesbare Anleitung (llms.txt)"
+}
