@@ -11,6 +11,7 @@ const guestAuth: AuthContextValue = {
   login: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
+  loginWithGithub: vi.fn(),
 };
 
 const authedAuth: AuthContextValue = {
@@ -19,6 +20,7 @@ const authedAuth: AuthContextValue = {
   login: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
+  loginWithGithub: vi.fn(),
 };
 
 const bootstrappingAuth: AuthContextValue = {
@@ -27,6 +29,7 @@ const bootstrappingAuth: AuthContextValue = {
   login: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
+  loginWithGithub: vi.fn(),
 };
 
 function renderAt(authValue: AuthContextValue, path: string) {

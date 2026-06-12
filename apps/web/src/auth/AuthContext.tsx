@@ -20,6 +20,9 @@ export interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  // Initiates the GitHub OAuth flow via a full-page navigation so the browser
+  // follows the cross-origin redirect chain that the API mints.
+  loginWithGithub: () => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -98,9 +101,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     navigate('/login');
   }, [queryClient, navigate]);
 
+  // Full-page navigation so the browser follows the server-side redirect chain,
+  // including the cross-origin hop to GitHub's authorization endpoint.
+  const loginWithGithub = useCallback(() => {
+    window.location.assign('/api/auth/github');
+  }, []);
+
   const value = useMemo(
-    () => ({ user: user ?? null, bootstrapping, login, register, logout }),
-    [user, bootstrapping, login, register, logout],
+    () => ({ user: user ?? null, bootstrapping, login, register, logout, loginWithGithub }),
+    [user, bootstrapping, login, register, logout, loginWithGithub],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
