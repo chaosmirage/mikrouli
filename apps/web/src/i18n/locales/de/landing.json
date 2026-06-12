@@ -13,5 +13,9 @@
   "feature3Title": "API für Automatisierung",
   "feature3Body": "Integriere die Linkkürzung in deine Skripte und CI/CD-Pipelines über eine einfache REST-API.",
   "bottomCtaTitle": "Bereit loszulegen?",
-  "bottomCtaBody": "Erstelle in 30 Sekunden ein Konto und beginne sofort mit der Linkkürzung."
+  "bottomCtaBody": "Erstelle in 30 Sekunden ein Konto und beginne sofort mit der Linkkürzung.",
+  "agentEyebrow": "Für Entwickler & KI-Agenten",
+  "agentTitle": "mikrouli per REST oder MCP nutzen",
+  "agentBody": "Agenten und Skripte können Kurzlinks direkt über die REST-API erstellen oder einen Harness über den gehosteten MCP-Server verbinden — beide authentifiziert mit deinem API-Schlüssel.",
+  "agentCta": "Agenten verbinden"
 }

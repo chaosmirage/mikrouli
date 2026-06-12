@@ -543,6 +543,9 @@
           },
           {
             "BearerAuth": []
+          },
+          {
+            "ApiKeyHeaderAuth": []
           }
         ]
       }
@@ -610,6 +613,9 @@
           },
           {
             "BearerAuth": []
+          },
+          {
+            "ApiKeyHeaderAuth": []
           }
         ]
       },
@@ -655,6 +661,9 @@
           },
           {
             "BearerAuth": []
+          },
+          {
+            "ApiKeyHeaderAuth": []
           }
         ]
       }
@@ -715,6 +724,9 @@
           },
           {
             "BearerAuth": []
+          },
+          {
+            "ApiKeyHeaderAuth": []
           }
         ]
       }
@@ -797,6 +809,35 @@
           },
           "keyPrefix": {
             "type": "string"
+          }
+        }
+      },
+      "ApiKeyHeaderAuth": {
+        "type": "object",
+        "required": [
+          "type",
+          "in",
+          "name"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "apiKey"
+            ],
+            "description": "API key passed in the x-api-key request header"
+          },
+          "in": {
+            "type": "string",
+            "enum": [
+              "header"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "enum": [
+              "x-api-key"
+            ]
           }
         }
       },
@@ -1340,6 +1381,11 @@
       "BearerAuth": {
         "type": "http",
         "scheme": "bearer"
+      },
+      "ApiKeyHeaderAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
       }
     }
   },

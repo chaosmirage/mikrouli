@@ -256,6 +256,17 @@ export interface components {
       key: string;
       keyPrefix: string;
     };
+    ApiKeyHeaderAuth: {
+      /**
+       * @description API key passed in the x-api-key request header
+       * @enum {string}
+       */
+      type: 'apiKey';
+      /** @enum {string} */
+      in: 'header';
+      /** @enum {string} */
+      name: 'x-api-key';
+    };
     ApiKeySummary: {
       /** Format: date-time */
       createdAt: string;

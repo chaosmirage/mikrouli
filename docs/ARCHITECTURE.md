@@ -140,6 +140,38 @@ redirect at `GET /{slug}`.
 
 ---
 
+## 4a. MCP tool endpoint for LLM agents
+
+The API exposes a Model Context Protocol (MCP) surface at `POST /api/mcp`
+(`apps/api/src/mcp/mcp.controller.ts`) so LLM agents can create short links as a
+native tool call instead of wrapping the REST endpoint by hand. It is a
+Streamable-HTTP MCP server that registers a single tool, `create_short_link`,
+which takes a target `url` and an optional ISO 8601 `expiresAt` and returns the
+full usable short link as text plus `PublicLink` metadata in `structuredContent`.
+
+- **Auth is API-key only.** The route is guarded by `ApiKeyAuthGuard`
+  (`x-api-key` header). Cookie/JWT auth is deliberately excluded because a
+  cookie-authenticated JSON-RPC POST is a CSRF-shaped risk. `GET` and `DELETE`
+  return 405.
+- **Stateless per request.** A fresh `McpServer` and
+  `StreamableHTTPServerTransport` (`sessionIdGenerator: undefined`,
+  `enableJsonResponse: true`) are created on each POST and closed when the
+  response closes, so no credential or session state survives a request and the
+  endpoint scales horizontally like the rest of the API.
+- **Shared validation and error authority.** The tool handler
+  (`apps/api/src/mcp/create-short-link.handler.ts`) re-validates input through the
+  same `CreateLinkDto` (including the `@IsPublicHttpUrl` SSRF guard) the REST
+  controller uses, then calls `LinksService.create` in process. Errors are mapped
+  by `mapHttpExceptionToToolError` (`apps/api/src/mcp/mcp-error-mapper.ts`) through
+  the same `buildProblemFromStatus` helper the RFC 9457 filter uses, so the MCP
+  and REST paths report the same problems. Stack traces are never included.
+
+A public Connect page in the SPA (`apps/web/src/pages/ConnectPage.tsx`) and a
+served `llms.txt` (`apps/web/public/llms.txt`) document the REST and MCP surfaces
+for agents and their authors.
+
+---
+
 ## 5. Authentication
 
 Two authentication mechanisms coexist, dispatched by `BearerOrApiKeyGuard`

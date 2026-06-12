@@ -11,10 +11,12 @@ import type { Theme } from '@mui/material/styles';
 // Module-level style constants (static, evaluated once)
 const HERO_PADDING_Y = { xs: 6, sm: 10, md: 14 };
 const FEATURES_PADDING_Y = { xs: 6, sm: 8, md: 10 };
+const AGENT_PADDING_Y = { xs: 6, sm: 8, md: 10 };
 const BOTTOM_PADDING_Y = { xs: 6, sm: 8, md: 12 };
 
 const HERO_SECTION_SX = { py: HERO_PADDING_Y, bgcolor: 'background.paper' } as const;
 const FEATURES_SECTION_SX = { py: FEATURES_PADDING_Y, bgcolor: 'background.default' } as const;
+const AGENT_SECTION_SX = { py: AGENT_PADDING_Y, bgcolor: 'background.paper' } as const;
 const BOTTOM_SECTION_SX = { py: BOTTOM_PADDING_Y, bgcolor: 'background.paper' } as const;
 
 const FEATURE_CARD_SX = {
@@ -66,6 +68,14 @@ const FEATURES_GRID_SX = {
   gap: 2.5,
   gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
 } as const;
+
+const AGENT_EYEBROW_SX = { color: 'primary.main', fontWeight: 600, letterSpacing: '0.08em' } as const;
+
+const AGENT_HEADING_SX = { fontWeight: 700, letterSpacing: '-0.01em' } as const;
+
+const AGENT_BODY_SX = { color: 'text.secondary', maxWidth: 520 } as const;
+
+const AGENT_CTA_BUTTON_SX = { px: 4, py: 1.25 } as const;
 
 const BOTTOM_HEADING_SX = { fontWeight: 700, letterSpacing: '-0.01em' } as const;
 
@@ -177,6 +187,39 @@ function FeaturesSection() {
   );
 }
 
+// Advertises REST and MCP agent access; links to the dedicated connect page.
+function AgentSection() {
+  const { t } = useTranslation('landing');
+  return (
+    <Box component="section" data-testid="agent-section" sx={AGENT_SECTION_SX}>
+      <Container maxWidth="md">
+        <Stack spacing={3} alignItems="center" textAlign="center">
+          <Typography variant="overline" component="p" sx={AGENT_EYEBROW_SX}>
+            {t('agentEyebrow')}
+          </Typography>
+          <Typography variant="h3" component="h2" sx={AGENT_HEADING_SX}>
+            {t('agentTitle')}
+          </Typography>
+          <Typography variant="body1" sx={AGENT_BODY_SX}>
+            {t('agentBody')}
+          </Typography>
+          <Button
+            component={RouterLink}
+            to="/connect"
+            variant="contained"
+            color="primary"
+            size="large"
+            data-testid="agent-section-cta"
+            sx={AGENT_CTA_BUTTON_SX}
+          >
+            {t('agentCta')} →
+          </Button>
+        </Stack>
+      </Container>
+    </Box>
+  );
+}
+
 function BottomCtaSection() {
   const { t } = useTranslation('landing');
   return (
@@ -211,6 +254,7 @@ export default function LandingPage() {
     <Box component="main" data-testid="landing-page">
       <HeroSection />
       <FeaturesSection />
+      <AgentSection />
       <BottomCtaSection />
     </Box>
   );

@@ -15,9 +15,24 @@ namespace MikrouliApi;
 // an HttpOnly cookie so page scripts cannot read it.
 alias CookieAuth = ApiKeyAuth<ApiKeyLocation.cookie, "mikrouli_access">;
 
-// Combined scheme: cookie for browser clients, bearer for machine clients.
-// The guard accepts either; both share the same JWT verification path.
-alias BrowserOrMachineAuth = CookieAuth | BearerAuth;
+// Machine API-key scheme: the x-api-key header accepted by ApiKeyAuthGuard.
+// Generates an OpenAPI 3.0 securitySchemes entry: type=apiKey, in=header.
+// Declared as a model (not an alias) so the OpenAPI emitter produces a single
+// named securityScheme entry shared across all namespaces that reference it.
+model ApiKeyHeaderAuth {
+  @doc("API key passed in the x-api-key request header")
+  type: "apiKey";
+  in: ApiKeyLocation.header;
+  name: "x-api-key";
+}
+
+// Links/Stats namespaces: the guard is BearerOrApiKeyGuard — accepts cookie,
+// bearer JWT, and the x-api-key header. Truthfully documents all three paths.
+alias BrowserOrMachineAuth = CookieAuth | BearerAuth | ApiKeyHeaderAuth;
+
+// Auth/ApiKeys namespaces: the guard is JwtAuthGuard only — accepts cookie and
+// bearer JWT but NOT x-api-key (key management stays human-session-gated).
+alias BrowserSessionAuth = CookieAuth | BearerAuth;
 
 // ---------------------------------------------------------------------------
 // Shared models
@@ -251,7 +266,7 @@ namespace Auth {
 
   @post
   @route("/logout")
-  @useAuth(BrowserOrMachineAuth)
+  @useAuth(BrowserSessionAuth)
   @doc("Revoke the current session and clear the session cookies")
   op logout():
     | { @statusCode _: 204; }
@@ -259,7 +274,7 @@ namespace Auth {
 
   @get
   @route("/me")
-  @useAuth(BrowserOrMachineAuth)
+  @useAuth(BrowserSessionAuth)
   @doc("Return authenticated user profile")
   op me():
     | { @statusCode _: 200; @body body: UserProfile; }
@@ -340,11 +355,11 @@ namespace Redirect {
 }
 
 // ---------------------------------------------------------------------------
-// API Keys namespace (bearer only)
+// API Keys namespace (human-session-gated only; NOT machine API-key)
 // ---------------------------------------------------------------------------
 
 @route("/api/api-keys")
-@useAuth(BrowserOrMachineAuth)
+@useAuth(BrowserSessionAuth)
 namespace ApiKeys {
   @post
   @doc("Create a new API key")

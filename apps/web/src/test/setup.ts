@@ -9,6 +9,7 @@ import enStats from '../i18n/locales/en/stats.json';
 import enApiKeys from '../i18n/locales/en/apiKeys.json';
 import enErrors from '../i18n/locales/en/errors.json';
 import enLanding from '../i18n/locales/en/landing.json';
+import enConnect from '../i18n/locales/en/connect.json';
 
 import deCommon from '../i18n/locales/de/common.json';
 import deAuth from '../i18n/locales/de/auth.json';
@@ -17,6 +18,7 @@ import deStats from '../i18n/locales/de/stats.json';
 import deApiKeys from '../i18n/locales/de/apiKeys.json';
 import deErrors from '../i18n/locales/de/errors.json';
 import deLanding from '../i18n/locales/de/landing.json';
+import deConnect from '../i18n/locales/de/connect.json';
 
 import elCommon from '../i18n/locales/el/common.json';
 import elAuth from '../i18n/locales/el/auth.json';
@@ -25,6 +27,7 @@ import elStats from '../i18n/locales/el/stats.json';
 import elApiKeys from '../i18n/locales/el/apiKeys.json';
 import elErrors from '../i18n/locales/el/errors.json';
 import elLanding from '../i18n/locales/el/landing.json';
+import elConnect from '../i18n/locales/el/connect.json';
 
 const TEST_EN = {
   common: enCommon,
@@ -34,6 +37,7 @@ const TEST_EN = {
   apiKeys: enApiKeys,
   errors: enErrors,
   landing: enLanding,
+  connect: enConnect,
 };
 const TEST_DE = {
   common: deCommon,
@@ -43,6 +47,7 @@ const TEST_DE = {
   apiKeys: deApiKeys,
   errors: deErrors,
   landing: deLanding,
+  connect: deConnect,
 };
 const TEST_EL = {
   common: elCommon,
@@ -52,13 +57,14 @@ const TEST_EL = {
   apiKeys: elApiKeys,
   errors: elErrors,
   landing: elLanding,
+  connect: elConnect,
 };
 
 void i18next.use(initReactI18next).init({
   lng: 'en',
   fallbackLng: 'en',
   resources: { en: TEST_EN, de: TEST_DE, el: TEST_EL },
-  ns: ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors', 'landing'],
+  ns: ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors', 'landing', 'connect'],
   defaultNS: 'common',
   interpolation: { escapeValue: false },
 });

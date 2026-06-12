@@ -137,6 +137,11 @@ pnpm --filter web test:e2e       # Playwright
 | POST   | `/api/api-keys`      | Bearer JWT          | Issue API key              |
 | GET    | `/api/api-keys`      | Bearer JWT          | List own keys              |
 | DELETE | `/api/api-keys/:id`  | Bearer JWT          | Revoke key                 |
+| POST   | `/api/mcp`           | X-API-Key           | MCP tool endpoint (`create_short_link`) |
+
+## Connecting LLM agents
+
+LLM agents can create short links over the [Model Context Protocol](https://modelcontextprotocol.io) at `POST /api/mcp`, authenticated with `x-api-key`. The endpoint is a stateless Streamable-HTTP MCP server exposing a single `create_short_link` tool that reuses the same validation and error contract as `POST /api/urls`. The in-app `/connect` page and the served `/llms.txt` document both the REST and MCP surfaces; see [ADR-0015](docs/adr/0015-mcp-tool-endpoint-for-llm-agents.md) for the rationale.
 
 ## Auth Flow
 

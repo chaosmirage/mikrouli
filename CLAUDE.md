@@ -43,7 +43,10 @@ ClickHouse; the dashboard path reads relational data from PostgreSQL and aggrega
 analytics from ClickHouse. nginx terminates HTTP and routes `/api/*` to the NestJS API
 and `/*` to the React SPA. The API contract lives in `apps/api/spec/main.tsp`, which
 generates the committed OpenAPI JSON and TypeScript types both apps consume; errors are
-RFC 9457 problem-details. Full design and rationale: `docs/ARCHITECTURE.md` and `docs/adr/`.
+RFC 9457 problem-details. LLM agents can create short links over the Model Context
+Protocol at `POST /api/mcp` (`apps/api/src/mcp`), an API-key-authenticated, stateless
+Streamable-HTTP server that reuses the REST link-creation validation and error contract.
+Full design and rationale: `docs/ARCHITECTURE.md` and `docs/adr/`.
 
 ```
 apps/api    NestJS app + TypeSpec spec (apps/api/spec/main.tsp)

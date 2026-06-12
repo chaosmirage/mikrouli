@@ -2,6 +2,8 @@
 #
 # Public surface:
 #   /             — landing page (indexable)
+#   /connect      — agent/developer integration guide (indexable)
+#   /llms.txt     — machine-readable guide for LLM agents
 #   /[6 chars]    — short-URL redirects (302 to user-supplied target;
 #                   crawlers follow the redirect, no semantic content)
 #
@@ -16,6 +18,8 @@ Disallow: /stats/
 Disallow: /api-keys
 Disallow: /api/
 
-# Everything else (root + 6-char redirect slugs) is implicitly allowed.
+# Everything else (root, /connect, /llms.txt, 6-char redirect slugs) is implicitly allowed.
+
+LLMs: https://mikrou.li/llms.txt
 
 Sitemap: https://mikrou.li/sitemap.xml

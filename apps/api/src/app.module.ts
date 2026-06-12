@@ -15,6 +15,7 @@ import { ClickHouseModule } from './clickhouse/clickhouse.module';
 import { StatsModule } from './stats/stats.module';
 import { CleanupModule } from './cleanup/cleanup.module';
 import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
+import { McpModule } from './mcp/mcp.module';
 
 const DEFAULT_DB_PORT = 5432;
 
@@ -98,6 +99,7 @@ const typeOrmModule = TypeOrmModule.forRootAsync({
     StatsModule,
     RedirectModule,
     CleanupModule,
+    McpModule,
   ],
   providers: [
     {
