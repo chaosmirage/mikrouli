@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { asyncLocalStorage } from './correlation-id';
 import { ProblemDetailsFilter } from './problem-details.filter';
 
 const PROBLEM_JSON = 'application/problem+json';
@@ -20,6 +21,11 @@ class MockResponse {
   }
 
   set(key: string, value: string): this {
+    this.headers[key] = value;
+    return this;
+  }
+
+  setHeader(key: string, value: string): this {
     this.headers[key] = value;
     return this;
   }
@@ -87,5 +93,20 @@ describe('ProblemDetailsFilter', () => {
     buildFilter('development').catch(new Error('debug info'), makeHost(res) as never);
     expect(res.statusCode).toBe(500);
     expect(asBody(res).detail).toBe('debug info');
+  });
+
+  it('sets X-Correlation-ID response header when a correlation ID is in the AsyncLocalStorage context', () => {
+    const res = new MockResponse();
+    const filter = buildFilter();
+    asyncLocalStorage.run({ correlationId: 'error-corr-id-999' }, () => {
+      filter.catch(new Error('boom'), makeHost(res) as never);
+    });
+    expect(res.headers['X-Correlation-ID']).toBe('error-corr-id-999');
+  });
+
+  it('does not set X-Correlation-ID header when no correlation ID context is active', () => {
+    const res = new MockResponse();
+    buildFilter().catch(new Error('no context'), makeHost(res) as never);
+    expect(res.headers['X-Correlation-ID']).toBeUndefined();
   });
 });

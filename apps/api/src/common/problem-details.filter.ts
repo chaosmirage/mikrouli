@@ -2,6 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/co
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import { QueryFailedError } from 'typeorm';
+import { getCorrelationId } from './correlation-id';
 import { buildProblem, buildProblemFromStatus, ProblemDetails } from './problem-details';
 
 const CONTENT_TYPE_PROBLEM_JSON = 'application/problem+json';
@@ -98,6 +99,11 @@ function sendProblem(res: Response, status: number, body: ProblemDetails): void 
 }
 
 function dispatchProblem(exception: unknown, res: Response, isProd: boolean): void {
+  const correlationId = getCorrelationId();
+  if (correlationId) {
+    res.setHeader('X-Correlation-ID', correlationId);
+  }
+
   if (exception instanceof HttpException) {
     const problem = resolveHttpProblem(exception);
     sendProblem(res, problem.status, problem);

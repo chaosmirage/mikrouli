@@ -47,11 +47,13 @@ interface ProblemDetails {
 export class ApiError extends Error {
   readonly status: number;
   readonly problemType?: string;
-  constructor(status: number, message: string, problemType?: string) {
+  readonly correlationId?: string;
+  constructor(status: number, message: string, problemType?: string, correlationId?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.problemType = problemType;
+    this.correlationId = correlationId;
   }
 }
 
@@ -73,6 +75,11 @@ function composeValidationMessage(errors: ValidationError[]): string {
   return errors.map((e) => e.message).join('; ');
 }
 
+function extractCorrelationId(response: Response): string | undefined {
+  const header = response.headers.get('x-correlation-id');
+  return header ?? undefined;
+}
+
 async function buildApiError(response: Response): Promise<ApiError> {
   let message = response.statusText;
   let problemType: string | undefined;
@@ -87,7 +94,7 @@ async function buildApiError(response: Response): Promise<ApiError> {
   } catch {
     // Keep statusText as message
   }
-  return new ApiError(response.status, message, problemType);
+  return new ApiError(response.status, message, problemType, extractCorrelationId(response));
 }
 
 function resolvePathParams(path: string, params: Record<string, string>): string {
@@ -106,7 +113,10 @@ export async function apiFetch<P extends ApiPath, M extends HttpMethod<P>>(
     ? resolvePathParams(path as string, opts.pathParams)
     : (path as string);
   const hasBody = opts?.body !== undefined;
-  const headers = buildFetchHeaders(method.toUpperCase(), hasBody);
+  const headers = {
+    ...buildFetchHeaders(method.toUpperCase(), hasBody),
+    'X-Correlation-ID': crypto.randomUUID(),
+  };
   const body = hasBody ? JSON.stringify(opts?.body) : undefined;
   // credentials: 'include' sends HttpOnly session cookies on every same-origin
   // request. No script-readable token storage is used.

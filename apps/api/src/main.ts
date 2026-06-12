@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import * as path from 'path';
 import * as fs from 'fs';
 import { AppModule } from './app.module';
+import { CorrelationIdLogger } from './common/correlation-id.logger';
 import { ProblemDetailsFilter } from './common/problem-details.filter';
 
 const HTTP_PORT = 3000;
@@ -56,6 +57,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   const isProd = configService.get<string>('NODE_ENV') === 'production';
+
+  app.useLogger(new CorrelationIdLogger());
 
   // Access the underlying Express application instance for Express-specific settings.
   const expressApp = app.getHttpAdapter().getInstance() as {

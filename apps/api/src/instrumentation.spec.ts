@@ -108,3 +108,104 @@ describe('sanitiseAttributes', () => {
     expect(input['http.client.ip']).toBe('1.2.3.4');
   });
 });
+
+describe('HTTP instrumentation requestHook — correlation ID span attribute', () => {
+  // The requestHook reads the X-Correlation-ID header directly from the
+  // IncomingMessage and sets app.correlation_id on the span. This keeps the
+  // OTel tracing path independent of the AsyncLocalStorage-based log
+  // correlation path.
+
+  function createMockSpan() {
+    const attributes: Record<string, unknown> = {};
+    return {
+      setAttribute: jest.fn((key: string, value: unknown) => {
+        attributes[key] = value;
+      }),
+      attributes,
+    };
+  }
+
+  it('sets app.correlation_id when X-Correlation-ID header is present', () => {
+    // Build the instrumentations to capture the requestHook produced by
+    // buildHttpInstrumentationConfig. The auto-instrumentations mock returns
+    // an empty array, but buildHttpInstrumentationConfig is called inline
+    // during buildSdk -> buildInstrumentations. We exercise the hook directly
+    // by reconstructing what it does.
+
+    // Import the module under test so the hooks are wired up. We then call
+    // buildSdk to trigger buildInstrumentations -> buildHttpInstrumentationConfig.
+    buildSdk(testConfig);
+
+    // Re-import to get fresh state — but since we're in a jest env with mocks,
+    // we verify by calling the hook logic directly.
+    const { buildSdk: freshBuildSdk } = jest.requireActual('./instrumentation');
+
+    // We need to access the requestHook. The cleanest way: build the config
+    // directly by calling buildHttpInstrumentationConfig.
+    // Since it's not exported, we verify via the observable behavior: the hook
+    // sets the attribute on the span.
+    const span = createMockSpan();
+    const mockRequest = {
+      headers: { 'x-correlation-id': 'abc-123-def' },
+    } as unknown as import('http').IncomingMessage;
+
+    // Invoke the requestHook through buildSdk which calls buildInstrumentations
+    // which calls buildHttpInstrumentationConfig. The auto-instrumentations
+    // mock swallows the config, so we replicate the hook's observable behavior
+    // by calling the actual module function.
+    //
+    // The simplest user-closest approach: verify the module-level
+    // buildHttpInstrumentationConfig produces a requestHook that sets the
+    // attribute. Since the function is private, we exercise it via the public
+    // buildSdk path and capture the call arguments from the mock.
+
+    // Get the config passed to getNodeAutoInstrumentations
+    const { getNodeAutoInstrumentations } = jest.requireMock(
+      '@opentelemetry/auto-instrumentations-node',
+    ) as { getNodeAutoInstrumentations: jest.Mock };
+
+    // Clear and rebuild to capture the config
+    (getNodeAutoInstrumentations as jest.Mock).mockClear();
+    freshBuildSdk(testConfig);
+
+    const capturedConfig = (getNodeAutoInstrumentations as jest.Mock).mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    const httpConfig = capturedConfig['@opentelemetry/instrumentation-http'] as {
+      requestHook: (span: { setAttribute: (k: string, v: unknown) => void }, request: { headers: Record<string, unknown> }) => void;
+    };
+
+    httpConfig.requestHook(span, mockRequest);
+
+    expect(span.setAttribute).toHaveBeenCalledWith('app.correlation_id', 'abc-123-def');
+  });
+
+  it('does not set app.correlation_id when X-Correlation-ID header is absent', () => {
+    const { buildSdk: freshBuildSdk } = jest.requireActual('./instrumentation');
+    const { getNodeAutoInstrumentations } = jest.requireMock(
+      '@opentelemetry/auto-instrumentations-node',
+    ) as { getNodeAutoInstrumentations: jest.Mock };
+
+    (getNodeAutoInstrumentations as jest.Mock).mockClear();
+    freshBuildSdk(testConfig);
+
+    const capturedConfig = (getNodeAutoInstrumentations as jest.Mock).mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    const httpConfig = capturedConfig['@opentelemetry/instrumentation-http'] as {
+      requestHook: (span: { setAttribute: (k: string, v: unknown) => void }, request: { headers: Record<string, unknown> }) => void;
+    };
+
+    const span = createMockSpan();
+    const mockRequest = { headers: {} } as unknown as import('http').IncomingMessage;
+
+    httpConfig.requestHook(span, mockRequest);
+
+    expect(span.setAttribute).not.toHaveBeenCalledWith(
+      'app.correlation_id',
+      expect.anything(),
+    );
+  });
+});
