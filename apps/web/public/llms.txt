@@ -1,0 +1,98 @@
+# mikrouli -- LLM / agent integration guide
+
+mikrouli is a URL-shortening service with click analytics.
+This file describes how automated agents and scripts can interact with it.
+
+## API base
+
+Base URL: https://mikrou.li
+API prefix: /api
+
+
+## Authentication
+
+All write endpoints and the MCP server require an API key.
+
+Header: x-api-key
+Key format: mk_<random>   (e.g. mk_a1b2c3d4...)
+
+Keys are single-use-displayed: the full secret is shown once at creation time only.
+Obtain an mk_ key by signing in and visiting the API Keys page, or by calling:
+
+  POST /api/api-keys
+  Authorization: (cookie session -- human sign-in required to mint keys)
+
+Every subsequent machine-to-machine call authenticates with the header:
+
+  x-api-key: mk_<your-key>
+
+
+## REST: create a short link
+
+Endpoint: POST /api/urls
+Content-Type: application/json
+
+Request body:
+  { "url": "https://example.com/your-long-url" }
+
+Example (copy-pasteable):
+
+  curl -s -X POST https://mikrou.li/api/urls \
+    -H "Content-Type: application/json" \
+    -H "x-api-key: mk_<your-key>" \
+    -d '{"url":"https://example.com/your-long-url"}' | jq .
+
+Response (201 Created):
+  {
+    "slug": "abc123",
+    "shortUrl": "https://mikrou.li/abc123",
+    "url": "https://example.com/your-long-url",
+    "createdAt": "2026-01-01T00:00:00.000Z"
+  }
+
+Error responses follow RFC 9457 application/problem+json.
+A missing or invalid key returns 401 with:
+  { "status": 401, "title": "Unauthorized", "type": "..." }
+
+
+## MCP server (Streamable HTTP)
+
+mikrouli exposes a hosted Model Context Protocol server.
+
+Endpoint: POST /api/mcp
+Protocol: Streamable HTTP (MCP 2024-11-05)
+Auth: x-api-key header (same mk_ key as REST)
+
+Available tool: create_short_link
+  Input:  { "url": "https://example.com/long-url" }
+  Output: { "shortUrl": "https://mikrou.li/abc123" }
+
+Example initialization call:
+
+  curl -s -X POST https://mikrou.li/api/mcp \
+    -H "Content-Type: application/json" \
+    -H "x-api-key: mk_<your-key>" \
+    -d '{
+      "jsonrpc": "2.0",
+      "method": "initialize",
+      "id": 1,
+      "params": {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {},
+        "clientInfo": { "name": "my-agent", "version": "1" }
+      }
+    }'
+
+To connect an MCP-aware harness, point it at:
+  URL:    https://mikrou.li/api/mcp
+  Header: x-api-key: mk_<your-key>
+
+
+## Summary
+
+| Path         | Method | Auth needed | Purpose                |
+|--------------|--------|-------------|------------------------|
+| /api/urls    | POST   | x-api-key   | Create a short link    |
+| /api/urls    | GET    | x-api-key   | List your links        |
+| /api/mcp     | POST   | x-api-key   | MCP Streamable HTTP    |
+| /api/api-keys| POST   | cookie      | Mint a new mk_ key     |
