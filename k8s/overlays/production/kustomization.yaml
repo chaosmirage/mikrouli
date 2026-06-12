@@ -3,7 +3,6 @@ kind: Kustomization
 namespace: mikrouli
 resources:
   - ../../base
-  - ../../observability
   - hsts-middleware.yaml
 patches:
   - path: ingress-patch.yaml
