@@ -1,3 +1,4 @@
+import { IncomingMessage } from 'http';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
@@ -151,7 +152,13 @@ function redactResponseHeaders(span: Span): void {
 
 function buildHttpInstrumentationConfig() {
   return {
-    requestHook: (span: Span) => redactRequestHeaders(span),
+    requestHook: (span: Span, request: IncomingMessage) => {
+      redactRequestHeaders(span);
+      const correlationId = request.headers['x-correlation-id'] as string | undefined;
+      if (correlationId) {
+        span.setAttribute('app.correlation_id', correlationId);
+      }
+    },
     responseHook: (span: Span) => redactResponseHeaders(span),
   };
 }

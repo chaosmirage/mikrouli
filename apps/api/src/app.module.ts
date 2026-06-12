@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -14,6 +14,7 @@ import { RedirectModule } from './redirect/redirect.module';
 import { ClickHouseModule } from './clickhouse/clickhouse.module';
 import { StatsModule } from './stats/stats.module';
 import { CleanupModule } from './cleanup/cleanup.module';
+import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
 
 const DEFAULT_DB_PORT = 5432;
 
@@ -107,4 +108,8 @@ const typeOrmModule = TypeOrmModule.forRootAsync({
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+  }
+}

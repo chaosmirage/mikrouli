@@ -6,13 +6,22 @@ import { apiFetch, ApiError } from './client';
 function makeProblemResponse(
   status: number,
   body: object,
-  contentType = 'application/problem+json',
+  headers: Record<string, string> = {},
 ): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': contentType },
+    headers: { 'Content-Type': 'application/problem+json', ...headers },
   });
 }
+
+function makeSuccessResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 describe('buildApiError — validation errors surface real reasons', () => {
   beforeEach(() => {
@@ -107,6 +116,91 @@ describe('buildApiError — validation errors surface real reasons', () => {
         err instanceof ApiError &&
         err.status === 422 &&
         err.message === 'Unprocessable Entity'
+      );
+    });
+  });
+});
+
+describe('apiFetch — correlation ID propagation', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('sends an X-Correlation-ID header with a valid UUID v4 on every request', async () => {
+    vi.mocked(fetch).mockResolvedValue(makeSuccessResponse({ links: [] }));
+
+    await apiFetch('/api/links', 'get');
+
+    expect(fetch).toHaveBeenCalledOnce();
+    const requestInit = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]![1] as RequestInit;
+    const headers = requestInit.headers as Record<string, string>;
+    expect(headers['X-Correlation-ID']).toMatch(UUID_V4_RE);
+  });
+
+  it('generates a different UUID for each request', async () => {
+    // Each call needs its own Response because a Response body can only be read once.
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(makeSuccessResponse({ links: [] }))
+      .mockResolvedValueOnce(makeSuccessResponse({ links: [] }));
+
+    await apiFetch('/api/links', 'get');
+    await apiFetch('/api/links', 'get');
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const firstHeaders = ((fetch as ReturnType<typeof vi.fn>).mock.calls[0]![1] as RequestInit)
+      .headers as Record<string, string>;
+    const secondHeaders = ((fetch as ReturnType<typeof vi.fn>).mock.calls[1]![1] as RequestInit)
+      .headers as Record<string, string>;
+    expect(firstHeaders['X-Correlation-ID']).not.toBe(secondHeaders['X-Correlation-ID']);
+  });
+});
+
+describe('ApiError — carries correlation ID from response header', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('exposes correlationId when the response includes X-Correlation-ID', async () => {
+    const responseCorrelationId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
+    vi.mocked(fetch).mockResolvedValue(
+      makeProblemResponse(
+        404,
+        { title: 'Not Found', detail: 'Link not found' },
+        { 'X-Correlation-ID': responseCorrelationId },
+      ),
+    );
+
+    await expect(
+      apiFetch('/api/links/not-exist', 'get'),
+    ).rejects.toSatisfy((err: unknown) => {
+      return (
+        err instanceof ApiError &&
+        err.status === 404 &&
+        err.correlationId === responseCorrelationId
+      );
+    });
+  });
+
+  it('leaves correlationId undefined when the response lacks X-Correlation-ID', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      makeProblemResponse(500, { title: 'Internal Server Error' }),
+    );
+
+    await expect(
+      apiFetch('/api/links', 'get'),
+    ).rejects.toSatisfy((err: unknown) => {
+      return (
+        err instanceof ApiError &&
+        err.status === 500 &&
+        err.correlationId === undefined
       );
     });
   });
