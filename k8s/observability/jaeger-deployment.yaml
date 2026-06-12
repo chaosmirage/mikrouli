@@ -36,6 +36,10 @@ spec:
               value: "false"
             - name: BADGER_SPAN_STORAGE_TTL
               value: "72h"
+            - name: BADGER_DIRECTORY_KEY
+              value: /badger/data/keys
+            - name: BADGER_DIRECTORY_VALUE
+              value: /badger/data/values
           ports:
             - name: otlp-http
               containerPort: 4318
