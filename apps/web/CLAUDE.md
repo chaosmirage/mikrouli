@@ -46,6 +46,13 @@ theme and i18n provider.
 - `src/App.tsx` -- composition root with the provider stack:
   QueryClientProvider > AuthProvider > Routes/Outlet. Page stories that
   need these providers add per-story decorators.
+- `nginx-spa.conf` -- SPA nginx server config used in Docker Compose (not
+  k8s). Key behaviors: `absolute_redirect off` prevents nginx from
+  rewriting directory redirects into absolute URLs that expose the internal
+  `:8080` port; `location = /connect` serves the prerendered static connect
+  page at exactly `/connect` without a trailing-slash redirect. The k8s
+  equivalent lives in `k8s/base/web/configmap-nginx.yaml` and must be kept
+  in parity with this file.
 
 ## How to extend safely
 

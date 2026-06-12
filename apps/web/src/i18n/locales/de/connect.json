@@ -1,6 +1,12 @@
 {
   "pageTitle": "Agenten verbinden",
   "pageDescription": "Binde mikrouli in deine Skripte und KI-Agenten über die REST-API oder den gehosteten MCP-Server ein.",
+  "apiKeySectionTitle": "Schritt 1: API-Schlüssel erstellen",
+  "apiKeySectionDesc": "Alle Schreib-Endpunkte und der MCP-Server erfordern einen API-Schlüssel. Melde dich an, öffne die API-Schlüssel-Seite, erstelle einen Schlüssel und kopiere den mk_...-Wert. Das vollständige Secret wird nur einmal bei der Erstellung angezeigt.",
+  "apiKeySignIn": "In deinem Konto anmelden",
+  "apiKeyNavigate": "API-Schlüssel-Seite über das Kontomenü öffnen",
+  "apiKeyCreate": "Neuen Schlüssel erstellen und den mk_...-Wert kopieren",
+  "apiKeyNote": "Halte den Schlüssel geheim. Übergib ihn als x-api-key-Header bei jedem Maschinenaufruf.",
   "restSectionTitle": "REST API",
   "restAuthHeader": "Authentifizierungs-Header",
   "restAuthHeaderDesc": "Übergib deinen API-Schlüssel im x-api-key-Request-Header bei jedem Aufruf.",
@@ -15,5 +21,7 @@
   "mcpProtocol": "Protokoll: Streamable HTTP (MCP 2024-11-05)",
   "mcpAuthNote": "Authentifiziere dich mit demselben x-api-key-Header wie bei der REST-API.",
   "mcpToolDesc": "Das Tool create_short_link gibt den vollständigen verwendbaren Link (z.B. https://mikrou.li/abc123) als Textausgabe zurück.",
+  "mcpClaudeCodeTitle": "Zu Claude Code hinzufügen",
+  "mcpClaudeCodeDesc": "Führe diesen Befehl einmalig aus, um mikrouli als MCP-Server in Claude Code zu registrieren:",
   "llmsFileLink": "Maschinenlesbare Anleitung (llms.txt)"
 }

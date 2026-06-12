@@ -17,10 +17,14 @@ strings appear in page files.
   Every section carries a `data-testid` that `LandingPage.test.tsx` asserts
   on (e.g. `landing-hero`, `landing-features`, `agent-section`).
 - `ConnectPage.tsx` -- public integration guide page at `/connect`. Carries
-  two sections: `RestSection` (`data-testid="connect-rest-section"`) with a
-  copy-pasteable `curl` example for `POST /api/urls`, and `McpSection`
+  three sections: `ApiKeySection` (`data-testid="connect-apikey-section"`)
+  with step-by-step instructions for obtaining an API key, `RestSection`
+  (`data-testid="connect-rest-section"`) with a copy-pasteable `curl`
+  example for `POST /api/urls`, and `McpSection`
   (`data-testid="connect-mcp-section"`) with an MCP Streamable HTTP
-  initialization example. Uses the `connect` i18n namespace.
+  initialization example and the exact `claude mcp add --scope user
+  --transport http` command for wiring the server into Claude Code. Uses
+  the `connect` i18n namespace.
 - `DashboardPage.tsx` -- authenticated user dashboard. Lists the user's
   shortened links with creation date and click count.
 - `StatsPage.tsx` -- per-link analytics. Reads the `slug` route parameter

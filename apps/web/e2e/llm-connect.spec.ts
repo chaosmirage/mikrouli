@@ -36,6 +36,25 @@ test.describe('llms.txt machine guide', () => {
     expect(text).toContain('mk_');
     expect(text).toContain('/api/mcp');
   });
+
+  test('GET /llms.txt contains the claude mcp add command', async ({ request }) => {
+    const res = await request.get('/llms.txt');
+    expect(res.status()).toBe(200);
+    const text = await res.text();
+    expect(text).toContain('claude mcp add');
+    expect(text).toContain('https://mikrou.li/api/mcp');
+    expect(text).toContain('--header');
+    expect(text).toContain('x-api-key');
+  });
+
+  test('GET /llms.txt contains explicit API key acquisition instructions', async ({ request }) => {
+    const res = await request.get('/llms.txt');
+    expect(res.status()).toBe(200);
+    const text = await res.text();
+    // Must have a prominent step instructing how to get a key
+    expect(text.toLowerCase()).toMatch(/sign.?in/);
+    expect(text).toContain('API Keys');
+  });
 });
 
 test.describe('/connect page', () => {
@@ -52,6 +71,26 @@ test.describe('/connect page', () => {
     expect(html).toContain('x-api-key');
     expect(html).toContain('/api/urls');
     expect(html).toContain('/api/mcp');
+  });
+
+  test('raw body contains the claude mcp add command', async ({ request }) => {
+    const res = await request.get('/connect');
+    expect(res.status()).toBe(200);
+    const html = await res.text();
+    // The exact verified Claude Code wiring command must appear in the prerendered body
+    expect(html).toContain('claude mcp add');
+    expect(html).toContain('https://mikrou.li/api/mcp');
+    expect(html).toContain('--transport http');
+    expect(html).toContain('x-api-key');
+  });
+
+  test('raw body contains the get-API-key prerequisite step', async ({ request }) => {
+    const res = await request.get('/connect');
+    expect(res.status()).toBe(200);
+    const html = await res.text();
+    // The API key prerequisite section must be present in the static body
+    expect(html).toContain('data-testid="connect-apikey-section"');
+    expect(html.toLowerCase()).toMatch(/sign.?in|api.?key/);
   });
 });
 

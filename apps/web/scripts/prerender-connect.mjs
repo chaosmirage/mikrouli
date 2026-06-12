@@ -51,6 +51,11 @@ const MCP_CURL_EXAMPLE = `curl -s -X POST https://mikrou.li/api/mcp \\
     }
   }'`;
 
+// Exact verified command for wiring mikrouli into Claude Code as an MCP server.
+const CLAUDE_MCP_ADD_COMMAND = `claude mcp add --scope user --transport http mikrouli \\
+  https://mikrou.li/api/mcp \\
+  --header "x-api-key: mk_&lt;your-key&gt;"`;
+
 // Minimal static HTML representing ConnectPage rendered in English.
 // The SPA will replace this on hydration; crawlers see it without JS.
 const PRERENDERED_BODY = `<main data-testid="connect-page">
@@ -59,12 +64,21 @@ const PRERENDERED_BODY = `<main data-testid="connect-page">
     <p>${t.pageDescription}</p>
     <a href="/llms.txt">${t.llmsFileLink}</a>
   </div>
+  <section data-testid="connect-apikey-section">
+    <h2>${t.apiKeySectionTitle}</h2>
+    <p>${t.apiKeySectionDesc}</p>
+    <ol>
+      <li>${t.apiKeySignIn}</li>
+      <li>${t.apiKeyNavigate}</li>
+      <li>${t.apiKeyCreate}</li>
+    </ol>
+    <p>${t.apiKeyNote}</p>
+  </section>
   <section data-testid="connect-rest-section">
     <h2>${t.restSectionTitle}</h2>
     <h3>${t.restAuthHeader}</h3>
     <p>${t.restAuthHeaderDesc}</p>
     <code>x-api-key: mk_&lt;your-key&gt;</code>
-    <p>${t.restKeyObtain}</p>
     <h3>${t.restEndpoint}</h3>
     <p>${t.restEndpointDesc}</p>
     <pre><code>${REST_CURL_EXAMPLE}</code></pre>
@@ -77,6 +91,9 @@ const PRERENDERED_BODY = `<main data-testid="connect-page">
     <p>${t.mcpProtocol}</p>
     <p>${t.mcpAuthNote}</p>
     <pre><code>${MCP_CURL_EXAMPLE}</code></pre>
+    <h3>${t.mcpClaudeCodeTitle}</h3>
+    <p>${t.mcpClaudeCodeDesc}</p>
+    <pre><code>${CLAUDE_MCP_ADD_COMMAND}</code></pre>
   </section>
 </main>`;
 

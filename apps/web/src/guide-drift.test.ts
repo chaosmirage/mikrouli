@@ -159,4 +159,33 @@ describe('llms.txt drift guard vs OpenAPI contract', () => {
       expect(txt).toContain(field);
     }
   });
+
+  // ---------------------------------------------------------------------------
+  // Claude Code MCP wiring command (FIX 2)
+  // ---------------------------------------------------------------------------
+
+  it('llms.txt contains the claude mcp add command targeting /api/mcp', () => {
+    const txt = readLlmsTxt();
+    // The exact verified command must be present so LLM agents can copy it
+    expect(txt).toContain('claude mcp add');
+    expect(txt).toContain('https://mikrou.li/api/mcp');
+  });
+
+  it('llms.txt contains the x-api-key header flag for claude mcp add', () => {
+    const txt = readLlmsTxt();
+    // The --header flag with x-api-key must appear so the key is threaded through
+    expect(txt).toContain('--header');
+    expect(txt).toContain('x-api-key');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Explicit "get an API key" prerequisite (FIX 3)
+  // ---------------------------------------------------------------------------
+
+  it('llms.txt contains an explicit instruction to obtain an API key before using the service', () => {
+    const txt = readLlmsTxt();
+    // The file must make the key-creation prerequisite explicit and prominent
+    expect(txt.toLowerCase()).toMatch(/sign.?in|log.?in/);
+    expect(txt).toContain('API Keys');
+  });
 });

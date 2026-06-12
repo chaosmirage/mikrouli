@@ -1,6 +1,12 @@
 {
   "pageTitle": "Σύνδεση agent",
   "pageDescription": "Ενσωματώστε το mikrouli στα scripts και τους AI agents σας μέσω REST API ή του φιλοξενούμενου MCP server.",
+  "apiKeySectionTitle": "Βήμα 1: Απόκτηση API key",
+  "apiKeySectionDesc": "Όλα τα endpoints εγγραφής και ο MCP server απαιτούν API key. Συνδεθείτε, ανοίξτε τη σελίδα API Keys, δημιουργήστε ένα key και αντιγράψτε την τιμή mk_.... Το πλήρες secret εμφανίζεται μόνο μία φορά κατά τη δημιουργία.",
+  "apiKeySignIn": "Συνδεθείτε στον λογαριασμό σας",
+  "apiKeyNavigate": "Ανοίξτε τη σελίδα API Keys από το μενού λογαριασμού",
+  "apiKeyCreate": "Δημιουργήστε νέο key και αντιγράψτε την τιμή mk_...",
+  "apiKeyNote": "Κρατήστε το key μυστικό. Περάστε το ως header x-api-key σε κάθε κλήση μηχανής.",
   "restSectionTitle": "REST API",
   "restAuthHeader": "Header αυθεντικοποίησης",
   "restAuthHeaderDesc": "Περάστε το API key σας στο header x-api-key σε κάθε αίτημα.",
@@ -15,5 +21,7 @@
   "mcpProtocol": "Πρωτόκολλο: Streamable HTTP (MCP 2024-11-05)",
   "mcpAuthNote": "Αυθεντικοποιηθείτε με τον ίδιο header x-api-key όπως στο REST API.",
   "mcpToolDesc": "Το εργαλείο create_short_link επιστρέφει τον πλήρη χρησιμοποιήσιμο σύνδεσμο (π.χ. https://mikrou.li/abc123) ως έξοδο κειμένου.",
+  "mcpClaudeCodeTitle": "Προσθήκη στο Claude Code",
+  "mcpClaudeCodeDesc": "Εκτελέστε αυτή την εντολή μία φορά για να καταχωρίσετε το mikrouli ως MCP server στο Claude Code:",
   "llmsFileLink": "Μηχαναγνώσιμος οδηγός (llms.txt)"
 }
