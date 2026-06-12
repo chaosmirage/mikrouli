@@ -58,6 +58,42 @@ const MCP_EXAMPLE = `curl -s -X POST https://mikrou.li/api/mcp \\
     }
   }'`;
 
+// Exact verified command for wiring mikrouli into Claude Code as an MCP server.
+// --scope user: persists across projects; --transport http: Streamable HTTP.
+const CLAUDE_MCP_ADD_COMMAND = `claude mcp add --scope user --transport http mikrouli \\
+  https://mikrou.li/api/mcp \\
+  --header "x-api-key: mk_<your-key>"`;
+
+function ApiKeySection() {
+  const { t } = useTranslation('connect');
+  return (
+    <Paper variant="outlined" sx={SECTION_SX} data-testid="connect-apikey-section">
+      <Stack spacing={2}>
+        <Typography variant="h5" component="h2">
+          {t('apiKeySectionTitle')}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {t('apiKeySectionDesc')}
+        </Typography>
+        <Box component="ol" sx={{ pl: 3, m: 0 }}>
+          <Box component="li">
+            <Typography variant="body2">{t('apiKeySignIn')}</Typography>
+          </Box>
+          <Box component="li">
+            <Typography variant="body2">{t('apiKeyNavigate')}</Typography>
+          </Box>
+          <Box component="li">
+            <Typography variant="body2">{t('apiKeyCreate')}</Typography>
+          </Box>
+        </Box>
+        <Typography variant="body2" color="text.secondary">
+          {t('apiKeyNote')}
+        </Typography>
+      </Stack>
+    </Paper>
+  );
+}
+
 function RestSection() {
   const { t } = useTranslation('connect');
   return (
@@ -77,9 +113,6 @@ function RestSection() {
             x-api-key: mk_&lt;your-key&gt;
           </Box>
         </Box>
-        <Typography variant="body2" color="text.secondary">
-          {t('restKeyObtain')}
-        </Typography>
         <Typography variant="subtitle1" fontWeight={600}>
           {t('restEndpoint')}
         </Typography>
@@ -121,6 +154,13 @@ function McpSection() {
           {t('mcpToolDesc')}
         </Typography>
         <Box sx={CODE_BLOCK_SX}>{MCP_EXAMPLE}</Box>
+        <Typography variant="subtitle1" fontWeight={600}>
+          {t('mcpClaudeCodeTitle')}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {t('mcpClaudeCodeDesc')}
+        </Typography>
+        <Box sx={CODE_BLOCK_SX}>{CLAUDE_MCP_ADD_COMMAND}</Box>
       </Stack>
     </Paper>
   );
@@ -145,6 +185,7 @@ export default function ConnectPage() {
               </Link>
             </Box>
           </Stack>
+          <ApiKeySection />
           <RestSection />
           <McpSection />
         </Stack>

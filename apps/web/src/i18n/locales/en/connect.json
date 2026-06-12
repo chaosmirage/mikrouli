@@ -1,6 +1,12 @@
 {
   "pageTitle": "Connect an agent",
   "pageDescription": "Integrate mikrouli into your scripts and AI agents via REST API or the hosted MCP server.",
+  "apiKeySectionTitle": "Step 1: Get an API key",
+  "apiKeySectionDesc": "All write endpoints and the MCP server require an API key. Sign in, open the API Keys page, create a key, and copy the mk_... value. The full secret is shown once at creation time only.",
+  "apiKeySignIn": "Sign in to your account",
+  "apiKeyNavigate": "Open the API Keys page from the account menu",
+  "apiKeyCreate": "Create a new key and copy the mk_... value",
+  "apiKeyNote": "Keep the key secret. Pass it as the x-api-key header on every machine call.",
   "restSectionTitle": "REST API",
   "restAuthHeader": "Authentication header",
   "restAuthHeaderDesc": "Pass your API key in the x-api-key request header on every call.",
@@ -15,5 +21,7 @@
   "mcpProtocol": "Protocol: Streamable HTTP (MCP 2024-11-05)",
   "mcpAuthNote": "Authenticate with the same x-api-key header as the REST API.",
   "mcpToolDesc": "The create_short_link tool returns the full usable link (e.g. https://mikrou.li/abc123) as its text output.",
+  "mcpClaudeCodeTitle": "Add to Claude Code",
+  "mcpClaudeCodeDesc": "Run this command once to register mikrouli as an MCP server in Claude Code:",
   "llmsFileLink": "Machine-readable guide (llms.txt)"
 }

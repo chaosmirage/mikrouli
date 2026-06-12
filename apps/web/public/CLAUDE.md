@@ -13,10 +13,13 @@ standard web-discovery conventions.
   allows the landing page, `/connect`, and `/llms.txt`. Carries an `LLMs:`
   directive pointing to `/llms.txt` and a `Sitemap:` entry.
 - `llms.txt` -- machine-readable integration guide for LLM agents and
-  automated scripts. Documents the API base URL, `x-api-key` authentication,
-  `POST /api/urls` REST usage with request/response shapes, and the MCP
-  Streamable HTTP endpoint at `POST /api/mcp` with the `create_short_link`
-  tool. Served at `https://mikrou.li/llms.txt` directly by the `$uri` nginx
+  automated scripts. Documents how to obtain an API key (sign in, open the
+  API Keys page, copy the once-shown `mk_...` value), `x-api-key`
+  authentication, `POST /api/urls` REST usage with request/response shapes,
+  the MCP Streamable HTTP endpoint at `POST /api/mcp` with the
+  `create_short_link` tool, and the exact `claude mcp add --scope user
+  --transport http` command for registering the server in Claude Code.
+  Served at `https://mikrou.li/llms.txt` directly by the `$uri` nginx
   rule, no React needed.
 - `sitemap.xml` -- XML sitemap listing the indexable public pages.
 
