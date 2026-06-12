@@ -8,6 +8,7 @@ import {
   Res,
   ServiceUnavailableException,
   UnauthorizedException,
+  UseFilters,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
@@ -20,6 +21,9 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { RequestUser } from './jwt.strategy';
 import { AUTH_THROTTLE_NAME } from '../app.module';
 import type { RegisterResponse, MeResponse } from '../types/openapi';
+import { GithubOauthGuard } from './github.strategy';
+import { GithubOauthRedirectFilter } from './github-oauth.errors';
+import type { GithubIdentity } from './github-oauth.errors';
 
 const ACCESS_COOKIE_NAME = 'mikrouli_access';
 const REFRESH_COOKIE_NAME = 'mikrouli_refresh';
@@ -28,6 +32,10 @@ const REFRESH_COOKIE_PATH = '/api/auth';
 
 interface AuthenticatedRequest extends Request {
   user: RequestUser;
+}
+
+interface GithubCallbackRequest extends Request {
+  user: GithubIdentity;
 }
 
 function toRegisterResponse(user: PublicUser): RegisterResponse {
@@ -132,5 +140,35 @@ export class AuthController {
     const user = await this.usersService.findById(req.user.id);
     if (!user) throw new UnauthorizedException();
     return toUserProfileResponse({ id: user.id, email: user.email, createdAt: user.createdAt });
+  }
+
+  // Initiates the GitHub OAuth flow: the GithubOauthGuard intercepts this route
+  // before the handler body runs, mints a single-use CSRF state token into Redis,
+  // and redirects the browser to GitHub's authorization endpoint.
+  @Get('github')
+  @UseGuards(GithubOauthGuard)
+  @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
+  githubAuthorize(): void {
+    // Guard redirects to GitHub before this body executes.
+  }
+
+  // Handles the OAuth callback from GitHub.
+  // The GithubOauthGuard validates and consumes the state token, exchanges the
+  // authorization code, and calls GithubStrategy.validate() which performs
+  // verified-email selection and populates req.user as a GithubIdentity.
+  // On success: issues the session cookie pair and redirects to /dashboard.
+  // On typed OAuth failure: GithubOauthRedirectFilter redirects to /login?error=<slug>.
+  // On any other error: falls through to the global ProblemDetailsFilter.
+  @Get('github/callback')
+  @UseGuards(GithubOauthGuard)
+  @UseFilters(GithubOauthRedirectFilter)
+  @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
+  async githubCallback(
+    @Req() req: GithubCallbackRequest,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { cookies } = await this.authService.loginWithGithub(req.user);
+    applySessionCookies(res, cookies);
+    res.redirect(302, '/dashboard');
   }
 }

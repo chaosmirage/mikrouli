@@ -39,6 +39,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/auth/github': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description Redirect browser to GitHub OAuth authorization page; mints a one-time CSRF state token */
+    get: operations['Auth_githubAuthorize'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/github/callback': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description OAuth callback from GitHub; validates state, exchanges code, resolves account, sets session cookies, redirects to SPA */
+    get: operations['Auth_githubCallback'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/auth/login': {
     parameters: {
       query?: never;
@@ -516,6 +550,67 @@ export interface operations {
         };
         content: {
           'application/problem+json': components['schemas']['NotFoundError'];
+        };
+      };
+    };
+  };
+  Auth_githubAuthorize: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Redirection */
+      302: {
+        headers: {
+          location: string;
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['InternalServerError'];
+        };
+      };
+    };
+  };
+  Auth_githubCallback: {
+    parameters: {
+      query?: {
+        code?: string;
+        state?: string;
+        error?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Redirection */
+      302: {
+        headers: {
+          location: string;
+          'set-cookie'?: string;
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['InternalServerError'];
         };
       };
     };

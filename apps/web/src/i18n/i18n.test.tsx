@@ -12,6 +12,7 @@ const guestAuth: AuthContextValue = {
   login: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
+  loginWithGithub: vi.fn(),
 };
 
 function renderShell() {

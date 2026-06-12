@@ -12,6 +12,7 @@ const mockAuth: AuthContextValue = {
   login: mockLogin,
   register: vi.fn(),
   logout: vi.fn(),
+  loginWithGithub: vi.fn(),
 };
 
 function renderLogin() {

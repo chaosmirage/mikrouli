@@ -18,6 +18,13 @@ interface ValidationPayload {
   errors: ClassValidatorError[];
 }
 
+interface ProblemPayload {
+  kind: 'problem';
+  typeSlug: string;
+  title: string;
+  detail: string;
+}
+
 type ErrorEntry = { field: string; message: string; rule: string };
 
 function isValidationPayload(payload: unknown): payload is ValidationPayload {
@@ -25,6 +32,17 @@ function isValidationPayload(payload: unknown): payload is ValidationPayload {
     typeof payload === 'object' &&
     payload !== null &&
     (payload as ValidationPayload).kind === 'validation'
+  );
+}
+
+// Typed exceptions that carry an explicit slug (e.g. github-no-verified-email)
+// are mapped through buildProblem so the response type URI is the correct slug,
+// not the generic status-based one that buildProblemFromStatus would produce.
+function isProblemPayload(payload: unknown): payload is ProblemPayload {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    (payload as ProblemPayload).kind === 'problem'
   );
 }
 
@@ -57,6 +75,9 @@ function resolveHttpProblem(exc: HttpException): ProblemDetails {
   const response = exc.getResponse();
   if (isValidationPayload(response)) {
     return buildValidationProblem(response.errors);
+  }
+  if (isProblemPayload(response)) {
+    return buildProblem(exc.getStatus(), response.typeSlug, response.title, response.detail);
   }
   const detail = typeof response === 'string' ? response : undefined;
   return buildProblemFromStatus(exc.getStatus(), detail);

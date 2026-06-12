@@ -113,4 +113,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async delOrThrow(key: string): Promise<void> {
     await this.client.del(key);
   }
+
+  // Atomically reads and deletes a key in a single round-trip (Redis GETDEL, available
+  // since Redis 6.2). Used for single-use OAuth state tokens: two concurrent callbacks
+  // presenting the same state token cannot both succeed because only the first GETDEL
+  // returns the value — the second finds the key absent and fails.
+  async getDelOrThrow(key: string): Promise<string | null> {
+    return this.client.getdel(key);
+  }
 }

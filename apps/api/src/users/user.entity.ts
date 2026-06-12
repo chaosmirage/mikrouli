@@ -14,8 +14,10 @@ export class User {
   @Column({ unique: true, length: 255 })
   email: string;
 
-  @Column({ name: 'password_hash', length: 72 })
-  passwordHash: string;
+  // Null for OAuth-only accounts (no password credential).
+  // Explicit union — never optional — so strict forces every reader to narrow null.
+  @Column({ name: 'password_hash', type: 'varchar', length: 72, nullable: true })
+  passwordHash: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
