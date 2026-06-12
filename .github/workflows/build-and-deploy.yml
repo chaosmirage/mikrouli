@@ -218,6 +218,9 @@ jobs:
           # the api Deployment would crash-loop on envFrom.
           kubectl get secret -n mikrouli mikrouli-secrets >/dev/null
 
+      - name: Delete stale migration job
+        run: kubectl delete job api-migration -n mikrouli --ignore-not-found
+
       - name: Deploy to production
         run: kubectl apply -k k8s/overlays/production
 
