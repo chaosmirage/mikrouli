@@ -23,3 +23,4 @@ accordingly and a new record describes the replacement decision.
 | [0010](0010-expired-link-lifecycle-410-and-hourly-cleanup.md) | Expired-Link Lifecycle: 410 Gone and Hourly Batch Cleanup | Accepted |
 | [0011](0011-cookie-based-jwt-auth-and-refresh-token-revocation.md) | Cookie-Based JWT Auth and Refresh-Token Revocation | Accepted |
 | [0012](0012-api-and-infrastructure-security-hardening.md) | API and Infrastructure Security Hardening | Accepted |
+| [0013](0013-github-oauth-sign-in-and-account-linking.md) | GitHub OAuth Sign-In and Account Linking | Accepted |

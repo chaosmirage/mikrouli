@@ -92,7 +92,7 @@ directly so they include unflushed data.
 
 | Store | Role | Key entities |
 |---|---|---|
-| **Postgres 16** | Relational source of truth | `links`, `users`, `api_keys`, `outbox` |
+| **Postgres 16** | Relational source of truth | `links`, `users`, `provider_accounts`, `api_keys`, `outbox` |
 | **Redis 7** | Redirect cache (cache-aside) | `link:{slug}` -> original URL |
 | **ClickHouse** | Columnar click analytics | `stats` (MergeTree), `stats_buffer` (Buffer) |
 
@@ -132,7 +132,8 @@ builds URIs in the form `https://mikrou.li/problems/{slug}` and
 `problem-details.filter.ts` maps NestJS HTTP exceptions to this shape uniformly.
 
 Endpoints covered by the spec: `POST /api/auth/register`, `POST /api/auth/login`,
-`POST /api/auth/refresh`, `GET /api/auth/me`, `POST /api/urls`, `GET /api/urls`,
+`POST /api/auth/refresh`, `GET /api/auth/me`, `GET /api/auth/github`,
+`GET /api/auth/github/callback`, `POST /api/urls`, `GET /api/urls`,
 `DELETE /api/urls/{slug}`, `GET /api/stats/{slug}`, `POST /api/api-keys`,
 `GET /api/api-keys`, `DELETE /api/api-keys/{id}`, `GET /api/health`, and the public
 redirect at `GET /{slug}`.
@@ -168,6 +169,45 @@ Two authentication mechanisms coexist, dispatched by `BearerOrApiKeyGuard`
 
 The guard inspects the incoming headers and delegates to the appropriate sub-guard; a
 request with neither credential receives 401.
+
+**GitHub OAuth sign-in**: in addition to email/password, users can sign in or
+register with GitHub. `GET /api/auth/github` and `GET /api/auth/github/callback`
+(`auth.controller.ts`) run the OAuth authorization-code flow via a Passport
+strategy (`github.strategy.ts`):
+
+- **Single-use CSRF state**: the strategy plugs a custom Redis-backed
+  `passport-oauth2` `StateStore` (no `express-session` required). A 32-byte hex
+  token (256 bits) is stored under `auth:oauth:state:<token>` with a 600 s TTL
+  and validated with an atomic Redis `GETDEL` (`RedisService.getDelOrThrow`), so
+  each state token is accepted at most once and concurrent callbacks cannot both
+  pass. Redis errors fail the flow closed.
+- **Verified-email gate**: `validate` fetches verified addresses from the GitHub
+  `/user/emails` API and selects a verified email (primary preferred) *before*
+  any account lookup; if none is verified the flow is refused. Only a thin
+  `GithubIdentity` (`provider`, `providerUserId`, `email`) crosses into
+  application code.
+- **Account resolution**: `UsersService.findOrCreateFromProvider` runs a
+  three-branch transaction — return the linked user, link the provider to an
+  existing account matched by verified email, or create a new account with a
+  null password — retried once on a unique-violation race. The resolved `User`
+  reuses the same `issueTokens` path as credential login, so an OAuth session is
+  identical to a password session.
+- **Account links**: the `provider_accounts` table (`provider-account.entity.ts`,
+  migration `1700000000004-GithubIdentities`) stores one row per
+  `(provider, user)` with unique constraints on `(provider, provider_user_id)`
+  and `(provider, user_id)`, enforcing one GitHub identity per account in the
+  database. `ON DELETE CASCADE` removes a user's links when the user is deleted.
+- **Typed failures**: OAuth failures use a fixed slug vocabulary
+  (`github-no-verified-email`, `github-oauth-failed`); a route-scoped filter
+  redirects them to `/login?error=<slug>` with no cookies, while any other error
+  falls through to the global RFC 9457 filter (which now also maps
+  slug-carrying problem payloads).
+
+OAuth-only accounts have no password: `users.password_hash` is nullable
+(`user.entity.ts`, typed `string | null`). `validateCredentials` runs
+`bcrypt.compare` against a fixed decoy hash whenever the user is missing or has
+a null password, keeping the failure response time constant so it cannot be used
+to probe whether an account exists or lacks a password.
 
 **Non-enumerable register**: `UsersService.create` returns a decoy result
 (locally constructed, not persisted) on duplicate email rather than throwing
@@ -289,8 +329,10 @@ required paths: Traefik ingress -> web, web -> API, API -> Postgres/Redis/ClickH
 No other east-west traffic is permitted.
 
 Application secrets (`DB_PASS`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `REDIS_PASSWORD`,
-and the ClickHouse password) are stored in a Kubernetes `Secret` named `mikrouli-secrets`,
-created manually by the operator from a trusted machine. The CI/CD workflow never handles
+the ClickHouse password, and the GitHub OAuth credentials `GITHUB_CLIENT_ID` /
+`GITHUB_CLIENT_SECRET`) are stored in a Kubernetes `Secret` named `mikrouli-secrets`,
+created manually by the operator from a trusted machine. The non-secret
+`GITHUB_CALLBACK_URL` is set as a plain env value on the API Deployment. The CI/CD workflow never handles
 plaintext credentials; the only secret it holds is `KUBECONFIG_PRODUCTION` for cluster
 access.
 
