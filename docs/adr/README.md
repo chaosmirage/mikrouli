@@ -26,3 +26,4 @@ accordingly and a new record describes the replacement decision.
 | [0013](0013-github-oauth-sign-in-and-account-linking.md) | GitHub OAuth Sign-In and Account Linking | Accepted |
 | [0014](0014-correlation-id-request-tracing.md) | Correlation-ID Request Tracing | Accepted |
 | [0015](0015-mcp-tool-endpoint-for-llm-agents.md) | MCP Tool Endpoint for LLM Agents | Accepted |
+| [0016](0016-ci-manifest-validation-and-policy-gate.md) | CI Manifest Validation and Policy Gate | Accepted |
