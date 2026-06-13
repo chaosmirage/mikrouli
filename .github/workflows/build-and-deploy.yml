@@ -224,8 +224,14 @@ jobs:
       - name: Deploy to production
         run: kubectl apply -k k8s/overlays/production
 
+      - name: Deploy observability stack
+        run: kubectl apply -k k8s/observability
+
       - name: Wait for api rollout
         run: kubectl rollout status deployment/api -n mikrouli --timeout=10m
 
       - name: Wait for web rollout
         run: kubectl rollout status deployment/web -n mikrouli --timeout=10m
+
+      - name: Wait for jaeger rollout
+        run: kubectl rollout status deployment/jaeger -n observability --timeout=5m
