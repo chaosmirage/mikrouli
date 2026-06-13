@@ -35,7 +35,7 @@ spec:
             - name: BADGER_EPHEMERAL
               value: "false"
             - name: BADGER_SPAN_STORAGE_TTL
-              value: "72h"
+              value: "24h"
             - name: BADGER_DIRECTORY_KEY
               value: /badger/data/keys
             - name: BADGER_DIRECTORY_VALUE
@@ -58,10 +58,10 @@ spec:
               mountPath: /badger/data
           resources:
             requests:
-              memory: 128Mi
+              memory: 256Mi
               cpu: 100m
             limits:
-              memory: 512Mi
+              memory: 1Gi
               cpu: 500m
           livenessProbe:
             httpGet:

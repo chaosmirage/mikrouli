@@ -59,3 +59,47 @@ jobs:
 
       - name: Build web
         run: pnpm --filter web build
+
+  manifests:
+    name: Manifests
+    runs-on: ubuntu-latest
+    env:
+      # The observability stack is rendered and gated as the same unit the
+      # deploy path applies (kubectl apply -k k8s/observability), so the values
+      # that ship are the values that are checked.
+      OBSERVABILITY_DIR: k8s/observability
+      POLICY_DIR: k8s/policy
+      RENDERED_MANIFEST: rendered-observability.yaml
+      # Pinned to explicit releases (no floating latest) to keep the gate
+      # reproducible across runs.
+      KUBECONFORM_VERSION: '0.8.0'
+      CONFTEST_VERSION: '0.68.2'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install kubeconform
+        run: |
+          curl -fsSL \
+            "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz -C /usr/local/bin kubeconform
+          kubeconform -v
+
+      - name: Install conftest
+        run: |
+          curl -fsSL \
+            "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz" \
+            | tar -xz -C /usr/local/bin conftest
+          conftest --version
+
+      - name: Render observability manifests
+        run: kubectl kustomize "$OBSERVABILITY_DIR" > "$RENDERED_MANIFEST"
+
+      - name: Validate rendered manifests against Kubernetes schemas
+        run: kubeconform -strict -summary "$RENDERED_MANIFEST"
+
+      - name: Run policy unit tests
+        run: conftest verify --policy "$POLICY_DIR"
+
+      - name: Enforce policy on rendered manifests
+        run: conftest test --policy "$POLICY_DIR" "$RENDERED_MANIFEST"

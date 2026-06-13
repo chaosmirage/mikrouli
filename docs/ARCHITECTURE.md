@@ -292,7 +292,15 @@ are not sent to cross-origin requests.
 
 In Kubernetes the `OTEL_EXPORTER_OTLP_ENDPOINT` env var on the API Deployment points to
 `http://otel-collector.observability.svc.cluster.local:4318`; operators supply their own
-collector (Jaeger, Tempo, SigNoz, etc.) -- see `k8s/README.md`.
+collector (Jaeger, Tempo, SigNoz, etc.) -- see `k8s/README.md`. The default in-cluster
+backend is a single-replica Jaeger all-in-one (`k8s/observability/jaeger-deployment.yaml`)
+that opens an on-disk Badger span store (`BADGER_EPHEMERAL=false`) on an `emptyDir` mounted
+at `/badger/data`. Because Badger's startup and steady-state working set scale with the
+retention window, memory sizing and span retention are sized together: the pod is granted a
+256Mi request / 1Gi limit and `BADGER_SPAN_STORAGE_TTL` is capped at `24h` so the working
+set stays inside the memory ceiling rather than OOM-killing the pod into a crashloop. The
+pod runs under the `restricted` Pod Security Standard enforced on the `observability`
+namespace.
 
 ---
 
@@ -354,6 +362,19 @@ images:
 
 Floating tags (`:latest`) are explicitly forbidden. CI replaces `GITSHA-PLACEHOLDER`
 before `kubectl apply -k`.
+
+**Manifest validation gate.** A `manifests` job in `.github/workflows/ci.yml` runs on
+every pull request and validates the observability bundle before it can reach the cluster.
+It renders `k8s/observability` with `kubectl kustomize`, checks the result against the
+Kubernetes API schemas with **kubeconform** (strict mode), and gates it through an **Open
+Policy Agent** policy (`k8s/policy/jaeger.rego`, run with `conftest`). The policy denies the
+rendered Jaeger Deployment when its memory limit falls below 1Gi, its request below 256Mi,
+its Badger TTL exceeds 24h, or any `restricted` Pod Security field
+(`runAsNonRoot`, `readOnlyRootFilesystem`, `drop: [ALL]`, `seccompProfile: RuntimeDefault`)
+is missing; quantities and durations are compared by parsed magnitude, so `1024Mi` and `1Gi`
+are equal. The policy's own unit tests (`k8s/policy/jaeger_test.rego`) run first. Because the
+gate checks the same bundle the deploy workflow applies, a sizing or hardening regression
+fails at review time instead of as a crashloop on the live cluster. See ADR 0016.
 
 **Network policies** (`k8s/base/network-policies.yaml`) enforce a **default-deny-all**
 posture in the `mikrouli` namespace. Explicit `NetworkPolicy` objects allow only the
