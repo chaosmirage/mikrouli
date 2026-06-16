@@ -135,8 +135,16 @@ Endpoints covered by the spec: `POST /api/auth/register`, `POST /api/auth/login`
 `POST /api/auth/refresh`, `GET /api/auth/me`, `GET /api/auth/github`,
 `GET /api/auth/github/callback`, `POST /api/urls`, `GET /api/urls`,
 `DELETE /api/urls/{slug}`, `GET /api/stats/{slug}`, `POST /api/api-keys`,
-`GET /api/api-keys`, `DELETE /api/api-keys/{id}`, `GET /api/health`, and the public
-redirect at `GET /{slug}`.
+`GET /api/api-keys`, `DELETE /api/api-keys/{id}`, `GET /api/usage`, `GET /api/health`,
+and the public redirect at `GET /{slug}`.
+
+Short-link and API-key creation are bounded by a per-user monthly allowance
+counted per calendar month (UTC): `POST /api/urls`, `POST /api/mcp`, and
+`POST /api/api-keys` return `429 Too Many Requests` (RFC 9457) once the allowance
+is reached. The allowance defaults to a global value with an optional nullable
+per-user override column on the user row (`apps/api/src/usage/usage.service.ts`).
+`GET /api/usage` reports the current month's consumption, allowance, reset date,
+and analytics retention window for the in-app usage page.
 
 ---
 
