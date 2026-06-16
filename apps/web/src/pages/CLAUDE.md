@@ -32,6 +32,14 @@ strings appear in page files.
 - `ApiKeysPage.tsx` -- API key management. Calls `POST /api/api-keys`
   (JWT/cookie-guarded), displays the plaintext key once via `NewKeyAlert`
   (`data-testid="key-secret-once"`), and lists / revokes existing keys.
+- `UsagePage.tsx` -- authenticated usage dashboard at `/usage`. Fetches
+  `GET /api/usage` via `apiFetch` and renders two `QuotaCard` panels (links
+  and API keys) showing monthly created / limit / remaining counts with a
+  `LinearProgress` fill. Also shows the monthly reset date
+  (`data-testid="reset-date"`) and the default link retention period
+  (`data-testid="retention-info"`). A "Request more" button constructs a
+  `mailto:support@mikrou.li` href pre-filled from the `usage` i18n namespace.
+  Uses the `usage` i18n namespace.
 - `LoginPage.tsx`, `RegisterPage.tsx` -- authentication forms.
 
 ## How to extend safely

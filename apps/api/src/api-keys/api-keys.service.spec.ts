@@ -7,6 +7,8 @@ import * as bcrypt from 'bcryptjs';
 import { ApiKeysService } from './api-keys.service';
 import { ApiKey } from './api-key.entity';
 import { User } from '../users/user.entity';
+import { UsageService } from '../usage/usage.service';
+import { MonthlyKeyLimitExceededError } from '../usage/usage.errors';
 
 const BCRYPT_HASH_ROUNDS = 10;
 const TEST_PLAINTEXT = 'mk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
@@ -22,8 +24,17 @@ const mockRepository = () => ({
   update: jest.fn(),
 });
 
+const mockUsageService = {
+  countKeysThisMonth: jest.fn().mockResolvedValue(0),
+  getKeyLimit: jest.fn().mockResolvedValue(10),
+};
+
 const moduleMetadata: ModuleMetadata = {
-  providers: [ApiKeysService, { provide: getRepositoryToken(ApiKey), useFactory: mockRepository }],
+  providers: [
+    ApiKeysService,
+    { provide: getRepositoryToken(ApiKey), useFactory: mockRepository },
+    { provide: UsageService, useValue: mockUsageService },
+  ],
 };
 
 describe('ApiKeysService', () => {
@@ -36,6 +47,8 @@ describe('ApiKeysService', () => {
   });
 
   beforeEach(async () => {
+    mockUsageService.countKeysThisMonth.mockResolvedValue(0);
+    mockUsageService.getKeyLimit.mockResolvedValue(10);
     const moduleRef: TestingModule = await Test.createTestingModule(moduleMetadata).compile();
     service = moduleRef.get<ApiKeysService>(ApiKeysService);
     repo = moduleRef.get(getRepositoryToken(ApiKey));
@@ -107,6 +120,15 @@ describe('ApiKeysService', () => {
   it('revoke throws NotFoundException when no rows match (ownership check)', async () => {
     repo.update.mockResolvedValue({ affected: 0 } as never);
     await expect(service.revoke(TEST_USER_ID, TEST_KEY_ID)).rejects.toThrow(NotFoundException);
+  });
+
+  it('createForUser rejects with MonthlyKeyLimitExceededError when monthly limit is reached', async () => {
+    mockUsageService.countKeysThisMonth.mockResolvedValue(10);
+    mockUsageService.getKeyLimit.mockResolvedValue(10);
+    await expect(service.createForUser(TEST_USER_ID, { label: 'Test' })).rejects.toThrow(
+      MonthlyKeyLimitExceededError,
+    );
+    expect(repo.save).not.toHaveBeenCalled();
   });
 
   it('listForUser does not include keyHash or plaintext', async () => {

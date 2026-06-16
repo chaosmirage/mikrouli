@@ -13,6 +13,7 @@ import DashboardPage from './pages/DashboardPage';
 import StatsPage from './pages/StatsPage';
 import ApiKeysPage from './pages/ApiKeysPage';
 import ConnectPage from './pages/ConnectPage';
+import UsagePage from './pages/UsagePage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/stats/:slug" element={<StatsPage />} />
         <Route path="/api-keys" element={<ApiKeysPage />} />
+        <Route path="/usage" element={<UsagePage />} />
       </Route>
     </Route>
   );

@@ -29,3 +29,6 @@ export type ClickByBrowser = components['schemas']['ClickByBrowser'];
 
 // Health
 export type HealthResponse = components['schemas']['HealthResponse'];
+
+// Usage
+export type UsageSummary = components['schemas']['UsageSummary'];

@@ -9,8 +9,10 @@ import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
 import { Link } from './entities/link.entity';
 import { Outbox } from '../outbox/entities/outbox.entity';
 import { SlugGeneratorService } from './slug-generator.service';
+import { RETENTION_MS } from '../common/constants';
+import { UsageService } from '../usage/usage.service';
+import { MonthlyLinkLimitExceededError } from '../usage/usage.errors';
 
-const THREE_YEARS_MS = 94_608_000_000; // 3 * 365 * 24 * 60 * 60 * 1000
 const MAX_SLUG_RETRIES = 5;
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 
@@ -23,7 +25,7 @@ interface LinkFields {
 
 function resolveExpiry(explicit?: Date): Date {
   if (explicit !== undefined) return explicit;
-  return new Date(Date.now() + THREE_YEARS_MS);
+  return new Date(Date.now() + RETENTION_MS);
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -59,6 +61,7 @@ export class LinksService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly slugGenerator: SlugGeneratorService,
+    private readonly usageService: UsageService,
   ) {}
 
   private async insertLinkWithOutbox(manager: EntityManager, fields: LinkFields): Promise<Link> {
@@ -75,6 +78,12 @@ export class LinksService {
   }
 
   async create(originalUrl: string, userId: string, explicitExpiry?: Date): Promise<Link> {
+    const [count, limit] = await Promise.all([
+      this.usageService.countLinksThisMonth(userId),
+      this.usageService.getLinkLimit(userId),
+    ]);
+    if (count >= limit) throw new MonthlyLinkLimitExceededError();
+
     const expiresAt = resolveExpiry(explicitExpiry);
     const attempt = () => this.tryCreate(originalUrl, userId, expiresAt);
     return retryOnSlugConflict(attempt);

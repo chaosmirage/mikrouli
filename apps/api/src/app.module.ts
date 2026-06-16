@@ -16,6 +16,7 @@ import { StatsModule } from './stats/stats.module';
 import { CleanupModule } from './cleanup/cleanup.module';
 import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
 import { McpModule } from './mcp/mcp.module';
+import { UsageModule } from './usage/usage.module';
 
 const DEFAULT_DB_PORT = 5432;
 
@@ -100,6 +101,7 @@ const typeOrmModule = TypeOrmModule.forRootAsync({
     RedirectModule,
     CleanupModule,
     McpModule,
+    UsageModule,
   ],
   providers: [
     {

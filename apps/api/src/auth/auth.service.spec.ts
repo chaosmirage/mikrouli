@@ -20,6 +20,8 @@ const testUser: User = {
   id: 'user-uuid-1',
   email: 'test@example.com',
   passwordHash: '$2b$10$placeholder',
+  monthlyLinkLimit: null,
+  monthlyKeyLimit: null,
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
 };
@@ -29,6 +31,8 @@ const githubOnlyUser: User = {
   id: 'user-uuid-github',
   email: 'github@example.com',
   passwordHash: null,
+  monthlyLinkLimit: null,
+  monthlyKeyLimit: null,
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
 };

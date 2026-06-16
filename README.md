@@ -137,6 +137,7 @@ pnpm --filter web test:e2e       # Playwright
 | POST   | `/api/api-keys`      | Bearer JWT          | Issue API key              |
 | GET    | `/api/api-keys`      | Bearer JWT          | List own keys              |
 | DELETE | `/api/api-keys/:id`  | Bearer JWT          | Revoke key                 |
+| GET    | `/api/usage`         | Bearer JWT          | Monthly quota usage        |
 | POST   | `/api/mcp`           | X-API-Key           | MCP tool endpoint (`create_short_link`) |
 
 ## Connecting LLM agents
@@ -175,3 +176,27 @@ GitHub sign-in requires `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and
 For programmatic clients, `POST /api/api-keys` issues a key. The plaintext secret is shown **exactly once** in the creation response — store it immediately, the server only persists a hash. Subsequent requests authenticate by sending `X-API-Key: <secret>` instead of (or alongside) a Bearer JWT; an API key has the same scope as the user who issued it, except `/api/auth/*` is rejected.
 
 Revoke with `DELETE /api/api-keys/:id` — the key returns 401 within one request cycle and `last_used_at` stops updating.
+
+## Usage limits
+
+Each account has a monthly allowance for short links and API keys, counted per
+calendar month (UTC) and reset on the first of the following month. The default
+allowances are configured via environment variables:
+
+| Variable              | Default | Purpose                                 |
+| --------------------- | ------- | --------------------------------------- |
+| `MONTHLY_LINK_LIMIT`  | `100`   | Default monthly short-link allowance    |
+| `MONTHLY_KEY_LIMIT`   | `10`    | Default monthly API-key allowance       |
+
+A per-user override stored in the database takes precedence over these defaults
+when set.
+
+Creating a short link or API key once the monthly allowance is reached returns
+`429 Too Many Requests` as an RFC 9457 problem-details response. The same limit
+applies whether the link is created over REST (`POST /api/urls`), the MCP tool
+endpoint (`POST /api/mcp`), or API-key creation (`POST /api/api-keys`).
+
+`GET /api/usage` (Bearer JWT) returns the current month's consumption and
+allowance for both links and keys, the reset date, and the click-analytics
+retention window. The in-app **Usage** page renders this as quota progress bars
+with the retention window and a support contact for raising an allowance.
