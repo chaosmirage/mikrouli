@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { UsageService } from './usage.service';
 import { GLOBAL_KEY_LIMIT, GLOBAL_LINK_LIMIT } from '../common/constants';
@@ -22,32 +23,118 @@ function buildUserRepoMock(user: ReturnType<typeof makeUser>) {
   };
 }
 
+function makeConfigService(env: Record<string, string | undefined> = {}): ConfigService {
+  return {
+    get: jest.fn((key: string) => env[key]),
+  } as unknown as ConfigService;
+}
+
 describe('UsageService', () => {
   describe('resolveLinkLimit', () => {
     it('returns per-user override when non-null', () => {
-      const service = new UsageService({} as DataSource, {} as any);
+      const service = new UsageService({} as DataSource, {} as any, makeConfigService());
       const user = makeUser({ monthlyLinkLimit: 42 });
       expect(service.resolveLinkLimit(user)).toBe(42);
     });
 
-    it('returns GLOBAL_LINK_LIMIT when monthlyLinkLimit is null', () => {
-      const service = new UsageService({} as DataSource, {} as any);
+    it('returns env default when monthlyLinkLimit is null and MONTHLY_LINK_LIMIT is set', () => {
+      const service = new UsageService(
+        {} as DataSource,
+        {} as any,
+        makeConfigService({ MONTHLY_LINK_LIMIT: '250' }),
+      );
+      const user = makeUser({ monthlyLinkLimit: null });
+      expect(service.resolveLinkLimit(user)).toBe(250);
+    });
+
+    it('returns GLOBAL_LINK_LIMIT when monthlyLinkLimit is null and MONTHLY_LINK_LIMIT is unset', () => {
+      const service = new UsageService({} as DataSource, {} as any, makeConfigService());
       const user = makeUser({ monthlyLinkLimit: null });
       expect(service.resolveLinkLimit(user)).toBe(GLOBAL_LINK_LIMIT);
+    });
+
+    it('returns GLOBAL_LINK_LIMIT when MONTHLY_LINK_LIMIT is invalid (zero)', () => {
+      const service = new UsageService(
+        {} as DataSource,
+        {} as any,
+        makeConfigService({ MONTHLY_LINK_LIMIT: '0' }),
+      );
+      const user = makeUser({ monthlyLinkLimit: null });
+      expect(service.resolveLinkLimit(user)).toBe(GLOBAL_LINK_LIMIT);
+    });
+
+    it('returns GLOBAL_LINK_LIMIT when MONTHLY_LINK_LIMIT is invalid (negative)', () => {
+      const service = new UsageService(
+        {} as DataSource,
+        {} as any,
+        makeConfigService({ MONTHLY_LINK_LIMIT: '-5' }),
+      );
+      const user = makeUser({ monthlyLinkLimit: null });
+      expect(service.resolveLinkLimit(user)).toBe(GLOBAL_LINK_LIMIT);
+    });
+
+    it('returns GLOBAL_LINK_LIMIT when MONTHLY_LINK_LIMIT is invalid (non-numeric)', () => {
+      const service = new UsageService(
+        {} as DataSource,
+        {} as any,
+        makeConfigService({ MONTHLY_LINK_LIMIT: 'abc' }),
+      );
+      const user = makeUser({ monthlyLinkLimit: null });
+      expect(service.resolveLinkLimit(user)).toBe(GLOBAL_LINK_LIMIT);
+    });
+
+    it('per-user override wins over env default', () => {
+      const service = new UsageService(
+        {} as DataSource,
+        {} as any,
+        makeConfigService({ MONTHLY_LINK_LIMIT: '250' }),
+      );
+      const user = makeUser({ monthlyLinkLimit: 5 });
+      expect(service.resolveLinkLimit(user)).toBe(5);
     });
   });
 
   describe('resolveKeyLimit', () => {
     it('returns per-user override when non-null', () => {
-      const service = new UsageService({} as DataSource, {} as any);
+      const service = new UsageService({} as DataSource, {} as any, makeConfigService());
       const user = makeUser({ monthlyKeyLimit: 5 });
       expect(service.resolveKeyLimit(user)).toBe(5);
     });
 
-    it('returns GLOBAL_KEY_LIMIT when monthlyKeyLimit is null', () => {
-      const service = new UsageService({} as DataSource, {} as any);
+    it('returns env default when monthlyKeyLimit is null and MONTHLY_KEY_LIMIT is set', () => {
+      const service = new UsageService(
+        {} as DataSource,
+        {} as any,
+        makeConfigService({ MONTHLY_KEY_LIMIT: '25' }),
+      );
+      const user = makeUser({ monthlyKeyLimit: null });
+      expect(service.resolveKeyLimit(user)).toBe(25);
+    });
+
+    it('returns GLOBAL_KEY_LIMIT when monthlyKeyLimit is null and MONTHLY_KEY_LIMIT is unset', () => {
+      const service = new UsageService({} as DataSource, {} as any, makeConfigService());
       const user = makeUser({ monthlyKeyLimit: null });
       expect(service.resolveKeyLimit(user)).toBe(GLOBAL_KEY_LIMIT);
+    });
+
+    it('returns GLOBAL_KEY_LIMIT when MONTHLY_KEY_LIMIT is invalid', () => {
+      const service = new UsageService(
+        {} as DataSource,
+        {} as any,
+        makeConfigService({ MONTHLY_KEY_LIMIT: 'bad' }),
+      );
+      const user = makeUser({ monthlyKeyLimit: null });
+      expect(service.resolveKeyLimit(user)).toBe(GLOBAL_KEY_LIMIT);
+    });
+
+    it('per-user override wins over env default', () => {
+      const service = new UsageService(
+        {} as DataSource,
+        {} as any,
+        makeConfigService({ MONTHLY_KEY_LIMIT: '25' }),
+      );
+      const user = makeUser({ monthlyKeyLimit: 2 });
+      expect(service.resolveKeyLimit(user)).toBe(2);
     });
   });
 
@@ -55,7 +142,7 @@ describe('UsageService', () => {
     it('counts links in the current calendar month', async () => {
       const mockCount = jest.fn().mockResolvedValue(7);
       const ds = { manager: { count: mockCount } } as unknown as DataSource;
-      const service = new UsageService(ds, {} as any);
+      const service = new UsageService(ds, {} as any, makeConfigService());
       const result = await service.countLinksThisMonth('user-1');
       expect(result).toBe(7);
       expect(mockCount).toHaveBeenCalledTimes(1);
@@ -64,7 +151,7 @@ describe('UsageService', () => {
     it('uses half-open calendar-month range', async () => {
       const mockCount = jest.fn().mockResolvedValue(3);
       const ds = { manager: { count: mockCount } } as unknown as DataSource;
-      const service = new UsageService(ds, {} as any);
+      const service = new UsageService(ds, {} as any, makeConfigService());
       await service.countLinksThisMonth('user-1');
       const [, opts] = mockCount.mock.calls[0] as [unknown, { where: { createdAt: unknown } }];
       // The where clause should contain a createdAt range condition
@@ -76,7 +163,7 @@ describe('UsageService', () => {
     it('counts API keys in the current calendar month including revoked ones', async () => {
       const mockCount = jest.fn().mockResolvedValue(2);
       const ds = { getRepository: jest.fn().mockReturnValue({ count: mockCount }) } as unknown as DataSource;
-      const service = new UsageService(ds, {} as any);
+      const service = new UsageService(ds, {} as any, makeConfigService());
       const result = await service.countKeysThisMonth('user-1');
       expect(result).toBe(2);
       expect(mockCount).toHaveBeenCalledTimes(1);
@@ -84,7 +171,7 @@ describe('UsageService', () => {
   });
 
   describe('getSummary', () => {
-    it('returns full UsageSummary with correct shape', async () => {
+    it('returns full UsageSummary with correct shape (no env override)', async () => {
       const user = makeUser({ monthlyLinkLimit: null, monthlyKeyLimit: null });
       const linkMockCount = jest.fn().mockResolvedValue(5);
       const keyMockCount = jest.fn().mockResolvedValue(1);
@@ -93,7 +180,7 @@ describe('UsageService', () => {
         getRepository: jest.fn().mockReturnValue({ count: keyMockCount }),
       } as unknown as DataSource;
       const userRepo = buildUserRepoMock(user);
-      const service = new UsageService(ds, userRepo as any);
+      const service = new UsageService(ds, userRepo as any, makeConfigService());
 
       const summary = await service.getSummary('user-1');
 
@@ -107,6 +194,29 @@ describe('UsageService', () => {
       expect(typeof summary.resetDate).toBe('string');
     });
 
+    it('returns full UsageSummary using env-driven defaults when no per-user override', async () => {
+      const user = makeUser({ monthlyLinkLimit: null, monthlyKeyLimit: null });
+      const linkMockCount = jest.fn().mockResolvedValue(5);
+      const keyMockCount = jest.fn().mockResolvedValue(1);
+      const ds = {
+        manager: { count: linkMockCount },
+        getRepository: jest.fn().mockReturnValue({ count: keyMockCount }),
+      } as unknown as DataSource;
+      const userRepo = buildUserRepoMock(user);
+      const service = new UsageService(
+        ds,
+        userRepo as any,
+        makeConfigService({ MONTHLY_LINK_LIMIT: '250', MONTHLY_KEY_LIMIT: '25' }),
+      );
+
+      const summary = await service.getSummary('user-1');
+
+      expect(summary.linkLimit).toBe(250);
+      expect(summary.linksRemaining).toBe(245);
+      expect(summary.keyLimit).toBe(25);
+      expect(summary.keysRemaining).toBe(24);
+    });
+
     it('floors remaining at 0 when over limit', async () => {
       const user = makeUser({ monthlyLinkLimit: 3, monthlyKeyLimit: null });
       const linkMockCount = jest.fn().mockResolvedValue(5);
@@ -116,7 +226,7 @@ describe('UsageService', () => {
         getRepository: jest.fn().mockReturnValue({ count: keyMockCount }),
       } as unknown as DataSource;
       const userRepo = buildUserRepoMock(user);
-      const service = new UsageService(ds, userRepo as any);
+      const service = new UsageService(ds, userRepo as any, makeConfigService());
 
       const summary = await service.getSummary('user-1');
       expect(summary.linksRemaining).toBe(0);
@@ -129,7 +239,7 @@ describe('UsageService', () => {
         getRepository: jest.fn().mockReturnValue({ count: jest.fn().mockResolvedValue(0) }),
       } as unknown as DataSource;
       const userRepo = buildUserRepoMock(user);
-      const service = new UsageService(ds, userRepo as any);
+      const service = new UsageService(ds, userRepo as any, makeConfigService());
 
       const summary = await service.getSummary('user-1');
       const resetDate = new Date(summary.resetDate);
@@ -150,7 +260,7 @@ describe('UsageService', () => {
         getRepository: jest.fn().mockReturnValue({ count: keyMockCount }),
       } as unknown as DataSource;
       const userRepo = buildUserRepoMock(user);
-      const service = new UsageService(ds, userRepo as any);
+      const service = new UsageService(ds, userRepo as any, makeConfigService());
 
       const count = await service.countLinksThisMonth('user-1');
       expect(count).toBe(0); // new month, no links yet

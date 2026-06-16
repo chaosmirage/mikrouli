@@ -68,6 +68,10 @@ spec:
               value: clickhouse.mikrouli.svc.cluster.local
             - name: CLICKHOUSE_PORT
               value: '8123'
+            - name: MONTHLY_LINK_LIMIT
+              value: '100'
+            - name: MONTHLY_KEY_LIMIT
+              value: '10'
             # k8s topology: traefik (L7 LB) + web-nginx both append XFF headers
             - name: TRUST_PROXY_HOPS
               value: '2'

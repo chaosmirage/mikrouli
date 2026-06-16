@@ -180,9 +180,16 @@ Revoke with `DELETE /api/api-keys/:id` — the key returns 401 within one reques
 ## Usage limits
 
 Each account has a monthly allowance for short links and API keys, counted per
-calendar month (UTC) and reset on the first of the following month. The defaults
-are 100 short links and 10 API keys per month; a per-user override can be set
-that takes precedence over the default.
+calendar month (UTC) and reset on the first of the following month. The default
+allowances are configured via environment variables:
+
+| Variable              | Default | Purpose                                 |
+| --------------------- | ------- | --------------------------------------- |
+| `MONTHLY_LINK_LIMIT`  | `100`   | Default monthly short-link allowance    |
+| `MONTHLY_KEY_LIMIT`   | `10`    | Default monthly API-key allowance       |
+
+A per-user override stored in the database takes precedence over these defaults
+when set.
 
 Creating a short link or API key once the monthly allowance is reached returns
 `429 Too Many Requests` as an RFC 9457 problem-details response. The same limit

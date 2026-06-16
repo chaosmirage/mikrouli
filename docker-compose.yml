@@ -80,6 +80,8 @@ services:
       SERVICE_VERSION: 'dev'
       DEPLOYMENT_ENVIRONMENT: 'docker-compose'
       PUBLIC_BASE_URL: '${PUBLIC_BASE_URL:-https://mikrou.li}'
+      MONTHLY_LINK_LIMIT: ${MONTHLY_LINK_LIMIT:-100}
+      MONTHLY_KEY_LIMIT: ${MONTHLY_KEY_LIMIT:-10}
     depends_on:
       postgres:
         condition: service_healthy

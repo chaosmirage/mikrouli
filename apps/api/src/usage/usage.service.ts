@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository, And, MoreThanOrEqual, LessThan } from 'typeorm';
 import { Link } from '../links/entities/link.entity';
@@ -14,21 +15,40 @@ function getMonthBounds(): { monthStart: Date; nextMonthStart: Date } {
   return { monthStart, nextMonthStart };
 }
 
+function parsePositiveInt(raw: string | undefined, fallback: number): number {
+  if (raw === undefined) return fallback;
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 type UserWithLimits = Pick<User, 'monthlyLinkLimit' | 'monthlyKeyLimit'>;
 
 @Injectable()
 export class UsageService {
+  private readonly defaultLinkLimit: number;
+  private readonly defaultKeyLimit: number;
+
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.defaultLinkLimit = parsePositiveInt(
+      this.configService.get<string>('MONTHLY_LINK_LIMIT'),
+      GLOBAL_LINK_LIMIT,
+    );
+    this.defaultKeyLimit = parsePositiveInt(
+      this.configService.get<string>('MONTHLY_KEY_LIMIT'),
+      GLOBAL_KEY_LIMIT,
+    );
+  }
 
   resolveLinkLimit(user: UserWithLimits): number {
-    return user.monthlyLinkLimit ?? GLOBAL_LINK_LIMIT;
+    return user.monthlyLinkLimit ?? this.defaultLinkLimit;
   }
 
   resolveKeyLimit(user: UserWithLimits): number {
-    return user.monthlyKeyLimit ?? GLOBAL_KEY_LIMIT;
+    return user.monthlyKeyLimit ?? this.defaultKeyLimit;
   }
 
   async countLinksThisMonth(userId: string): Promise<number> {
