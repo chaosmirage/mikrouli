@@ -28,3 +28,6 @@ export type StatsAggregateResponse = components['schemas']['StatsAggregate'];
 
 // Health
 export type HealthCheckResponse = components['schemas']['HealthResponse'];
+
+// Usage
+export type UsageSummaryResponse = components['schemas']['UsageSummary'];

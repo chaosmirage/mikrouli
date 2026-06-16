@@ -4,9 +4,10 @@ import { CacheModule } from '../cache/cache.module';
 import { LinksController } from './links.controller';
 import { LinksService } from './links.service';
 import { SlugGeneratorService } from './slug-generator.service';
+import { UsageModule } from '../usage/usage.module';
 
 @Module({
-  imports: [ApiKeysModule, CacheModule],
+  imports: [ApiKeysModule, CacheModule, UsageModule],
   providers: [LinksService, SlugGeneratorService],
   controllers: [LinksController],
   exports: [LinksService],

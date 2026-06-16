@@ -1,0 +1,16 @@
+{
+  "title": "Nutzung",
+  "linksQuota": "Kurzlinks",
+  "keysQuota": "API-Schlüssel",
+  "created": "Erstellt",
+  "limit": "Limit",
+  "remaining": "Verbleibend",
+  "usageProgress": "{{used}} von {{total}} verwendet",
+  "resetDate": "Zurückgesetzt am",
+  "retention": "Standard-Link-Aufbewahrungsdauer",
+  "requestMore": "Höheres Limit beantragen",
+  "requestSubject": "Anfrage zur Erhöhung des Nutzungslimits",
+  "requestBody": "Hallo,\n\nIch möchte eine Erhöhung meines monatlichen Nutzungslimits beantragen.\n\nKonto: {{email}}\n\nDanke.",
+  "overLimitLinks": "Sie haben Ihr monatliches Kurzlink-Limit erreicht.",
+  "overLimitKeys": "Sie haben Ihr monatliches API-Schlüssel-Limit erreicht."
+}

@@ -13,6 +13,8 @@ const existingUser: User = {
   id: 'user-uuid-existing',
   email: 'existing@example.com',
   passwordHash: '$2b$10$somehash',
+  monthlyLinkLimit: null,
+  monthlyKeyLimit: null,
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
 };
@@ -96,6 +98,8 @@ describe('UsersService', () => {
       id: 'uuid-fresh',
       email: 'new@example.com',
       passwordHash: 'hash',
+      monthlyLinkLimit: null,
+      monthlyKeyLimit: null,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
     };
@@ -198,6 +202,8 @@ describe('UsersService', () => {
       id: 'user-uuid-new',
       email: 'newgithub@example.com',
       passwordHash: null,
+      monthlyLinkLimit: null,
+      monthlyKeyLimit: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

@@ -4,10 +4,12 @@
  *     with shortLink (full URL) and shortUrl (bare slug)
  *   - private-IP URL -> isError validation tool error (SSRF mirror)
  *   - no stack traces in error text
+ *   - monthly limit exceeded -> isError result surfacing 429
  */
 
 import { UnprocessableEntityException } from '@nestjs/common';
 import { createShortLinkHandler } from './create-short-link.handler';
+import { MonthlyLinkLimitExceededError } from '../usage/usage.errors';
 
 const FAKE_USER_ID = 'user-abc';
 const FAKE_BASE_URL = 'https://mikrou.li';
@@ -90,6 +92,18 @@ describe('createShortLinkHandler', () => {
 
     expect(result.isError).toBe(true);
     const text = (result.content[0] as { type: string; text: string }).text;
+    expect(text).not.toMatch(/at \w/);
+  });
+
+  it('monthly link limit exceeded returns isError result surfacing 429', async () => {
+    const err = new MonthlyLinkLimitExceededError();
+    const svc = makeLinksServiceStub({ createShouldThrow: err });
+    const handler = createShortLinkHandler(svc as never, FAKE_USER_ID, FAKE_BASE_URL);
+    const result = await handler({ url: 'https://example.com/valid' });
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { type: string; text: string }).text;
+    expect(text).toMatch(/429/);
     expect(text).not.toMatch(/at \w/);
   });
 });

@@ -110,6 +110,27 @@ model InternalServerError {
   ...ProblemDetails;
 }
 
+@error
+model TooManyRequestsError {
+  @statusCode _: 429;
+  ...ProblemDetails;
+}
+
+// ---------------------------------------------------------------------------
+// Usage models
+// ---------------------------------------------------------------------------
+
+model UsageSummary {
+  linksCreated: integer;
+  linkLimit: integer;
+  linksRemaining: integer;
+  keysCreated: integer;
+  keyLimit: integer;
+  keysRemaining: integer;
+  resetDate: utcDateTime;
+  retentionMs: integer;
+}
+
 // ---------------------------------------------------------------------------
 // Auth models
 // ---------------------------------------------------------------------------
@@ -317,7 +338,8 @@ namespace Links {
     | { @statusCode _: 201; @body body: PublicLink; }
     | BadRequestError
     | UnauthorizedError
-    | ValidationError;
+    | ValidationError
+    | TooManyRequestsError;
 
   @get
   @doc("List authenticated user's short links")
@@ -367,7 +389,8 @@ namespace ApiKeys {
     | { @statusCode _: 201; @body body: ApiKeyCreated; }
     | BadRequestError
     | UnauthorizedError
-    | ValidationError;
+    | ValidationError
+    | TooManyRequestsError;
 
   @get
   @doc("List API keys for the authenticated user")
@@ -413,4 +436,18 @@ namespace Health {
   @doc("Service health check")
   op check():
     | { @statusCode _: 200; @body body: HealthResponse; };
+}
+
+// ---------------------------------------------------------------------------
+// Usage namespace (human-session-gated only; NOT machine API-key)
+// ---------------------------------------------------------------------------
+
+@route("/api/usage")
+@useAuth(BrowserSessionAuth)
+namespace Usage {
+  @get
+  @doc("Return the authenticated user's monthly quota consumption and allowance for the current calendar month")
+  op get():
+    | { @statusCode _: 200; @body body: UsageSummary; }
+    | UnauthorizedError;
 }

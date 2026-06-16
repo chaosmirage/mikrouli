@@ -9,6 +9,8 @@ import { DataSource, QueryFailedError } from 'typeorm';
 import { LinksService } from './links.service';
 import { SlugGeneratorService } from './slug-generator.service';
 import { Link } from './entities/link.entity';
+import { UsageService } from '../usage/usage.service';
+import { MonthlyLinkLimitExceededError } from '../usage/usage.errors';
 
 const TEST_USER_ID = 'user-uuid-test';
 const TEST_SLUG = 'abc123';
@@ -31,11 +33,17 @@ const mockDataSource = {
 
 const mockSlugGenerator = { generate: jest.fn() };
 
+const mockUsageService = {
+  countLinksThisMonth: jest.fn().mockResolvedValue(0),
+  getLinkLimit: jest.fn().mockResolvedValue(100),
+};
+
 const moduleMetadata: ModuleMetadata = {
   providers: [
     LinksService,
     { provide: DataSource, useValue: mockDataSource },
     { provide: SlugGeneratorService, useValue: mockSlugGenerator },
+    { provide: UsageService, useValue: mockUsageService },
   ],
 };
 
@@ -63,6 +71,8 @@ describe('LinksService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     mockSlugGenerator.generate.mockReturnValue(TEST_SLUG);
+    mockUsageService.countLinksThisMonth.mockResolvedValue(0);
+    mockUsageService.getLinkLimit.mockResolvedValue(100);
     mockDataSource.transaction.mockImplementation((cb: (m: typeof mockManager) => Promise<Link>) =>
       cb(mockManager),
     );
@@ -129,5 +139,14 @@ describe('LinksService', () => {
     mockDataSource.manager.delete.mockResolvedValue({ affected: 1 });
     await service.delete(TEST_SLUG, TEST_USER_ID);
     expect(mockDataSource.manager.delete).toHaveBeenCalledWith(Link, { shortUrl: TEST_SLUG });
+  });
+
+  it('create() rejects with MonthlyLinkLimitExceededError when monthly limit is reached', async () => {
+    mockUsageService.countLinksThisMonth.mockResolvedValue(100);
+    mockUsageService.getLinkLimit.mockResolvedValue(100);
+    await expect(service.create(TEST_URL, TEST_USER_ID)).rejects.toThrow(
+      MonthlyLinkLimitExceededError,
+    );
+    expect(mockDataSource.transaction).not.toHaveBeenCalled();
   });
 });

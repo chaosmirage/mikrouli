@@ -1,0 +1,16 @@
+{
+  "title": "Usage",
+  "linksQuota": "Short Links",
+  "keysQuota": "API Keys",
+  "created": "Created",
+  "limit": "Limit",
+  "remaining": "Remaining",
+  "usageProgress": "{{used}} of {{total}} used",
+  "resetDate": "Resets on",
+  "retention": "Default link retention",
+  "requestMore": "Request higher limit",
+  "requestSubject": "Usage limit increase request",
+  "requestBody": "Hello,\n\nI would like to request an increase to my monthly usage limit.\n\nAccount: {{email}}\n\nThank you.",
+  "overLimitLinks": "You have reached your monthly short-link limit.",
+  "overLimitKeys": "You have reached your monthly API key limit."
+}

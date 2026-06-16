@@ -5,6 +5,8 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { ApiKey } from './api-key.entity';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
+import { UsageService } from '../usage/usage.service';
+import { MonthlyKeyLimitExceededError } from '../usage/usage.errors';
 
 const BCRYPT_ROUNDS = 10;
 const SECRET_BYTES = 32;
@@ -40,6 +42,7 @@ export class ApiKeysService {
   constructor(
     @InjectRepository(ApiKey)
     private readonly repo: Repository<ApiKey>,
+    private readonly usageService: UsageService,
   ) {}
 
   private generateSecret(): { plaintext: string; prefix: string } {
@@ -54,6 +57,12 @@ export class ApiKeysService {
   }
 
   async createForUser(userId: string, dto: CreateApiKeyDto): Promise<CreatedApiKey> {
+    const [count, limit] = await Promise.all([
+      this.usageService.countKeysThisMonth(userId),
+      this.usageService.getKeyLimit(userId),
+    ]);
+    if (count >= limit) throw new MonthlyKeyLimitExceededError();
+
     const { plaintext, prefix } = this.generateSecret();
     const keyHash = await bcrypt.hash(plaintext, BCRYPT_ROUNDS);
     const entity = this.repo.create({ userId, label: dto.label, keyHash, keyPrefix: prefix });

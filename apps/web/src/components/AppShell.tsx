@@ -37,6 +37,7 @@ interface AuthNavProps {
   onLogout: () => void;
   onDashboard: () => void;
   onApiKeys: () => void;
+  onUsage: () => void;
 }
 
 function LocaleSwitcher() {
@@ -89,7 +90,7 @@ function GuestNav({ onLogin, onRegister }: GuestNavProps) {
   );
 }
 
-function AuthNav({ email, onLogout, onDashboard, onApiKeys }: AuthNavProps) {
+function AuthNav({ email, onLogout, onDashboard, onApiKeys, onUsage }: AuthNavProps) {
   const { t } = useTranslation('common');
   return (
     <>
@@ -98,6 +99,9 @@ function AuthNav({ email, onLogout, onDashboard, onApiKeys }: AuthNavProps) {
       </Button>
       <Button onClick={onApiKeys} data-testid="nav-api-keys" sx={NAV_BUTTON_SX}>
         {t('apiKeys')}
+      </Button>
+      <Button onClick={onUsage} data-testid="nav-usage" sx={NAV_BUTTON_SX}>
+        {t('usage')}
       </Button>
       <Typography component="span" data-testid="nav-user-email" sx={USER_EMAIL_SX}>
         {email}
@@ -118,6 +122,7 @@ export default function AppShell() {
   const handleRegister = useCallback(() => navigate('/register'), [navigate]);
   const handleDashboard = useCallback(() => navigate('/dashboard'), [navigate]);
   const handleApiKeys = useCallback(() => navigate('/api-keys'), [navigate]);
+  const handleUsage = useCallback(() => navigate('/usage'), [navigate]);
   const handleHome = useCallback(() => navigate('/'), [navigate]);
 
   const navContent = user ? (
@@ -126,6 +131,7 @@ export default function AppShell() {
       onLogout={logout}
       onDashboard={handleDashboard}
       onApiKeys={handleApiKeys}
+      onUsage={handleUsage}
     />
   ) : (
     <GuestNav onLogin={handleLogin} onRegister={handleRegister} />

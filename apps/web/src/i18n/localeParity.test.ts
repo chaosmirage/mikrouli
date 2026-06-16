@@ -14,6 +14,7 @@ import enApiKeys from './locales/en/apiKeys.json';
 import enErrors from './locales/en/errors.json';
 import enLanding from './locales/en/landing.json';
 import enConnect from './locales/en/connect.json';
+import enUsage from './locales/en/usage.json';
 
 import deCommon from './locales/de/common.json';
 import deAuth from './locales/de/auth.json';
@@ -23,6 +24,7 @@ import deApiKeys from './locales/de/apiKeys.json';
 import deErrors from './locales/de/errors.json';
 import deLanding from './locales/de/landing.json';
 import deConnect from './locales/de/connect.json';
+import deUsage from './locales/de/usage.json';
 
 import elCommon from './locales/el/common.json';
 import elAuth from './locales/el/auth.json';
@@ -32,6 +34,7 @@ import elApiKeys from './locales/el/apiKeys.json';
 import elErrors from './locales/el/errors.json';
 import elLanding from './locales/el/landing.json';
 import elConnect from './locales/el/connect.json';
+import elUsage from './locales/el/usage.json';
 
 const NAMESPACES = [
   { name: 'common',    en: enCommon,    de: deCommon,    el: elCommon },
@@ -42,6 +45,7 @@ const NAMESPACES = [
   { name: 'errors',    en: enErrors,    de: deErrors,    el: elErrors },
   { name: 'landing',   en: enLanding,   de: deLanding,   el: elLanding },
   { name: 'connect',   en: enConnect,   de: deConnect,   el: elConnect },
+  { name: 'usage',     en: enUsage,     de: deUsage,     el: elUsage },
 ];
 
 function keysOf(obj: Record<string, unknown>): string[] {

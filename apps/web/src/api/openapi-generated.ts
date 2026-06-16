@@ -227,6 +227,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/usage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** @description Return the authenticated user's monthly quota consumption and allowance for the current calendar month */
+    get: operations['Usage_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/{slug}': {
     parameters: {
       query?: never;
@@ -407,6 +424,15 @@ export interface components {
       /** Format: date-time */
       createdAt: string;
     };
+    TooManyRequestsError: {
+      /** Format: uri */
+      type?: string;
+      title?: string;
+      status?: number;
+      detail?: string;
+      /** Format: uri */
+      instance?: string;
+    };
     UnauthorizedError: {
       /** Format: uri */
       type?: string;
@@ -415,6 +441,17 @@ export interface components {
       detail?: string;
       /** Format: uri */
       instance?: string;
+    };
+    UsageSummary: {
+      linksCreated: number;
+      linkLimit: number;
+      linksRemaining: number;
+      keysCreated: number;
+      keyLimit: number;
+      keysRemaining: number;
+      /** Format: date-time */
+      resetDate: string;
+      retentionMs: number;
     };
     UserProfile: {
       /** Format: date-time */
@@ -523,6 +560,15 @@ export interface operations {
         };
         content: {
           'application/problem+json': components['schemas']['ValidationError'];
+        };
+      };
+      /** @description Client error */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['TooManyRequestsError'];
         };
       };
     };
@@ -946,6 +992,15 @@ export interface operations {
           'application/problem+json': components['schemas']['ValidationError'];
         };
       };
+      /** @description Client error */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['TooManyRequestsError'];
+        };
+      };
     };
   };
   Links_remove: {
@@ -991,6 +1046,35 @@ export interface operations {
         };
         content: {
           'application/problem+json': components['schemas']['NotFoundError'];
+        };
+      };
+    };
+  };
+  Usage_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UsageSummary'];
+        };
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
         };
       };
     };
