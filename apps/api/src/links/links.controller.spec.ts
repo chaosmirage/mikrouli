@@ -5,20 +5,24 @@ import { LinksService } from './links.service';
 import { LinkCacheService } from '../cache/link-cache.service';
 import { RedisService } from '../redis/redis.service';
 import { BearerOrApiKeyGuard } from '../api-keys/bearer-or-api-key.guard';
+import { GuestOrAuthenticatedGuard } from '../api-keys/guest-or-authenticated.guard';
 import type { Link } from './entities/link.entity';
 
 const TEST_SLUG = 'abc123';
 const TEST_URL = 'https://example.com/path';
 const TEST_USER_ID = 'user-uuid';
+const GUEST_USER_ID = 'guest-uuid';
 const FUTURE_DATE = new Date('2099-01-01T00:00:00Z');
 
 const mockLinksService = {
   create: jest.fn(),
+  createGuest: jest.fn(),
   listForUser: jest.fn(),
   delete: jest.fn(),
 };
 const mockRedisService = { set: jest.fn(), del: jest.fn(), get: jest.fn() };
-const mockGuard = { canActivate: jest.fn().mockReturnValue(true) };
+const mockBearerGuard = { canActivate: jest.fn().mockReturnValue(true) };
+const mockGuestGuard = { canActivate: jest.fn().mockReturnValue(true) };
 
 const moduleMetadata: ModuleMetadata = {
   controllers: [LinksController],
@@ -41,8 +45,12 @@ function makeLink(overrides: Partial<Link> = {}): Link {
   };
 }
 
-function makeRequest(): { user: { id: string } } {
-  return { user: { id: TEST_USER_ID } };
+function makeRegisteredRequest(): { user: { id: string; isGuest: boolean } } {
+  return { user: { id: TEST_USER_ID, isGuest: false } };
+}
+
+function makeGuestRequest(): { user: { id: string; isGuest: boolean } } {
+  return { user: { id: GUEST_USER_ID, isGuest: true } };
 }
 
 describe('LinksController', () => {
@@ -51,14 +59,15 @@ describe('LinksController', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     const builder = Test.createTestingModule(moduleMetadata);
-    builder.overrideGuard(BearerOrApiKeyGuard).useValue(mockGuard);
+    builder.overrideGuard(BearerOrApiKeyGuard).useValue(mockBearerGuard);
+    builder.overrideGuard(GuestOrAuthenticatedGuard).useValue(mockGuestGuard);
     const module: TestingModule = await builder.compile();
     controller = module.get<LinksController>(LinksController);
   });
 
   it('POST returns shortUrl, originalUrl, createdAt, expiresAt without userId', async () => {
     mockLinksService.create.mockResolvedValue(makeLink());
-    const result = await controller.create(makeRequest() as never, { url: TEST_URL });
+    const result = await controller.create(makeRegisteredRequest() as never, { url: TEST_URL });
     expect(result).toEqual({
       shortUrl: TEST_SLUG,
       originalUrl: TEST_URL,
@@ -70,7 +79,7 @@ describe('LinksController', () => {
 
   it('POST warms Redis cache with link key and TTL', async () => {
     mockLinksService.create.mockResolvedValue(makeLink());
-    await controller.create(makeRequest() as never, { url: TEST_URL });
+    await controller.create(makeRegisteredRequest() as never, { url: TEST_URL });
     expect(mockRedisService.set).toHaveBeenCalledWith(
       `link:${TEST_SLUG}`,
       TEST_URL,
@@ -78,9 +87,23 @@ describe('LinksController', () => {
     );
   });
 
+  it('POST routes a Guest principal through createGuest (no quota check)', async () => {
+    mockLinksService.createGuest.mockResolvedValue(makeLink({ userId: GUEST_USER_ID }));
+    await controller.create(makeGuestRequest() as never, { url: TEST_URL });
+    expect(mockLinksService.createGuest).toHaveBeenCalledWith(TEST_URL, GUEST_USER_ID, undefined);
+    expect(mockLinksService.create).not.toHaveBeenCalled();
+  });
+
+  it('POST routes a registered principal through create (quota-checked path)', async () => {
+    mockLinksService.create.mockResolvedValue(makeLink());
+    await controller.create(makeRegisteredRequest() as never, { url: TEST_URL });
+    expect(mockLinksService.create).toHaveBeenCalledWith(TEST_URL, TEST_USER_ID, undefined);
+    expect(mockLinksService.createGuest).not.toHaveBeenCalled();
+  });
+
   it('GET returns wrapped list { data } and sanitized items', async () => {
     mockLinksService.listForUser.mockResolvedValue([makeLink()]);
-    const result = await controller.list(makeRequest() as never);
+    const result = await controller.list(makeRegisteredRequest() as never);
     expect(mockLinksService.listForUser).toHaveBeenCalledWith(TEST_USER_ID);
     expect(result).toHaveProperty('data');
     expect(result.data[0]).not.toHaveProperty('userId');
@@ -88,7 +111,7 @@ describe('LinksController', () => {
 
   it('DELETE removes Redis key after service delete', async () => {
     mockLinksService.delete.mockResolvedValue(undefined);
-    await controller.remove(makeRequest() as never, TEST_SLUG);
+    await controller.remove(makeRegisteredRequest() as never, TEST_SLUG);
     expect(mockLinksService.delete).toHaveBeenCalledWith(TEST_SLUG, TEST_USER_ID);
     expect(mockRedisService.del).toHaveBeenCalledWith(`link:${TEST_SLUG}`);
   });

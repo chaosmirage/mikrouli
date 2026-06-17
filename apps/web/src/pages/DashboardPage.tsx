@@ -1,13 +1,9 @@
-import { FormEvent, useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
@@ -26,14 +22,11 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { apiFetch, extractErrorMessage } from '../api/client';
 import type { PublicLink } from '../api/types';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ShortenCard from '../components/ShortenCard';
 
 async function loadUserLinks(): Promise<PublicLink[]> {
   const response = await apiFetch('/api/urls', 'get');
   return response.data;
-}
-
-async function attemptShorten(url: string): Promise<PublicLink> {
-  return apiFetch('/api/urls', 'post', { body: { url } });
 }
 
 async function attemptDelete(slug: string): Promise<void> {
@@ -43,12 +36,13 @@ async function attemptDelete(slug: string): Promise<void> {
 const COL_WIDTH_SHORT_URL = 220;
 const COL_WIDTH_DATE = 120;
 const COL_WIDTH_ACTIONS = 152;
-const ELLIPSIS_CELL_SX = { maxWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const };
+const ELLIPSIS_CELL_SX = {
+  maxWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap' as const,
+};
 
-const SHORTEN_URL_INPUT_PROPS = { 'data-testid': 'shorten-url' } as const;
-const SHORTEN_SUBMIT_SX = { whiteSpace: 'nowrap' } as const;
-const SHORTEN_FIELD_SX = { flex: 1 } as const;
-const NEW_LINK_ALERT_SX = { mt: 1 } as const;
 const TABLE_LAYOUT_SX = { tableLayout: 'fixed', width: '100%' } as const;
 const NOWRAP_CELL_SX = { whiteSpace: 'nowrap' } as const;
 const COL_WIDTH_DATE_SX = { width: COL_WIDTH_DATE, whiteSpace: 'nowrap' } as const;
@@ -79,85 +73,6 @@ function copyToClipboard(text: string): void {
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
   return iso.slice(0, 10);
-}
-
-interface NewLinkResultProps {
-  link: PublicLink;
-  onCopy: (text: string) => void;
-}
-function NewLinkResult({ link, onCopy }: NewLinkResultProps) {
-  const fullUrl = resolveFullShortUrl(link.shortUrl);
-  const handleCopyFull = useCallback(() => onCopy(fullUrl), [onCopy, fullUrl]);
-  const copyBtn = (
-    <IconButton size="small" onClick={handleCopyFull} data-testid="copy-link">
-      <ContentCopyIcon fontSize="inherit" />
-    </IconButton>
-  );
-  return (
-    <Alert severity="success" sx={NEW_LINK_ALERT_SX} action={copyBtn} data-testid="new-link-alert">
-      {fullUrl}
-    </Alert>
-  );
-}
-
-interface ShortenCardProps {
-  urlInput: string;
-  loading: boolean;
-  error: string | null;
-  newLink: PublicLink | null;
-  onChange: (v: string) => void;
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
-  onCopy: (text: string) => void;
-}
-function ShortenCard({
-  urlInput,
-  onChange,
-  onSubmit,
-  loading,
-  error,
-  newLink,
-  onCopy,
-}: ShortenCardProps) {
-  const { t } = useTranslation('dashboard');
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
-    [onChange],
-  );
-  return (
-    <Card data-testid="dashboard-shorten-card">
-      <CardContent>
-        <form onSubmit={onSubmit} data-testid="shorten-form">
-          <Stack spacing={1.5}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
-              <TextField
-                label={t('longUrl')}
-                value={urlInput}
-                onChange={handleChange}
-                inputProps={SHORTEN_URL_INPUT_PROPS}
-                required
-                sx={SHORTEN_FIELD_SX}
-              />
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={loading}
-                data-testid="shorten-submit"
-                sx={SHORTEN_SUBMIT_SX}
-              >
-                {t('shortenLabel')}
-              </Button>
-            </Stack>
-            {error && (
-              <Alert severity="error" data-testid="shorten-error">
-                {error}
-              </Alert>
-            )}
-            {newLink && <NewLinkResult link={newLink} onCopy={onCopy} />}
-          </Stack>
-        </form>
-      </CardContent>
-    </Card>
-  );
 }
 
 interface LinkTableRowProps {
@@ -234,7 +149,7 @@ interface LinksTableProps {
 function LinksTable({ links, loading, fetchError, onCopy, onDelete, onStats }: LinksTableProps) {
   const { t } = useTranslation('dashboard');
   if (loading) return <CircularProgress data-testid="dashboard-loading" />;
-  if (fetchError) return <Alert severity="error">{fetchError}</Alert>;
+  if (fetchError) return <Alert severity="error" data-testid="links-table-error">{fetchError}</Alert>;
   if (links.length === 0)
     return <Typography data-testid="no-links-message">{t('noLinks')}</Typography>;
   return (
@@ -244,15 +159,9 @@ function LinksTable({ links, loading, fetchError, onCopy, onDelete, onStats }: L
           <TableRow>
             <TableCell sx={COL_WIDTH_SHORT_URL_SX}>{t('shortUrl')}</TableCell>
             <TableCell>{t('originalUrl')}</TableCell>
-            <TableCell sx={COL_WIDTH_DATE_SX}>
-              {t('createdAt')}
-            </TableCell>
-            <TableCell sx={COL_WIDTH_DATE_SX}>
-              {t('expiresAt')}
-            </TableCell>
-            <TableCell sx={COL_WIDTH_ACTIONS_SX}>
-              {t('actions')}
-            </TableCell>
+            <TableCell sx={COL_WIDTH_DATE_SX}>{t('createdAt')}</TableCell>
+            <TableCell sx={COL_WIDTH_DATE_SX}>{t('expiresAt')}</TableCell>
+            <TableCell sx={COL_WIDTH_ACTIONS_SX}>{t('actions')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -282,30 +191,16 @@ export default function DashboardPage() {
     queryKey: ['links'],
     queryFn: loadUserLinks,
   });
-  const [urlInput, setUrlInput] = useState('');
-  const [shortenLoading, setShortenLoading] = useState(false);
-  const [shortenError, setShortenError] = useState<string | null>(null);
-  const [newLink, setNewLink] = useState<PublicLink | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleShorten = useCallback(
-    async (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      setShortenLoading(true);
-      try {
-        const link = await attemptShorten(urlInput);
-        setNewLink(link);
-        setShortenError(null);
-        setUrlInput('');
-        void queryClient.invalidateQueries({ queryKey: ['links'] });
-      } catch (err) {
-        setShortenError(extractErrorMessage(err));
-      }
-      setShortenLoading(false);
-    },
-    [urlInput, queryClient],
-  );
+  // The shared ShortenCard owns its input/loading/error/result state. The
+  // dashboard just refreshes its links list when a shorten succeeds so the
+  // new row appears in the table below.
+  const handleShortened = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['links'] });
+  }, [queryClient]);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!deleteCandidate) return;
@@ -315,7 +210,7 @@ export default function DashboardPage() {
       void queryClient.invalidateQueries({ queryKey: ['links'] });
     } catch (err) {
       setDeleteCandidate(null);
-      setShortenError(extractErrorMessage(err));
+      setPageError(extractErrorMessage(err));
     }
   }, [deleteCandidate, queryClient]);
 
@@ -323,19 +218,11 @@ export default function DashboardPage() {
   const handleStats = useCallback((slug: string) => navigate(`/stats/${slug}`), [navigate]);
   const handleCancelDelete = useCallback(() => setDeleteCandidate(null), []);
 
-  const fetchError = linksError ? extractErrorMessage(linksError) : null;
+  const fetchError = linksError ? extractErrorMessage(linksError) : pageError;
 
   return (
     <Stack spacing={4} data-testid="dashboard-page">
-      <ShortenCard
-        urlInput={urlInput}
-        onChange={setUrlInput}
-        onSubmit={handleShorten}
-        loading={shortenLoading}
-        error={shortenError}
-        newLink={newLink}
-        onCopy={handleCopy}
-      />
+      <ShortenCard namespace="dashboard" onShortened={handleShortened} />
       <LinksTable
         links={links}
         loading={linksLoading}

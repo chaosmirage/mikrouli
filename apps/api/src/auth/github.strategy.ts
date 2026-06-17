@@ -6,7 +6,11 @@ import { Strategy } from 'passport-github2';
 import type { StateStoreStoreCallback, StateStoreVerifyCallback } from 'passport-oauth2';
 import * as crypto from 'crypto';
 import { RedisService } from '../redis/redis.service';
-import { GithubIdentity, GithubNoVerifiedEmailError, GithubOauthFailedError } from './github-oauth.errors';
+import {
+  GithubIdentity,
+  GithubNoVerifiedEmailError,
+  GithubOauthFailedError,
+} from './github-oauth.errors';
 
 // Redis key namespace and TTL for single-use OAuth state tokens.
 // 10 minutes covers the GitHub login + 2FA flow while bounding the replay window.
@@ -46,16 +50,10 @@ class GithubStateStore {
     this.redisService
       .setOrThrow(key, '1', OAUTH_STATE_TTL_SECONDS)
       .then(() => cb(null, token))
-      .catch((err: unknown) =>
-        cb(err instanceof Error ? err : new Error(String(err)), token),
-      );
+      .catch((err: unknown) => cb(err instanceof Error ? err : new Error(String(err)), token));
   }
 
-  verify(
-    _req: unknown,
-    providedState: string,
-    cb: StateStoreVerifyCallback,
-  ): void {
+  verify(_req: unknown, providedState: string, cb: StateStoreVerifyCallback): void {
     const key = `${OAUTH_STATE_KEY_PREFIX}${providedState}`;
     this.redisService
       .getDelOrThrow(key)
@@ -67,18 +65,13 @@ class GithubStateStore {
           cb(null, true, providedState);
         }
       })
-      .catch((err: unknown) =>
-        cb(err instanceof Error ? err : new Error(String(err)), false, ''),
-      );
+      .catch((err: unknown) => cb(err instanceof Error ? err : new Error(String(err)), false, ''));
   }
 }
 
 @Injectable()
 export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
-  constructor(
-    configService: ConfigService,
-    redisService?: RedisService,
-  ) {
+  constructor(configService: ConfigService, redisService?: RedisService) {
     super({
       clientID: configService.getOrThrow<string>('GITHUB_CLIENT_ID'),
       clientSecret: configService.getOrThrow<string>('GITHUB_CLIENT_SECRET'),

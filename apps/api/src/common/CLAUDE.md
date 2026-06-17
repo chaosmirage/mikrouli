@@ -29,7 +29,17 @@ guards, and services.
   payload (type URI, title, status, optional errors array). No framework
   dependency.
 - `authenticated-request.ts` -- Type alias for the Express request when the
-  user has been authenticated by the JWT guard.
+  user has been authenticated by the JWT guard. Carries an optional `isGuest`
+  flag on `req.user`; set to `true` by `GuestOrAuthenticatedGuard` on the
+  anonymous shorten path so downstream code can branch on actor type without
+  re-reading the guard state.
+- `constants.ts` -- cross-cutting scalar constants shared by multiple
+  modules. `GLOBAL_LINK_LIMIT`, `GLOBAL_KEY_LIMIT`, and `RETENTION_MS` drive
+  quota and retention behaviour. `GUEST_SENTINEL_EMAIL` is the deterministic
+  email of the single shared Guest pseudo-identity row; it is read by both
+  the `SeedGuestUser` migration and `UsersService.getGuestUserId()` so the
+  sentinel stays stable across deploys. Add a constant here only when at
+  least two unrelated modules must agree on the same value.
 
 ## How to extend safely
 

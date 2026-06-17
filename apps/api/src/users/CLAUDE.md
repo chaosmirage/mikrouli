@@ -4,7 +4,8 @@
 
 Owns the `users` table and the `provider_accounts` table. Provides the
 persistence layer for account creation (credential and OAuth), email-based
-lookup, and transactional find-or-create-or-link for OAuth sign-in.
+lookup, transactional find-or-create-or-link for OAuth sign-in, and resolution
+of the single shared Guest pseudo-identity used by the anonymous shorten path.
 
 ## Key pieces
 
@@ -31,6 +32,14 @@ lookup, and transactional find-or-create-or-link for OAuth sign-in.
     branch 1 or 2.
 - `users.module.ts` -- exports `UsersService` and `TypeOrmModule` for
   `User` and `ProviderAccount`; consumed by `AuthModule`.
+- `getGuestUserId()` on `UsersService` -- resolves the single shared Guest
+  pseudo-identity row by the deterministic sentinel email
+  (`GUEST_SENTINEL_EMAIL` from `common/constants.ts`) and caches the uuid
+  for the process lifetime. The Guest row is seeded once by the
+  `SeedGuestUser` migration; if it is missing, throws `NotFoundException`.
+  Called by `GuestOrAuthenticatedGuard` on the anonymous shorten path. The
+  cache is safe because the Guest row is immutable at runtime; if an operator
+  re-seeds it, the API must be restarted.
 
 ## How to extend safely
 
@@ -50,3 +59,8 @@ lookup, and transactional find-or-create-or-link for OAuth sign-in.
   an upsert unless you verify the enumeration properties are preserved.
 - Any schema change requires a new migration file in `apps/api/src/migrations/`;
   never edit the entity and skip the migration.
+- The Guest row is a shared pseudo-identity, not a real account: it has no
+  credentials and is never returned by `create` or `findOrCreateFromProvider`.
+  Do not add password-hash or provider-link writes to it. Its sentinel email
+  is owned by `GUEST_SENTINEL_EMAIL` in `common/constants.ts`; the migration
+  and the resolver must read the same constant.

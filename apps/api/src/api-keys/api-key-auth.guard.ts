@@ -19,7 +19,10 @@ export class ApiKeyAuthGuard implements CanActivate {
     if (!apiKey) throw new UnauthorizedException();
     const result = await this.apiKeysService.validate(apiKey);
     if (!result) throw new UnauthorizedException();
-    (request as unknown as AuthenticatedRequest).user = { id: result.userId };
+    (request as unknown as AuthenticatedRequest).user = {
+      id: result.userId,
+      isGuest: false,
+    };
     return true;
   }
 }

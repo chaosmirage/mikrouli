@@ -333,7 +333,7 @@ namespace Auth {
 @useAuth(BrowserOrMachineAuth)
 namespace Links {
   @post
-  @doc("Shorten a URL")
+  @doc("Shorten a URL. When GUEST_SHORTEN_ENABLED is true on the server, an unauthenticated request (no cookie, bearer, or x-api-key) is admitted on this operation only and attributed to a single shared Guest pseudo-identity; no per-user quota applies to the Guest path. Authenticated requests (any credential) take the registered-user path unchanged. When the flag is false, an unauthenticated request is rejected with 401.")
   op create(@body body: CreateLinkRequest):
     | { @statusCode _: 201; @body body: PublicLink; }
     | BadRequestError

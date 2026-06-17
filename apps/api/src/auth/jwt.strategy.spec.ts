@@ -48,7 +48,7 @@ function authenticateWithToken(
   strategy: JwtStrategy,
   token: string,
   useCookie = false,
-): Promise<{ id: string; email: string }> {
+): Promise<{ id: string; email: string; isGuest: boolean }> {
   return new Promise((resolve, reject) => {
     const fakeReq = useCookie
       ? { headers: {}, cookies: { [ACCESS_COOKIE_NAME]: token } }
@@ -61,7 +61,7 @@ function authenticateWithToken(
 
     const restore = () => Object.assign(s, saved);
 
-    s['success'] = (user: { id: string; email: string }) => {
+    s['success'] = (user: { id: string; email: string; isGuest: boolean }) => {
       restore();
       resolve(user);
     };
@@ -97,7 +97,7 @@ describe('JwtStrategy algorithm pin', () => {
 
     const user = await authenticateWithToken(strategy, token);
 
-    expect(user).toEqual({ id: 'user-1', email: 'user@example.com' });
+    expect(user).toEqual({ id: 'user-1', email: 'user@example.com', isGuest: false });
   });
 
   it('accepts a valid HS256-signed access token via the mikrouli_access cookie', async () => {
@@ -108,7 +108,7 @@ describe('JwtStrategy algorithm pin', () => {
 
     const user = await authenticateWithToken(strategy, token, true);
 
-    expect(user).toEqual({ id: 'user-1', email: 'user@example.com' });
+    expect(user).toEqual({ id: 'user-1', email: 'user@example.com', isGuest: false });
   });
 
   it('rejects a token signed with HS384 (non-HS256 algorithm)', async () => {

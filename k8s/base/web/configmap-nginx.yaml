@@ -5,6 +5,12 @@ metadata:
   namespace: mikrouli
 data:
   default.conf: |
+    # js_import is http-context: conf.d/*.conf is included under http {}, so
+    # the directive is valid here. The module (load_module) and env var
+    # exposure (env) are main-context and live in the image's
+    # /etc/nginx/nginx.conf (patched by apps/web/Dockerfile).
+    js_import runtimeConfig from /etc/nginx/runtime-config.njs;
+
     # Resolver for k8s service DNS so api ClusterIP changes are picked up
     # without requiring an nginx reload.
     resolver kube-dns.kube-system.svc.cluster.local valid=30s ipv6=off;
@@ -63,6 +69,15 @@ data:
         add_header X-Frame-Options           "DENY"                        always;
         add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
         add_header Content-Security-Policy   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+
+        # Runtime config channel: njs emits window.__MIKROULI_CONFIG__ with the
+        # current GUEST_SHORTEN_ENABLED value so the SPA can gate the landing
+        # form without an image rebuild. Parity with apps/web/nginx-spa.conf.
+        location = /config.js {
+            js_content runtimeConfig.emit;
+            add_header Content-Type "application/javascript" always;
+            add_header Cache-Control "no-cache" always;
+        }
 
         # Proxy API calls to the api Deployment.
         location /api/ {
@@ -151,3 +166,23 @@ data:
             add_header Content-Security-Policy   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
         }
     }
+  # The njs script consumed by js_import above. Kept verbatim in sync with
+  # apps/web/scripts/runtime-config.njs so the k8s web pod serves the same
+  # /config.js as the docker-compose prod SPA container.
+  runtime-config.njs: |
+    // Runtime configuration channel served by nginx + njs at /config.js.
+    const ENV_VAR = 'GUEST_SHORTEN_ENABLED';
+    const DEFAULT_RAW = 'true';
+
+    function emit(r) {
+      const raw = process.env[ENV_VAR];
+      const enabled = String(raw ?? DEFAULT_RAW).toLowerCase() === 'true';
+      r.headersOut['Content-Type'] = 'application/javascript';
+      r.headersOut['Cache-Control'] = 'no-cache';
+      r.return(
+        200,
+        'window.__MIKROULI_CONFIG__ = { guestShortenEnabled: ' + enabled + ' };\n',
+      );
+    }
+
+    export default { emit };

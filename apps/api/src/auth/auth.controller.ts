@@ -76,7 +76,10 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response): Promise<MeResponse> {
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<MeResponse> {
     const user = await this.authService.validateCredentials(dto.email, dto.password);
     if (!user) throw new UnauthorizedException();
     const { cookies } = await this.authService.issueTokens(user);
@@ -87,7 +90,10 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(200)
   @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
-  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<MeResponse> {
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<MeResponse> {
     const cookies = req.cookies as Record<string, string | undefined>;
     const refreshToken = cookies[REFRESH_COOKIE_NAME];
     if (!refreshToken) throw new UnauthorizedException();
@@ -163,10 +169,7 @@ export class AuthController {
   @UseGuards(GithubOauthGuard)
   @UseFilters(GithubOauthRedirectFilter)
   @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
-  async githubCallback(
-    @Req() req: GithubCallbackRequest,
-    @Res() res: Response,
-  ): Promise<void> {
+  async githubCallback(@Req() req: GithubCallbackRequest, @Res() res: Response): Promise<void> {
     const { cookies } = await this.authService.loginWithGithub(req.user);
     applySessionCookies(res, cookies);
     res.redirect(302, '/dashboard');

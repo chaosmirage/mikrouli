@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
 import { DataSource, EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { User } from './user.entity';
 import { ProviderAccount } from './provider-account.entity';
+import { GUEST_SENTINEL_EMAIL } from '../common/constants';
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 
@@ -92,6 +93,10 @@ async function resolveProviderIdentity(
 
 @Injectable()
 export class UsersService {
+  // Process-lifetime cache of the Guest row's uuid. The Guest row is immutable
+  // at runtime; if an operator re-seeds it, the API must be restarted.
+  private guestUserId: string | undefined;
+
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
@@ -103,6 +108,23 @@ export class UsersService {
 
   findByEmail(email: string): Promise<User | null> {
     return this.usersRepository.findOneBy({ email });
+  }
+
+  // Resolves the single shared Guest pseudo-identity row by its deterministic
+  // sentinel email and caches the uuid for the process lifetime. Called on the
+  // Guest-admission path; the cache keeps it O(1) after the first request.
+  async getGuestUserId(): Promise<string> {
+    if (this.guestUserId !== undefined) return this.guestUserId;
+    const guest = await this.usersRepository.findOneBy({
+      email: GUEST_SENTINEL_EMAIL,
+    });
+    if (!guest) {
+      throw new NotFoundException(
+        'Guest identity row is missing — run the SeedGuestUser migration',
+      );
+    }
+    this.guestUserId = guest.id;
+    return this.guestUserId;
   }
 
   findById(id: string): Promise<User | null> {

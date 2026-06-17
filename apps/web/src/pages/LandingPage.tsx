@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router-dom';
 import Box from '@mui/material/Box';
@@ -6,7 +7,18 @@ import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import KeyIcon from '@mui/icons-material/Key';
 import type { Theme } from '@mui/material/styles';
+import ShortenCard from '../components/ShortenCard';
+import { useAuth } from '../auth/AuthContext';
+import { useGuestShortenEnabled } from '../hooks/useGuestShortenEnabled';
 
 // Module-level style constants (static, evaluated once)
 const HERO_PADDING_Y = { xs: 6, sm: 10, md: 14 };
@@ -69,7 +81,11 @@ const FEATURES_GRID_SX = {
   gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
 } as const;
 
-const AGENT_EYEBROW_SX = { color: 'primary.main', fontWeight: 600, letterSpacing: '0.08em' } as const;
+const AGENT_EYEBROW_SX = {
+  color: 'primary.main',
+  fontWeight: 600,
+  letterSpacing: '0.08em',
+} as const;
 
 const AGENT_HEADING_SX = { fontWeight: 700, letterSpacing: '-0.01em' } as const;
 
@@ -82,6 +98,15 @@ const BOTTOM_HEADING_SX = { fontWeight: 700, letterSpacing: '-0.01em' } as const
 const BOTTOM_SUBTITLE_SX = { color: 'text.secondary', maxWidth: 440 } as const;
 
 const BOTTOM_CTA_BUTTON_SX = { px: 4.5, py: 1.25 } as const;
+
+// Guest shorten section: sits between the hero and the features section, only
+// for anonymous visitors when the runtime GUEST_SHORTEN_ENABLED flag is on.
+const GUEST_SECTION_SX = { py: { xs: 4, sm: 6 }, bgcolor: 'background.default' } as const;
+const GUEST_CARD_SX = { p: { xs: 2, sm: 4 }, maxWidth: 640, mx: 'auto', width: '100%' } as const;
+const GUEST_TITLE_SX = { mb: 2, fontWeight: 700, textAlign: 'center' } as const;
+const GUEST_NUDGE_SX = { mt: 3, p: { xs: 2, sm: 3 }, bgcolor: 'action.hover' } as const;
+const GUEST_NUDGE_TITLE_SX = { mb: 1, fontWeight: 600 } as const;
+const GUEST_NUDGE_CTA_SX = { mt: 2 } as const;
 
 interface FeatureCardProps {
   emoji: string;
@@ -111,12 +136,7 @@ interface HighlightedHeadlineProps {
 }
 function HighlightedHeadline({ prefix, highlight }: HighlightedHeadlineProps) {
   return (
-    <Typography
-      variant="h2"
-      component="h1"
-      data-testid="landing-headline"
-      sx={HEADLINE_SX}
-    >
+    <Typography variant="h2" component="h1" data-testid="landing-headline" sx={HEADLINE_SX}>
       {prefix}{' '}
       <Box component="span" sx={highlightSpanSx}>
         {highlight}
@@ -131,11 +151,19 @@ function HeroSection() {
     <Box component="section" data-testid="landing-hero" sx={HERO_SECTION_SX}>
       <Container maxWidth="md">
         <Stack spacing={3} alignItems="center" textAlign="center">
-          <HighlightedHeadline prefix={t('heroHeadlinePrefix')} highlight={t('heroHeadlineHighlight')} />
+          <HighlightedHeadline
+            prefix={t('heroHeadlinePrefix')}
+            highlight={t('heroHeadlineHighlight')}
+          />
           <Typography variant="h6" component="p" sx={HERO_SUBHEADLINE_SX}>
             {t('heroSubheadline')}
           </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center" sx={HERO_BUTTON_STACK_SX}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1.5}
+            alignItems="center"
+            sx={HERO_BUTTON_STACK_SX}
+          >
             <Button
               component={RouterLink}
               to="/register"
@@ -178,9 +206,24 @@ function FeaturesSection() {
           </Typography>
         </Stack>
         <Box sx={FEATURES_GRID_SX}>
-          <FeatureCard emoji="⚡" title={t('feature1Title')} body={t('feature1Body')} testId="landing-feature-1" />
-          <FeatureCard emoji="📈" title={t('feature2Title')} body={t('feature2Body')} testId="landing-feature-2" />
-          <FeatureCard emoji="🔌" title={t('feature3Title')} body={t('feature3Body')} testId="landing-feature-3" />
+          <FeatureCard
+            emoji="⚡"
+            title={t('feature1Title')}
+            body={t('feature1Body')}
+            testId="landing-feature-1"
+          />
+          <FeatureCard
+            emoji="📈"
+            title={t('feature2Title')}
+            body={t('feature2Body')}
+            testId="landing-feature-2"
+          />
+          <FeatureCard
+            emoji="🔌"
+            title={t('feature3Title')}
+            body={t('feature3Body')}
+            testId="landing-feature-3"
+          />
         </Box>
       </Container>
     </Box>
@@ -249,10 +292,78 @@ function BottomCtaSection() {
   );
 }
 
+// Renders the guest shorten card and the post-shorten sign-up nudge. Only
+// visible to anonymous visitors (useAuth().user === null) AND only when the
+// runtime GUEST_SHORTEN_ENABLED flag is on (read via /config.js). The nudge
+// appears AFTER a successful Guest shorten and names exactly two features:
+// the personal dashboard with click analytics, and API keys + MCP access.
+function GuestShortenSection() {
+  const { t } = useTranslation('landing');
+  const { user } = useAuth();
+  const flag = useGuestShortenEnabled();
+  const [nudgeVisible, setNudgeVisible] = useState(false);
+
+  const handleShortened = useCallback(() => {
+    setNudgeVisible(true);
+  }, []);
+
+  // Authenticated visitors never see the guest form (they have the dashboard);
+  // the loading state is hidden to avoid a flash before the flag resolves, and
+  // disabled hides the form fail-safe.
+  if (user !== null || flag !== 'enabled') return null;
+
+  return (
+    <Box component="section" data-testid="guest-shorten-section" sx={GUEST_SECTION_SX}>
+      <Container maxWidth="md">
+        <Card sx={GUEST_CARD_SX} data-testid="guest-shorten-card">
+          <CardContent>
+            <Typography variant="h5" component="h2" sx={GUEST_TITLE_SX}>
+              {t('guestShortenTitle')}
+            </Typography>
+            <ShortenCard namespace="landing" onShortened={handleShortened} />
+            {nudgeVisible && (
+              <Paper variant="outlined" sx={GUEST_NUDGE_SX} data-testid="guest-nudge">
+                <Typography variant="h6" component="h3" sx={GUEST_NUDGE_TITLE_SX}>
+                  {t('guestNudgeTitle')}
+                </Typography>
+                <List dense disablePadding>
+                  <ListItem disableGutters data-testid="guest-nudge-feature-dashboard">
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      <DashboardIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText primary={t('guestNudgeFeatureDashboard')} />
+                  </ListItem>
+                  <ListItem disableGutters data-testid="guest-nudge-feature-api-keys">
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      <KeyIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText primary={t('guestNudgeFeatureApiKeys')} />
+                  </ListItem>
+                </List>
+                <Button
+                  component={RouterLink}
+                  to="/register"
+                  variant="contained"
+                  color="primary"
+                  data-testid="guest-nudge-cta"
+                  sx={GUEST_NUDGE_CTA_SX}
+                >
+                  {t('guestNudgeCta')} →
+                </Button>
+              </Paper>
+            )}
+          </CardContent>
+        </Card>
+      </Container>
+    </Box>
+  );
+}
+
 export default function LandingPage() {
   return (
     <Box component="main" data-testid="landing-page">
       <HeroSection />
+      <GuestShortenSection />
       <FeaturesSection />
       <AgentSection />
       <BottomCtaSection />

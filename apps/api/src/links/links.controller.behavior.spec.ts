@@ -9,6 +9,7 @@ import { LinksService } from './links.service';
 import { LinkCacheService } from '../cache/link-cache.service';
 import { RedisService } from '../redis/redis.service';
 import { BearerOrApiKeyGuard } from '../api-keys/bearer-or-api-key.guard';
+import { GuestOrAuthenticatedGuard } from '../api-keys/guest-or-authenticated.guard';
 import type { Link } from './entities/link.entity';
 
 const TEST_SLUG = 'abc123';
@@ -20,6 +21,7 @@ const TTL_CAP_SECONDS = 86400;
 
 const mockLinksService = {
   create: jest.fn(),
+  createGuest: jest.fn(),
   listForUser: jest.fn(),
   delete: jest.fn(),
 };
@@ -47,8 +49,8 @@ function makeLink(overrides: Partial<Link> = {}): Link {
   };
 }
 
-function makeRequest(): { user: { id: string } } {
-  return { user: { id: TEST_USER_ID } };
+function makeRequest(): { user: { id: string; isGuest: boolean } } {
+  return { user: { id: TEST_USER_ID, isGuest: false } };
 }
 
 describe('LinksController', () => {
@@ -58,6 +60,7 @@ describe('LinksController', () => {
     jest.clearAllMocks();
     const builder = Test.createTestingModule(moduleMetadata);
     builder.overrideGuard(BearerOrApiKeyGuard).useValue(mockGuard);
+    builder.overrideGuard(GuestOrAuthenticatedGuard).useValue(mockGuard);
     const module: TestingModule = await builder.compile();
     controller = module.get<LinksController>(LinksController);
   });

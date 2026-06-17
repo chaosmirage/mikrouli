@@ -1,15 +1,53 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
+import { AuthContext } from '../auth/AuthContext';
+import type { AuthContextValue } from '../auth/AuthContext';
+import { TestQueryClientProvider } from '../test/queryClient';
 import LandingPage from './LandingPage';
 import { theme } from '../theme';
+
+// Anonymous visitor context (the only audience for the guest shorten form).
+const mockAuth: AuthContextValue = {
+  user: null,
+  bootstrapping: false,
+  login: vi.fn(),
+  register: vi.fn(),
+  logout: vi.fn(),
+  loginWithGithub: vi.fn(),
+};
+
+function makeConfigResponse(body: string) {
+  return {
+    ok: true,
+    status: 200,
+    text: () => Promise.resolve(body),
+  };
+}
+
+beforeEach(() => {
+  // Default: GUEST_SHORTEN_ENABLED=false so the guest section stays hidden.
+  // Per-test overrides re-stub fetch to flip the flag.
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValue(
+        makeConfigResponse('window.__MIKROULI_CONFIG__ = { guestShortenEnabled: false };\n'),
+      ),
+  );
+});
 
 function renderLanding() {
   render(
     <ThemeProvider theme={theme}>
       <MemoryRouter>
-        <LandingPage />
+        <AuthContext.Provider value={mockAuth}>
+          <TestQueryClientProvider>
+            <LandingPage />
+          </TestQueryClientProvider>
+        </AuthContext.Provider>
       </MemoryRouter>
     </ThemeProvider>,
   );
@@ -79,6 +117,30 @@ describe('LandingPage', () => {
       const section = screen.getByTestId('agent-section');
       expect(section).toHaveTextContent(/REST/i);
       expect(section).toHaveTextContent(/MCP/i);
+    });
+  });
+
+  describe('guest shorten section', () => {
+    it('is hidden when the runtime flag is off', () => {
+      renderLanding();
+      expect(screen.queryByTestId('guest-shorten-section')).not.toBeInTheDocument();
+    });
+
+    it('renders the shorten card when the runtime flag is on and visitor is anonymous', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi
+          .fn()
+          .mockResolvedValue(
+            makeConfigResponse('window.__MIKROULI_CONFIG__ = { guestShortenEnabled: true };\n'),
+          ),
+      );
+      const { waitFor } = await import('@testing-library/react');
+      renderLanding();
+      await waitFor(() => expect(screen.getByTestId('guest-shorten-section')).toBeInTheDocument());
+      expect(screen.getByTestId('shorten-url')).toBeInTheDocument();
+      // The nudge is hidden until a Guest shorten succeeds.
+      expect(screen.queryByTestId('guest-nudge')).not.toBeInTheDocument();
     });
   });
 });

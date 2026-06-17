@@ -1,11 +1,9 @@
 import { ModuleMetadata } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthenticatedRequest } from '../common/authenticated-request';
 import { ApiKeysController } from './api-keys.controller';
 import { ApiKeysService, ApiKeySummary, CreatedApiKey } from './api-keys.service';
-
-type AuthedReq = Request & { user: { id: string } };
 
 const TEST_USER_ID = 'user-uuid-ctrl';
 const TEST_KEY_ID = 'key-uuid-ctrl';
@@ -52,8 +50,8 @@ function makeApiKeySummary(): ApiKeySummary {
   };
 }
 
-function makeAuthedReq(): AuthedReq {
-  return { user: { id: TEST_USER_ID } } as unknown as AuthedReq;
+function makeAuthedReq(): AuthenticatedRequest {
+  return { user: { id: TEST_USER_ID, isGuest: false } } as unknown as AuthenticatedRequest;
 }
 
 describe('ApiKeysController', () => {

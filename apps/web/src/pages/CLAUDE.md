@@ -9,13 +9,22 @@ strings appear in page files.
 
 ## Key pieces
 
-- `LandingPage.tsx` -- guest-facing marketing page. Composed of four
-  sections: `HeroSection` (headline + primary CTAs), `FeaturesSection`
-  (three feature cards), `AgentSection` (advertises REST and MCP
-  programmatic access, links to `/connect`), and `BottomCtaSection`
-  (secondary conversion CTA). All copy uses the `landing` i18n namespace.
-  Every section carries a `data-testid` that `LandingPage.test.tsx` asserts
-  on (e.g. `landing-hero`, `landing-features`, `agent-section`).
+- `LandingPage.tsx` -- guest-facing marketing page. Composed of five
+  sections: `HeroSection` (headline + primary CTAs), `GuestShortenSection`
+  (anonymous shorten form plus a post-shorten sign-up nudge; only rendered
+  for unauthenticated visitors when the runtime `GUEST_SHORTEN_ENABLED` flag
+  is on, read via the `useGuestShortenEnabled` hook that fetches
+  `/config.js`), `FeaturesSection` (three feature cards), `AgentSection`
+  (advertises REST and MCP programmatic access, links to `/connect`), and
+  `BottomCtaSection` (secondary conversion CTA). All copy uses the `landing`
+  i18n namespace. Every section carries a `data-testid` that
+  `LandingPage.test.tsx` asserts on (e.g. `landing-hero`,
+  `guest-shorten-section`, `landing-features`, `agent-section`).
+  `GuestShortenSection` mounts `ShortenCard` (from `components/ShortenCard`)
+  and reveals the nudge (`data-testid="guest-nudge"`) only after a
+  successful shorten. The section is hidden (returns `null`) for
+  authenticated visitors or while the flag is still loading, so the form
+  never flashes before the flag resolves.
 - `ConnectPage.tsx` -- public integration guide page at `/connect`. Carries
   three sections: `ApiKeySection` (`data-testid="connect-apikey-section"`)
   with step-by-step instructions for obtaining an API key, `RestSection`
@@ -23,7 +32,7 @@ strings appear in page files.
   example for `POST /api/urls`, and `McpSection`
   (`data-testid="connect-mcp-section"`) with an MCP Streamable HTTP
   initialization example and the exact `claude mcp add --scope user
-  --transport http` command for wiring the server into Claude Code. Uses
+--transport http` command for wiring the server into Claude Code. Uses
   the `connect` i18n namespace.
 - `DashboardPage.tsx` -- authenticated user dashboard. Lists the user's
   shortened links with creation date and click count.

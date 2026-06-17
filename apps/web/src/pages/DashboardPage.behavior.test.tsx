@@ -36,7 +36,7 @@ beforeEach(() => {
 });
 
 describe('DashboardPage', () => {
-  it('pins delete failure surfaces in the SHORTEN error slot (quirky routing)', async () => {
+  it('pins delete failure surfaces in the links-table error slot', async () => {
     const mockFetch = vi.fn();
     mockFetch.mockResolvedValueOnce(makeOk({ data: [LINK] })); // initial load
     mockFetch.mockResolvedValueOnce(makeErr(500, { detail: 'delete failed boom' })); // DELETE
@@ -49,9 +49,9 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(screen.getByTestId('delete-confirm')).toBeInTheDocument());
     fireEvent.click(screen.getByTestId('delete-confirm'));
 
-    // The delete error lands in the shorten-error slot, NOT a dedicated delete-error slot.
-    await waitFor(() => expect(screen.getByTestId('shorten-error')).toBeInTheDocument());
-    expect(screen.getByTestId('shorten-error')).toHaveTextContent('delete failed boom');
+    // The delete error lands in the links-table error slot.
+    await waitFor(() => expect(screen.getByTestId('links-table-error')).toBeInTheDocument());
+    expect(screen.getByTestId('links-table-error')).toHaveTextContent('delete failed boom');
   });
 
   it('pins empty-list render (no-links-message)', async () => {

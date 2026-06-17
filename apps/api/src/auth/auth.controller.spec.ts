@@ -9,8 +9,10 @@ import { GithubOauthGuard } from './github.strategy';
 import { GithubNoVerifiedEmailError, GithubOauthFailedError } from './github-oauth.errors';
 import type { GithubIdentity } from './github-oauth.errors';
 
-const ACCESS_COOKIE = 'mikrouli_access=token; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=900';
-const REFRESH_COOKIE = 'mikrouli_refresh=rtoken; Path=/api/auth; HttpOnly; Secure; SameSite=Strict; Max-Age=604800';
+const ACCESS_COOKIE =
+  'mikrouli_access=token; Path=/api; HttpOnly; Secure; SameSite=Strict; Max-Age=900';
+const REFRESH_COOKIE =
+  'mikrouli_refresh=rtoken; Path=/api/auth; HttpOnly; Secure; SameSite=Strict; Max-Age=604800';
 
 const publicUser = {
   id: 'uuid-1',
@@ -104,7 +106,13 @@ describe('AuthController', () => {
   });
 
   it('POST /login sets session cookies and returns user profile', async () => {
-    const dbUser = { id: publicUser.id, email: publicUser.email, createdAt: publicUser.createdAt, passwordHash: 'x', updatedAt: new Date() };
+    const dbUser = {
+      id: publicUser.id,
+      email: publicUser.email,
+      createdAt: publicUser.createdAt,
+      passwordHash: 'x',
+      updatedAt: new Date(),
+    };
     mockAuthService.validateCredentials.mockResolvedValue(dbUser);
     mockAuthService.issueTokens.mockResolvedValue({
       tokens: { accessToken: 'token', refreshToken: 'rtoken' },
@@ -122,7 +130,10 @@ describe('AuthController', () => {
   it('POST /login throws 401 on invalid credentials', async () => {
     mockAuthService.validateCredentials.mockResolvedValue(null);
     const res = buildMockResponse();
-    const loginCall = controller.login({ email: 'test@example.com', password: 'wrong' }, res as never);
+    const loginCall = controller.login(
+      { email: 'test@example.com', password: 'wrong' },
+      res as never,
+    );
     await expect(loginCall).rejects.toThrow(UnauthorizedException);
   });
 
@@ -131,10 +142,13 @@ describe('AuthController', () => {
     const req = { cookies: { mikrouli_refresh: 'rtoken' } };
     const res = buildMockResponse();
     await controller.logout(req as never, res as never);
-    expect(res.setHeader).toHaveBeenCalledWith('Set-Cookie', expect.arrayContaining([
-      expect.stringContaining('mikrouli_access=;'),
-      expect.stringContaining('mikrouli_refresh=;'),
-    ]));
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Set-Cookie',
+      expect.arrayContaining([
+        expect.stringContaining('mikrouli_access=;'),
+        expect.stringContaining('mikrouli_refresh=;'),
+      ]),
+    );
   });
 
   it('POST /logout clears cookies when no refresh cookie is present (idempotent)', async () => {
@@ -142,9 +156,10 @@ describe('AuthController', () => {
     const res = buildMockResponse();
     await controller.logout(req as never, res as never);
     expect(mockAuthService.revokeRefresh).not.toHaveBeenCalled();
-    expect(res.setHeader).toHaveBeenCalledWith('Set-Cookie', expect.arrayContaining([
-      expect.stringContaining('Max-Age=0'),
-    ]));
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Set-Cookie',
+      expect.arrayContaining([expect.stringContaining('Max-Age=0')]),
+    );
   });
 
   it('POST /logout throws 503 without clearing cookies on Redis failure', async () => {
