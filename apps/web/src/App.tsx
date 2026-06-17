@@ -13,6 +13,8 @@ import DashboardPage from './pages/DashboardPage';
 import StatsPage from './pages/StatsPage';
 import ApiKeysPage from './pages/ApiKeysPage';
 import ConnectPage from './pages/ConnectPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
 import UsagePage from './pages/UsagePage';
 
 const queryClient = new QueryClient({
@@ -66,7 +68,11 @@ export default function App() {
     </QueryClientProvider>
   );
   const publicRoutes = (
-    <Route path="/connect" element={<ConnectPage />} />
+    <>
+      <Route path="/connect" element={<ConnectPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+    </>
   );
   const outerRoute = (
     <Route element={shell}>

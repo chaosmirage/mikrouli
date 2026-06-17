@@ -48,4 +48,24 @@ describe('AppShell', () => {
     expect(screen.getByTestId('nav-user-email')).toHaveTextContent('user@example.com');
     expect(screen.queryByTestId('nav-login')).not.toBeInTheDocument();
   });
+
+  it('renders the global footer with all three links when not authenticated', () => {
+    renderShell(guestAuth);
+    expect(screen.getByTestId('footer')).toBeInTheDocument();
+    expect(screen.getByTestId('footer-terms')).toBeInTheDocument();
+    expect(screen.getByTestId('footer-privacy')).toBeInTheDocument();
+    const contact = screen.getByTestId('footer-contact');
+    expect(contact).toBeInTheDocument();
+    expect(contact).toHaveAttribute('href', 'mailto:support@mikrou.li');
+  });
+
+  it('renders the global footer with all three links when authenticated', () => {
+    renderShell(authedAuth);
+    expect(screen.getByTestId('footer')).toBeInTheDocument();
+    expect(screen.getByTestId('footer-terms')).toBeInTheDocument();
+    expect(screen.getByTestId('footer-privacy')).toBeInTheDocument();
+    const contact = screen.getByTestId('footer-contact');
+    expect(contact).toBeInTheDocument();
+    expect(contact).toHaveAttribute('href', 'mailto:support@mikrou.li');
+  });
 });

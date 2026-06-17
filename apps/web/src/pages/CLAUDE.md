@@ -40,6 +40,16 @@ strings appear in page files.
   (`data-testid="retention-info"`). A "Request more" button constructs a
   `mailto:support@mikrou.li` href pre-filled from the `usage` i18n namespace.
   Uses the `usage` i18n namespace.
+- `TermsPage.tsx` -- public Terms-of-Service page at `/terms`. Static
+  content page (same template as `ConnectPage.tsx`) rendered with
+  `useTranslation('legal')`; carries `data-testid="terms-page"` plus one
+  `data-testid` per section, asserted by `TermsPage.test.tsx`. Routed
+  directly (not inside `GuestRoute`) so it stays reachable when a user is
+  logged in -- the footer links here from every route.
+- `PrivacyPage.tsx` -- public Privacy-Policy page at `/privacy`. Mirrors
+  `TermsPage.tsx`: `useTranslation('legal')`, `data-testid="privacy-page"`
+  and per-section testids, asserted by `PrivacyPage.test.tsx`. Also routed
+  directly outside `GuestRoute` and linked from the footer.
 - `LoginPage.tsx`, `RegisterPage.tsx` -- authentication forms.
 
 ## How to extend safely

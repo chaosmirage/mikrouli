@@ -11,6 +11,7 @@ import enErrors from './locales/en/errors.json';
 import enLanding from './locales/en/landing.json';
 import enConnect from './locales/en/connect.json';
 import enUsage from './locales/en/usage.json';
+import enLegal from './locales/en/legal.json';
 
 import deCommon from './locales/de/common.json';
 import deAuth from './locales/de/auth.json';
@@ -21,6 +22,7 @@ import deErrors from './locales/de/errors.json';
 import deLanding from './locales/de/landing.json';
 import deConnect from './locales/de/connect.json';
 import deUsage from './locales/de/usage.json';
+import deLegal from './locales/de/legal.json';
 
 import elCommon from './locales/el/common.json';
 import elAuth from './locales/el/auth.json';
@@ -31,10 +33,11 @@ import elErrors from './locales/el/errors.json';
 import elLanding from './locales/el/landing.json';
 import elConnect from './locales/el/connect.json';
 import elUsage from './locales/el/usage.json';
+import elLegal from './locales/el/legal.json';
 
 const LOCALE_STORAGE_KEY = 'mikrouli.locale';
 const SUPPORTED_LANGS = ['en', 'de', 'el'] as const;
-const NAMESPACES = ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors', 'landing', 'connect', 'usage'] as const;
+const NAMESPACES = ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors', 'landing', 'connect', 'usage', 'legal'] as const;
 
 const EN_RESOURCES = {
   common: enCommon,
@@ -46,6 +49,7 @@ const EN_RESOURCES = {
   landing: enLanding,
   connect: enConnect,
   usage: enUsage,
+  legal: enLegal,
 };
 const DE_RESOURCES = {
   common: deCommon,
@@ -57,6 +61,7 @@ const DE_RESOURCES = {
   landing: deLanding,
   connect: deConnect,
   usage: deUsage,
+  legal: deLegal,
 };
 const EL_RESOURCES = {
   common: elCommon,
@@ -68,6 +73,7 @@ const EL_RESOURCES = {
   landing: elLanding,
   connect: elConnect,
   usage: elUsage,
+  legal: elLegal,
 };
 
 function buildResources() {

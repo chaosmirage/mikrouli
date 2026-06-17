@@ -3,6 +3,8 @@
 # Public surface:
 #   /             — landing page (indexable)
 #   /connect      — agent/developer integration guide (indexable)
+#   /terms        — Terms of Service (indexable)
+#   /privacy      — Privacy Policy (indexable)
 #   /llms.txt     — machine-readable guide for LLM agents
 #   /[6 chars]    — short-URL redirects (302 to user-supplied target;
 #                   crawlers follow the redirect, no semantic content)

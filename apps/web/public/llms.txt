@@ -125,3 +125,14 @@ Flags:
 | /api/urls    | GET    | x-api-key   | List your links        |
 | /api/mcp     | POST   | x-api-key   | MCP Streamable HTTP    |
 | /api/api-keys| POST   | cookie      | Mint a new mk_ key     |
+
+
+## Legal
+
+By creating short links via the API or MCP server you agree to the Terms of Service.
+Users may create only lawful short links and bear sole responsibility for link destinations.
+Short-link retention is not guaranteed.
+
+- Terms of Service: https://mikrou.li/terms
+- Privacy Policy: https://mikrou.li/privacy
+- Contact: support@mikrou.li
