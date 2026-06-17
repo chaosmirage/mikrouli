@@ -11,7 +11,7 @@
   "terms.linkRetentionTitle": "Link Retention",
   "terms.linkRetention": "Short links are not guaranteed to be retained indefinitely. The retention period of created short links may change at any time and is not guaranteed; a link may stop resolving without prior notice.",
   "terms.contactTitle": "Contact",
-  "terms.contact": "For questions about these terms, contact support@mikrouli.",
+  "terms.contact": "For questions about these terms, contact support@mikrou.li.",
   "privacy.title": "Privacy Policy",
   "privacy.lastUpdated": "Last updated: 2026-06-17",
   "privacy.intro": "This policy describes how mikrouli handles data when you use the service.",
@@ -22,5 +22,5 @@
   "privacy.retentionTitle": "Data Retention",
   "privacy.retention": "Click analytics are retained for the operational lifetime of the service unless the retention period is revised. Short-link retention is not guaranteed (see the Terms of Service).",
   "privacy.contactTitle": "Contact",
-  "privacy.contact": "For privacy questions or data requests, contact support@mikrouli."
+  "privacy.contact": "For privacy questions or data requests, contact support@mikrou.li."
 }
