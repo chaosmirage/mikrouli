@@ -31,9 +31,9 @@ const themeValue: ThemeModeContextValue = {
   setMode: vi.fn(),
 };
 
-function renderShell(authValue: AuthContextValue, initialRoute = '/dashboard') {
+function renderShell(authValue: AuthContextValue) {
   render(
-    <MemoryRouter initialEntries={[initialRoute]}>
+    <MemoryRouter>
       <AuthContext.Provider value={authValue}>
         <ThemeModeContext.Provider value={themeValue}>
           <AppShell />
@@ -79,8 +79,8 @@ describe('AppShell', () => {
     expect(contact).toHaveAttribute('href', 'mailto:support@mikrou.li');
   });
 
-  it('renders footer on landing page too (without sticky)', () => {
-    renderShell(guestAuth, '/');
+  it('renders footer on all pages', () => {
+    renderShell(guestAuth);
     expect(screen.getByTestId('footer')).toBeInTheDocument();
     expect(screen.getByTestId('footer-terms')).toBeInTheDocument();
     expect(screen.getByTestId('footer-privacy')).toBeInTheDocument();

@@ -8,7 +8,7 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Link from '@mui/material/Link';
-import { Outlet, useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
+import { Outlet, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 import ThemeModeSwitch from './ThemeModeSwitch';
@@ -38,9 +38,11 @@ const FOOTER_SX = {
   borderColor: 'divider',
 } as const;
 
-const FOOTER_STICKY_SX = { position: 'sticky', bottom: 0 } as const;
-
 const FOOTER_LINK_SX = { color: 'text.secondary', fontSize: '0.875rem' } as const;
+
+const SHELL_SX = { display: 'flex', flexDirection: 'column', minHeight: '100vh' } as const;
+
+const MAIN_SX = { flex: '1 0 auto' } as const;
 
 interface GuestNavProps {
   onLogin: () => void;
@@ -128,10 +130,10 @@ function AuthNav({ email, onLogout, onDashboard, onApiKeys, onUsage }: AuthNavPr
   );
 }
 
-function Footer({ sticky }: { sticky: boolean }) {
+function Footer() {
   const { t } = useTranslation('common');
   return (
-    <Box component="footer" data-testid="footer" sx={{ ...FOOTER_SX, ...(sticky ? FOOTER_STICKY_SX : {}) }}>
+    <Box component="footer" data-testid="footer" sx={FOOTER_SX}>
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={{ xs: 1, sm: 2 }}
@@ -156,9 +158,6 @@ export default function AppShell() {
   const { user, logout } = useAuth();
   const { t } = useTranslation('common');
   const navigate = useNavigate();
-  const location = useLocation();
-  const isLanding = location.pathname === '/';
-  const footerSticky = !isLanding;
 
   const handleLogin = useCallback(() => navigate('/login'), [navigate]);
   const handleRegister = useCallback(() => navigate('/register'), [navigate]);
@@ -190,7 +189,7 @@ export default function AppShell() {
     </Typography>
   );
   return (
-    <>
+    <Box sx={SHELL_SX}>
       <AppBar position="static" data-testid="app-bar">
         <Toolbar data-testid="nav-toolbar" sx={TOOLBAR_SX}>
           {title}
@@ -202,10 +201,10 @@ export default function AppShell() {
           </Stack>
         </Toolbar>
       </AppBar>
-      <Box component="main" data-testid="page-content">
+      <Box component="main" data-testid="page-content" sx={MAIN_SX}>
         <Outlet />
       </Box>
-      <Footer sticky={footerSticky} />
-    </>
+      <Footer />
+    </Box>
   );
 }
