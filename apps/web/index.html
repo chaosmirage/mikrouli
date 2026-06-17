@@ -8,10 +8,10 @@
     <title>mikrouli — Shorten your links, track every click</title>
     <meta
       name="description"
-      content="Free, simple URL shortener with built-in click analytics. Shorten links in one second, track clicks by country and browser, automate via REST API."
+      content="Free URL shortener with click analytics. Shorten links instantly, automate via REST API or MCP for AI agents."
     />
     <meta name="theme-color" content="#191919" />
-    <link rel="canonical" href="https://mikrouli.example.com/" />
+    <link rel="canonical" href="https://mikrou.li/" />
 
     <!-- Open Graph (Facebook, LinkedIn, Slack, Telegram, Discord, Signal) -->
     <meta property="og:type" content="website" />
@@ -19,10 +19,10 @@
     <meta property="og:title" content="mikrouli — Shorten your links, track every click" />
     <meta
       property="og:description"
-      content="Free, simple URL shortener with built-in click analytics. Shorten links in one second, track clicks by country and browser, automate via REST API."
+      content="Free URL shortener with click analytics. Shorten links instantly, automate via REST API or MCP for AI agents."
     />
-    <meta property="og:url" content="https://mikrouli.example.com/" />
-    <meta property="og:image" content="https://mikrouli.example.com/og-image.png" />
+    <meta property="og:url" content="https://mikrou.li/" />
+    <meta property="og:image" content="https://mikrou.li/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
@@ -31,9 +31,33 @@
     <meta name="twitter:title" content="mikrouli — Shorten your links, track every click" />
     <meta
       name="twitter:description"
-      content="Free, simple URL shortener with built-in click analytics."
+      content="Free URL shortener with click analytics and MCP for AI agents."
     />
-    <meta name="twitter:image" content="https://mikrouli.example.com/og-image.png" />
+    <meta name="twitter:image" content="https://mikrou.li/og-image.png" />
+
+    <!-- Structured data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "mikrouli",
+        "applicationCategory": "WebApplication",
+        "operatingSystem": "Web",
+        "description": "Free URL shortener with click analytics. Shorten links instantly, automate via REST API or MCP for AI agents.",
+        "url": "https://mikrou.li/",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "featureList": [
+          "URL shortening",
+          "Click analytics",
+          "REST API",
+          "MCP server for AI agents"
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
