@@ -10,18 +10,23 @@ standard web-discovery conventions.
 ## Key pieces
 
 - `robots.txt` -- crawl policy. Disallows auth, dashboard, and API paths;
-  allows the landing page, `/connect`, and `/llms.txt`. Carries an `LLMs:`
-  directive pointing to `/llms.txt` and a `Sitemap:` entry.
+  allows the landing page, `/connect`, `/terms`, `/privacy`, and
+  `/llms.txt`. Carries an `LLMs:` directive pointing to `/llms.txt` and a
+  `Sitemap:` entry.
 - `llms.txt` -- machine-readable integration guide for LLM agents and
   automated scripts. Documents how to obtain an API key (sign in, open the
   API Keys page, copy the once-shown `mk_...` value), `x-api-key`
   authentication, `POST /api/urls` REST usage with request/response shapes,
   the MCP Streamable HTTP endpoint at `POST /api/mcp` with the
   `create_short_link` tool, and the exact `claude mcp add --scope user
-  --transport http` command for registering the server in Claude Code.
-  Served at `https://mikrou.li/llms.txt` directly by the `$uri` nginx
-  rule, no React needed.
-- `sitemap.xml` -- XML sitemap listing the indexable public pages.
+  --transport http` command for registering the server in Claude Code. A
+  trailing `## Legal` section states the user-responsibility and
+  liability disclaimer for user-created short links and links to the
+  Terms, Privacy, and support-contact pages. Served at
+  `https://mikrou.li/llms.txt` directly by the `$uri` nginx rule, no
+  React needed.
+- `sitemap.xml` -- XML sitemap listing the indexable public pages
+  (landing, `/connect`, `/terms`, `/privacy`).
 
 ## How to extend safely
 
