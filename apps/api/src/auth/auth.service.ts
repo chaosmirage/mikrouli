@@ -147,8 +147,18 @@ export class AuthService {
     await this.redisService.setOrThrow(revocationKey, jti, REFRESH_TOKEN_TTL_SECONDS);
 
     const cookies: [string, string] = [
-      buildSetCookieHeader(ACCESS_COOKIE_NAME, accessToken, ACCESS_COOKIE_PATH, ACCESS_TOKEN_TTL_SECONDS),
-      buildSetCookieHeader(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_PATH, REFRESH_TOKEN_TTL_SECONDS),
+      buildSetCookieHeader(
+        ACCESS_COOKIE_NAME,
+        accessToken,
+        ACCESS_COOKIE_PATH,
+        ACCESS_TOKEN_TTL_SECONDS,
+      ),
+      buildSetCookieHeader(
+        REFRESH_COOKIE_NAME,
+        refreshToken,
+        REFRESH_COOKIE_PATH,
+        REFRESH_TOKEN_TTL_SECONDS,
+      ),
     ];
 
     return { tokens: { accessToken, refreshToken }, cookies };

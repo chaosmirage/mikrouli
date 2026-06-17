@@ -202,7 +202,7 @@ export interface paths {
     /** @description List authenticated user's short links */
     get: operations['Links_list'];
     put?: never;
-    /** @description Shorten a URL */
+    /** @description Shorten a URL. When GUEST_SHORTEN_ENABLED is true on the server, an unauthenticated request (no cookie, bearer, or x-api-key) is admitted on this operation only and attributed to a single shared Guest pseudo-identity; no per-user quota applies to the Guest path. Authenticated requests (any credential) take the registered-user path unchanged. When the flag is false, an unauthenticated request is rejected with 401. */
     post: operations['Links_create'];
     delete?: never;
     options?: never;

@@ -28,11 +28,15 @@ function buildStrategy(emailsApiResponse: object[] | 'network-error'): GithubStr
   const strategy = new GithubStrategy(makeConfigService());
 
   // Intercept the internal fetch by patching prototype used in validate()
-  const originalValidate = (strategy as unknown as { validate: (...args: unknown[]) => unknown }).validate.bind(strategy);
+  const originalValidate = (
+    strategy as unknown as { validate: (...args: unknown[]) => unknown }
+  ).validate.bind(strategy);
 
   // Stub the protected fetch call by replacing the implementation on the instance
   // so our test controls what the emails API returns without a real HTTP client.
-  (strategy as unknown as { _fetchGithubEmails: (token: string) => Promise<object[]> })._fetchGithubEmails =
+  (
+    strategy as unknown as { _fetchGithubEmails: (token: string) => Promise<object[]> }
+  )._fetchGithubEmails =
     emailsApiResponse === 'network-error'
       ? () => Promise.reject(new Error('network error'))
       : () => Promise.resolve(emailsApiResponse);

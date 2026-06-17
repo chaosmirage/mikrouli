@@ -50,11 +50,7 @@ function findApiKeyHeaderSchemeName(spec: OpenApiSpec): string | undefined {
 /**
  * Collects all security scheme names referenced on a path+method operation.
  */
-function operationSchemeNames(
-  spec: OpenApiSpec,
-  urlPath: string,
-  method: string,
-): string[] {
+function operationSchemeNames(spec: OpenApiSpec, urlPath: string, method: string): string[] {
   const op = spec.paths?.[urlPath]?.[method];
   if (!op?.security) return [];
   return op.security.flatMap(Object.keys);
@@ -94,9 +90,9 @@ describe('OpenAPI contract: x-api-key security scheme', () => {
     });
 
     it('DELETE /api/urls/{slug} includes x-api-key scheme', () => {
-      const urlPath = Object.keys(spec.paths ?? {}).find(
-        (p) => p.startsWith('/api/urls/') && p.includes('{'),
-      ) ?? '/api/urls/{slug}';
+      const urlPath =
+        Object.keys(spec.paths ?? {}).find((p) => p.startsWith('/api/urls/') && p.includes('{')) ??
+        '/api/urls/{slug}';
       const names = operationSchemeNames(spec, urlPath, 'delete');
       expect(names).toContain(apiKeySchemeId);
     });
@@ -104,9 +100,9 @@ describe('OpenAPI contract: x-api-key security scheme', () => {
 
   describe('Stats operations carry the x-api-key scheme', () => {
     it('GET /api/stats/{slug} includes x-api-key scheme', () => {
-      const urlPath = Object.keys(spec.paths ?? {}).find(
-        (p) => p.startsWith('/api/stats/') && p.includes('{'),
-      ) ?? '/api/stats/{slug}';
+      const urlPath =
+        Object.keys(spec.paths ?? {}).find((p) => p.startsWith('/api/stats/') && p.includes('{')) ??
+        '/api/stats/{slug}';
       const names = operationSchemeNames(spec, urlPath, 'get');
       expect(names).toContain(apiKeySchemeId);
     });

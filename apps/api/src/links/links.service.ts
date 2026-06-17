@@ -89,6 +89,20 @@ export class LinksService {
     return retryOnSlugConflict(attempt);
   }
 
+  // Guest variant: reuses the slug-insert-outbox chain verbatim but skips the
+  // per-user quota check. Quota is meaningless on the shared Guest row (one
+  // visitor could exhaust it for everyone); the global ThrottlerGuard is the
+  // only per-IP abuse bound on Guest.
+  async createGuest(
+    originalUrl: string,
+    guestUserId: string,
+    explicitExpiry?: Date,
+  ): Promise<Link> {
+    const expiresAt = resolveExpiry(explicitExpiry);
+    const attempt = () => this.tryCreate(originalUrl, guestUserId, expiresAt);
+    return retryOnSlugConflict(attempt);
+  }
+
   listForUser(userId: string): Promise<Link[]> {
     return this.dataSource.manager.find(Link, { where: { userId }, order: { createdAt: 'DESC' } });
   }

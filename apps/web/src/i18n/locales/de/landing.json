@@ -17,5 +17,14 @@
   "agentEyebrow": "Für Entwickler & KI-Agenten",
   "agentTitle": "mikrouli per REST oder MCP nutzen",
   "agentBody": "Agenten und Skripte können Kurzlinks direkt über die REST-API erstellen oder einen Harness über den gehosteten MCP-Server verbinden — beide authentifiziert mit deinem API-Schlüssel.",
-  "agentCta": "Agenten verbinden"
+  "agentCta": "Agenten verbinden",
+  "guestShortenTitle": "Link kürzen — kein Konto nötig",
+  "guestShortenPlaceholder": "Lange URL einfügen",
+  "guestShortenButton": "Kürzen",
+  "guestShortenError": "URL konnte nicht gekürzt werden. Erneut versuchen.",
+  "guestShortenCopied": "Kopiert",
+  "guestNudgeTitle": "Kostenloses Konto für mehr erstellen",
+  "guestNudgeFeatureDashboard": "Persönliches Dashboard mit Klick-Analyse",
+  "guestNudgeFeatureApiKeys": "API-Schlüssel und MCP-Zugriff für Automatisierung",
+  "guestNudgeCta": "Kostenlos anmelden"
 }

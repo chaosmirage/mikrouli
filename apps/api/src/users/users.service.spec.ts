@@ -80,9 +80,7 @@ describe('UsersService', () => {
 
   beforeEach(async () => {
     const ds = buildMockDataSource(() => buildMockManager({}));
-    const moduleRef: TestingModule = await Test.createTestingModule(
-      moduleMetadata(ds),
-    ).compile();
+    const moduleRef: TestingModule = await Test.createTestingModule(moduleMetadata(ds)).compile();
     service = moduleRef.get<UsersService>(UsersService);
     repo = moduleRef.get(getRepositoryToken(User));
   });

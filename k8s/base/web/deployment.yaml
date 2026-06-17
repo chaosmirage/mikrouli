@@ -47,9 +47,21 @@ spec:
             capabilities:
               drop:
                 - ALL
+          env:
+            # Consumed by the njs-served /config.js so the SPA can render the
+            # guest shorten form when the operator enables it. Toggle at runtime
+            # by changing this value and rolling the deployment.
+            - name: GUEST_SHORTEN_ENABLED
+              value: 'true'
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
+              readOnly: true
+            # njs runtime-config script (loaded by js_import in the ConfigMap).
+            # Mounted as a subPath so it does not shadow the conf.d volume above.
+            - name: nginx-config
+              mountPath: /etc/nginx/runtime-config.njs
+              subPath: runtime-config.njs
               readOnly: true
             - name: tmp
               mountPath: /tmp

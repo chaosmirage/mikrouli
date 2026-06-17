@@ -72,6 +72,10 @@ spec:
               value: '100'
             - name: MONTHLY_KEY_LIMIT
               value: '10'
+            # Guest shorten on the landing page (default on). Toggle at runtime
+            # by changing this value and rolling the api and web deployments.
+            - name: GUEST_SHORTEN_ENABLED
+              value: 'true'
             # k8s topology: traefik (L7 LB) + web-nginx both append XFF headers
             - name: TRUST_PROXY_HOPS
               value: '2'

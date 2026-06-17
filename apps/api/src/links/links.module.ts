@@ -5,9 +5,10 @@ import { LinksController } from './links.controller';
 import { LinksService } from './links.service';
 import { SlugGeneratorService } from './slug-generator.service';
 import { UsageModule } from '../usage/usage.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [ApiKeysModule, CacheModule, UsageModule],
+  imports: [ApiKeysModule, CacheModule, UsageModule, UsersModule],
   providers: [LinksService, SlugGeneratorService],
   controllers: [LinksController],
   exports: [LinksService],

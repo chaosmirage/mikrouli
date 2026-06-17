@@ -17,5 +17,14 @@
   "agentEyebrow": "Για Προγραμματιστές & AI Agents",
   "agentTitle": "Χρησιμοποιήστε το mikrouli μέσω REST ή MCP",
   "agentBody": "Agents και scripts μπορούν να δημιουργούν σύντομους συνδέσμους μέσω του REST API ή να συνδέουν ένα harness μέσω του φιλοξενούμενου MCP server — και τα δύο με αυθεντικοποίηση μέσω API key.",
-  "agentCta": "Σύνδεση agent"
+  "agentCta": "Σύνδεση agent",
+  "guestShortenTitle": "Συντομεύστε έναν σύνδεσμο — χωρίς λογαριασμό",
+  "guestShortenPlaceholder": "Επικολλήστε ένα μακρύ URL",
+  "guestShortenButton": "Συντομεύστε",
+  "guestShortenError": "Δεν ήταν δυνατή η σύντμηση του URL. Δοκιμάστε ξανά.",
+  "guestShortenCopied": "Αντιγράφηκε",
+  "guestNudgeTitle": "Δημιουργήστε δωρεάν λογαριασμό για περισσότερα",
+  "guestNudgeFeatureDashboard": "Προσωπικό ταμπλό με αναλυτικά στοιχεία κλικ",
+  "guestNudgeFeatureApiKeys": "Κλειδιά API και πρόσβαση MCP για αυτοματισμό",
+  "guestNudgeCta": "Δωρεάν εγγραφή"
 }

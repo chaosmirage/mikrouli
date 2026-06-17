@@ -61,6 +61,26 @@ CMD ["pnpm", "--filter", "web", "dev", "--", "--host", "0.0.0.0"]
 # =============================================================================
 FROM nginxinc/nginx-unprivileged:1.27-alpine AS production
 
+USER root
+
+# The njs module ships with the base image at
+# /usr/lib/nginx/modules/ngx_http_js_module.so — no apk install needed.
+
+# njs main-context directives: load_module + env must live in /etc/nginx/nginx.conf
+# (the main context), NOT in conf.d (which is included under http {}). Sed injects
+# them before the `events {` block so nginx sees them at top level.
+RUN sed -i '/^events {/i \
+load_module modules/ngx_http_js_module.so;\n\
+env GUEST_SHORTEN_ENABLED;' /etc/nginx/nginx.conf
+
+# njs http-context directive + the /config.js handler. conf.d/*.conf is included
+# under http {}, so a dedicated 00-njs.conf carries js_import at the right scope.
+COPY apps/web/scripts/runtime-config.njs /etc/nginx/runtime-config.njs
+RUN printf 'js_import runtimeConfig from /etc/nginx/runtime-config.njs;\n' \
+    > /etc/nginx/conf.d/00-njs.conf
+
+USER nginx
+
 # Replace stock welcome page with our built SPA
 COPY --from=builder /app/apps/web/dist/ /usr/share/nginx/html/
 

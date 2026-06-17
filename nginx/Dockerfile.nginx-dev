@@ -1,0 +1,15 @@
+# nginx/Dockerfile.nginx-dev
+#
+# Dev-edge nginx image with the njs module loaded. The stock nginx:1.27-alpine
+# image already ships ngx_http_js_module.so in /usr/lib/nginx/modules/ — this
+# Dockerfile only copies the njs handler script into the image so the dev-edge
+# can serve /config.js exactly like the production SPA container does.
+#
+# nginx-dev.conf is bind-mounted over /etc/nginx/nginx.conf and contains the
+# load_module + env (main context) and js_import + js_content (http/location
+# context) directives.
+
+FROM nginx:1.27-alpine
+
+# The njs module ships with the base image; just copy the handler script.
+COPY apps/web/scripts/runtime-config.njs /etc/nginx/runtime-config.njs

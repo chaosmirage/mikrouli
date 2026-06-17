@@ -1,6 +1,11 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, JwtFromRequestFunction, Strategy, StrategyOptionsWithoutRequest } from 'passport-jwt';
+import {
+  ExtractJwt,
+  JwtFromRequestFunction,
+  Strategy,
+  StrategyOptionsWithoutRequest,
+} from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { JwtPayload } from './auth.service';
@@ -10,6 +15,7 @@ const ACCESS_COOKIE_NAME = 'mikrouli_access';
 export interface RequestUser {
   id: string;
   email: string;
+  isGuest: boolean;
 }
 
 // Extracts the access token from the HttpOnly cookie set by the API on login/refresh.
@@ -49,6 +55,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   validate(payload: JwtPayload): RequestUser {
     if (!isAccessToken(payload)) throw new UnauthorizedException();
-    return { id: payload.sub, email: payload.email };
+    return { id: payload.sub, email: payload.email, isGuest: false };
   }
 }
