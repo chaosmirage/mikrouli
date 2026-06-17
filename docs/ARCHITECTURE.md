@@ -375,22 +375,31 @@ Floating tags (`:latest`) are explicitly forbidden. CI replaces `GITSHA-PLACEHOL
 before `kubectl apply -k`.
 
 **Manifest validation gate.** A `manifests` job in `.github/workflows/ci.yml` runs on
-every pull request and validates the observability bundle before it can reach the cluster.
-It renders `k8s/observability` with `kubectl kustomize`, checks the result against the
-Kubernetes API schemas with **kubeconform** (strict mode), and gates it through an **Open
-Policy Agent** policy (`k8s/policy/jaeger.rego`, run with `conftest`). The policy denies the
+every pull request and validates the rendered bundles before they can reach the cluster.
+It renders the `k8s/observability`, `k8s/base`, and `k8s/overlays/production` bundles with
+`kubectl kustomize`, checks each result against the Kubernetes API schemas with
+**kubeconform** (strict mode), and gates them through **Open Policy Agent** policies
+(`k8s/policy/`, run with `conftest`). The Jaeger policy (`k8s/policy/jaeger.rego`) denies the
 rendered Jaeger Deployment when its memory limit falls below 1Gi, its request below 256Mi,
 its Badger TTL exceeds 24h, or any `restricted` Pod Security field
 (`runAsNonRoot`, `readOnlyRootFilesystem`, `drop: [ALL]`, `seccompProfile: RuntimeDefault`)
 is missing; quantities and durations are compared by parsed magnitude, so `1024Mi` and `1Gi`
-are equal. The policy's own unit tests (`k8s/policy/jaeger_test.rego`) run first. Because the
-gate checks the same bundle the deploy workflow applies, a sizing or hardening regression
-fails at review time instead of as a crashloop on the live cluster. See ADR 0016.
+are equal. The redis-replication policy (`k8s/policy/redis-replication.rego`, run over the
+combined `k8s/base` and `k8s/overlays/production` renders) denies a bundle that lacks the
+replica-to-primary replication edge — either the egress allowing replica pods to reach the
+primary on TCP 6379 or the matching primary ingress — and rejects bare `redis`-scoped
+selectors that would widen exposure. Each policy's own unit tests
+(`k8s/policy/jaeger_test.rego`, `k8s/policy/redis_replication_test.rego`) run first. Because
+the gate checks the same bundles the deploy workflow applies, a sizing, hardening, or
+network-policy regression fails at review time instead of as a crashloop or a stalled
+replica on the live cluster. See ADR 0016.
 
 **Network policies** (`k8s/base/network-policies.yaml`) enforce a **default-deny-all**
 posture in the `mikrouli` namespace. Explicit `NetworkPolicy` objects allow only the
-required paths: Traefik ingress -> web, web -> API, API -> Postgres/Redis/ClickHouse.
-No other east-west traffic is permitted.
+required paths: Traefik ingress -> web, web -> API, API -> Postgres/Redis/ClickHouse, and
+the Redis replica -> primary replication connection on TCP 6379 (a paired egress on the
+replica and ingress on the primary, each scoped to the `app.kubernetes.io/component`
+labels). No other east-west traffic is permitted.
 
 Application secrets (`DB_PASS`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `REDIS_PASSWORD`,
 the ClickHouse password, and the GitHub OAuth credentials `GITHUB_CLIENT_ID` /

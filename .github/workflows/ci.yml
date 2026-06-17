@@ -70,6 +70,11 @@ jobs:
       OBSERVABILITY_DIR: k8s/observability
       POLICY_DIR: k8s/policy
       RENDERED_MANIFEST: rendered-observability.yaml
+      BASE_DIR: k8s/base
+      PRODUCTION_DIR: k8s/overlays/production
+      RENDERED_BASE: rendered-base.yaml
+      RENDERED_PRODUCTION: rendered-production.yaml
+      REDIS_POLICY_NAMESPACE: redis_replication
       # Pinned to explicit releases (no floating latest) to keep the gate
       # reproducible across runs.
       KUBECONFORM_VERSION: '0.8.0'
@@ -103,3 +108,21 @@ jobs:
 
       - name: Enforce policy on rendered manifests
         run: conftest test --policy "$POLICY_DIR" "$RENDERED_MANIFEST"
+
+      - name: Render base manifests
+        run: kubectl kustomize "$BASE_DIR" > "$RENDERED_BASE"
+
+      - name: Validate base against Kubernetes schemas
+        run: kubeconform -strict -ignore-missing-schemas -summary "$RENDERED_BASE"
+
+      - name: Enforce redis replication policy on base
+        run: conftest test --combine --namespace "$REDIS_POLICY_NAMESPACE" --policy "$POLICY_DIR" "$RENDERED_BASE"
+
+      - name: Render production manifests
+        run: kubectl kustomize "$PRODUCTION_DIR" > "$RENDERED_PRODUCTION"
+
+      - name: Validate production against Kubernetes schemas
+        run: kubeconform -strict -ignore-missing-schemas -summary "$RENDERED_PRODUCTION"
+
+      - name: Enforce redis replication policy on production
+        run: conftest test --combine --namespace "$REDIS_POLICY_NAMESPACE" --policy "$POLICY_DIR" "$RENDERED_PRODUCTION"
