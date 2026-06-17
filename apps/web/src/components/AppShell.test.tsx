@@ -23,9 +23,9 @@ const authedAuth: AuthContextValue = {
   loginWithGithub: vi.fn(),
 };
 
-function renderShell(authValue: AuthContextValue) {
+function renderShell(authValue: AuthContextValue, initialRoute = '/dashboard') {
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[initialRoute]}>
       <AuthContext.Provider value={authValue}>
         <AppShell />
       </AuthContext.Provider>
@@ -67,5 +67,13 @@ describe('AppShell', () => {
     const contact = screen.getByTestId('footer-contact');
     expect(contact).toBeInTheDocument();
     expect(contact).toHaveAttribute('href', 'mailto:support@mikrou.li');
+  });
+
+  it('renders footer on landing page too (without sticky)', () => {
+    renderShell(guestAuth, '/');
+    expect(screen.getByTestId('footer')).toBeInTheDocument();
+    expect(screen.getByTestId('footer-terms')).toBeInTheDocument();
+    expect(screen.getByTestId('footer-privacy')).toBeInTheDocument();
+    expect(screen.getByTestId('footer-contact')).toBeInTheDocument();
   });
 });

@@ -8,7 +8,7 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Link from '@mui/material/Link';
-import { Outlet, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 
@@ -37,7 +37,9 @@ const FOOTER_SX = {
   borderColor: 'divider',
 } as const;
 
-const FOOTER_LINK_SX = { color: 'text.secondary' } as const;
+const FOOTER_STICKY_SX = { position: 'sticky', bottom: 0 } as const;
+
+const FOOTER_LINK_SX = { color: 'text.secondary', fontSize: '0.875rem' } as const;
 
 interface GuestNavProps {
   onLogin: () => void;
@@ -125,11 +127,16 @@ function AuthNav({ email, onLogout, onDashboard, onApiKeys, onUsage }: AuthNavPr
   );
 }
 
-function Footer() {
+function Footer({ sticky }: { sticky: boolean }) {
   const { t } = useTranslation('common');
   return (
-    <Box component="footer" data-testid="footer" sx={FOOTER_SX}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 2 }} alignItems="center">
+    <Box component="footer" data-testid="footer" sx={{ ...FOOTER_SX, ...(sticky ? FOOTER_STICKY_SX : {}) }}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={{ xs: 1, sm: 2 }}
+        alignItems="center"
+        justifyContent="center"
+      >
         <Link component={RouterLink} to="/terms" data-testid="footer-terms" sx={FOOTER_LINK_SX}>
           {t('terms')}
         </Link>
@@ -148,6 +155,9 @@ export default function AppShell() {
   const { user, logout } = useAuth();
   const { t } = useTranslation('common');
   const navigate = useNavigate();
+  const location = useLocation();
+  const isLanding = location.pathname === '/';
+  const footerSticky = !isLanding;
 
   const handleLogin = useCallback(() => navigate('/login'), [navigate]);
   const handleRegister = useCallback(() => navigate('/register'), [navigate]);
@@ -193,7 +203,7 @@ export default function AppShell() {
       <Box component="main" data-testid="page-content">
         <Outlet />
       </Box>
-      <Footer />
+      <Footer sticky={footerSticky} />
     </>
   );
 }
