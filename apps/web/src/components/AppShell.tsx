@@ -11,6 +11,7 @@ import Link from '@mui/material/Link';
 import { Outlet, useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
+import ThemeModeSwitch from './ThemeModeSwitch';
 
 const LOCALE_SELECT_SX = {
   color: 'text.secondary',
@@ -196,6 +197,7 @@ export default function AppShell() {
           <Box sx={FLEX_GROW_SX} />
           <Stack direction="row" alignItems="center" spacing={1.5}>
             {navContent}
+            <ThemeModeSwitch />
             <LocaleSwitcher />
           </Stack>
         </Toolbar>

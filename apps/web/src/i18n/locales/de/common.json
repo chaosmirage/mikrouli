@@ -16,5 +16,9 @@
   "dismiss": "Schließen",
   "terms": "Nutzungsbedingungen",
   "privacy": "Datenschutz",
-  "contact": "Kontakt"
+  "contact": "Kontakt",
+  "themeMode": "Design",
+  "themeLight": "Hell",
+  "themeDark": "Dunkel",
+  "themeSystem": "System folgen"
 }
