@@ -16,5 +16,9 @@
   "dismiss": "Παράβλεψη",
   "terms": "Όροι",
   "privacy": "Απορρήτο",
-  "contact": "Επικοινωνία"
+  "contact": "Επικοινωνία",
+  "themeMode": "Θέμα",
+  "themeLight": "Φωτεινό",
+  "themeDark": "Σκοτεινό",
+  "themeSystem": "Ακολούθηση συστήματος"
 }

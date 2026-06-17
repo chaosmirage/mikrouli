@@ -4,6 +4,58 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Anti-flash pre-React cascade. Runs synchronously in <head> BEFORE the
+         bundle so the very first paint is already in the correct visual mode.
+         Mirrors the React provider's cascade exactly: localStorage ->
+         OS preference -> light. Validates strictly against the same three
+         ThemeMode literals (any other value falls through). Must not diverge
+         from the provider — both sides own the mikrouli.themeMode contract. -->
+    <script>
+      (function () {
+        var STORAGE_KEY = 'mikrouli.themeMode';
+        var mode = 'follow-system';
+        try {
+          var raw = window.localStorage.getItem(STORAGE_KEY);
+          if (raw === 'light' || raw === 'dark' || raw === 'follow-system') {
+            mode = raw;
+          }
+        } catch (e) {
+          /* private mode / disabled storage — fall through */
+        }
+        var effective = mode;
+        if (mode === 'follow-system') {
+          var prefersDark = false;
+          try {
+            prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          } catch (e) {
+            /* matchMedia absent — leave prefersDark false (fail-safe) */
+          }
+          effective = prefersDark ? 'dark' : 'light';
+        }
+        var root = document.documentElement;
+        root.setAttribute('data-mui-color-scheme', effective);
+        // Body background set via a CSS variable so CssBaseline's later rules
+        // don't have to race: the var is consumed inline below.
+        var bg = effective === 'dark' ? '#121212' : '#f6f5f4';
+        root.style.setProperty('--mikrouli-initial-bg', bg);
+        var metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (metaTheme) {
+          metaTheme.setAttribute('content', bg);
+        } else {
+          metaTheme = document.createElement('meta');
+          metaTheme.setAttribute('name', 'theme-color');
+          metaTheme.setAttribute('content', bg);
+          document.head.appendChild(metaTheme);
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+          document.body.style.backgroundColor = bg;
+        });
+      })();
+    </script>
+    <style>
+      body { background-color: var(--mikrouli-initial-bg, #f6f5f4); }
+    </style>
+
     <!-- Primary meta -->
     <title>mikrouli — Shorten your links, track every click</title>
     <meta

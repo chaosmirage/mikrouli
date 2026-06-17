@@ -4,6 +4,8 @@ import i18next from 'i18next';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthContext } from '../auth/AuthContext';
 import type { AuthContextValue } from '../auth/AuthContext';
+import { ThemeModeContext } from '../theme-mode-context';
+import type { ThemeModeContextValue } from '../theme-mode-context';
 import AppShell from '../components/AppShell';
 
 const guestAuth: AuthContextValue = {
@@ -15,11 +17,19 @@ const guestAuth: AuthContextValue = {
   loginWithGithub: vi.fn(),
 };
 
+const themeValue: ThemeModeContextValue = {
+  mode: 'follow-system',
+  effectiveMode: 'light',
+  setMode: vi.fn(),
+};
+
 function renderShell() {
   render(
     <MemoryRouter>
       <AuthContext.Provider value={guestAuth}>
-        <AppShell />
+        <ThemeModeContext.Provider value={themeValue}>
+          <AppShell />
+        </ThemeModeContext.Provider>
       </AuthContext.Provider>
     </MemoryRouter>,
   );

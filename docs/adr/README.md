@@ -27,3 +27,4 @@ accordingly and a new record describes the replacement decision.
 | [0014](0014-correlation-id-request-tracing.md) | Correlation-ID Request Tracing | Accepted |
 | [0015](0015-mcp-tool-endpoint-for-llm-agents.md) | MCP Tool Endpoint for LLM Agents | Accepted |
 | [0016](0016-ci-manifest-validation-and-policy-gate.md) | CI Manifest Validation and Policy Gate | Accepted |
+| [0017](0017-dark-light-theme-with-anti-flash-cascade.md) | Dark/Light Theme with Anti-Flash Cascade | Accepted |

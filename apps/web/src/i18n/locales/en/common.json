@@ -16,5 +16,9 @@
   "dismiss": "Dismiss",
   "terms": "Terms",
   "privacy": "Privacy",
-  "contact": "Contact"
+  "contact": "Contact",
+  "themeMode": "Theme",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "themeSystem": "Follow system"
 }

@@ -9,16 +9,22 @@ import i18next from 'i18next';
 // bootstrap, so stories see the same translation tables.
 import '../src/i18n';
 
-// The app's single source of theme literals — no inline hex anywhere else.
-import { theme } from '../src/theme';
+// The app's single source of theme construction — no inline hex anywhere else.
+import { createAppTheme } from '../src/theme';
 
-// Locale toolbar descriptor consumed by @storybook/addon-toolbars.
-// The toolbar drives i18next.changeLanguage so the Cancel button in
-// ConfirmDialog re-renders with the selected locale's translation.
+// Locale + theme toolbar descriptors consumed by @storybook/addon-toolbars.
+// The locale toolbar drives i18next.changeLanguage; the theme toolbar feeds
+// createAppTheme so stories render with the production palette tokens for the
+// selected mode.
 const LOCALE_ITEMS = [
   { value: 'en', title: 'English' },
   { value: 'de', title: 'Deutsch' },
   { value: 'el', title: 'Ελληνικά' },
+];
+
+const THEME_ITEMS = [
+  { value: 'light', title: 'Light' },
+  { value: 'dark', title: 'Dark' },
 ];
 
 const globalTypes: Preview['globalTypes'] = {
@@ -32,21 +38,32 @@ const globalTypes: Preview['globalTypes'] = {
       showName: true,
     },
   },
+  theme: {
+    name: 'Theme',
+    description: 'Visual mode (light / dark)',
+    defaultValue: 'light',
+    toolbar: {
+      icon: 'circlehollow',
+      items: THEME_ITEMS,
+      showName: true,
+    },
+  },
 };
 
 // Single global decorator: wraps every story in the app's real MUI theme and
-// CssBaseline so components render with the production color/shape tokens.
-// OpenTelemetry bootstrap and backend-dependent providers (Router,
-// QueryClient, AuthContext) are intentionally absent here; stories that
-// need them add per-story decorators.
+// CssBaseline so components render with the production color/shape tokens for
+// the toolbar-selected mode. OpenTelemetry bootstrap and backend-dependent
+// providers (Router, QueryClient, AuthContext) are intentionally absent here;
+// stories that need them add per-story decorators.
 const withThemeAndI18n: Preview['decorators'][number] = (Story, context) => {
   const locale = context.globals['locale'] as string | undefined;
   if (locale) {
     void i18next.changeLanguage(locale);
   }
+  const themeMode = (context.globals['theme'] as 'light' | 'dark' | undefined) ?? 'light';
 
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={createAppTheme(themeMode)}>
       <CssBaseline />
       <Story />
     </ThemeProvider>

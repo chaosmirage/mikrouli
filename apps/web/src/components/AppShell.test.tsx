@@ -3,6 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthContext } from '../auth/AuthContext';
 import type { AuthContextValue } from '../auth/AuthContext';
+import { ThemeModeContext } from '../theme-mode-context';
+import type { ThemeModeContextValue } from '../theme-mode-context';
 import AppShell from './AppShell';
 
 const guestAuth: AuthContextValue = {
@@ -23,11 +25,19 @@ const authedAuth: AuthContextValue = {
   loginWithGithub: vi.fn(),
 };
 
+const themeValue: ThemeModeContextValue = {
+  mode: 'follow-system',
+  effectiveMode: 'light',
+  setMode: vi.fn(),
+};
+
 function renderShell(authValue: AuthContextValue, initialRoute = '/dashboard') {
   render(
     <MemoryRouter initialEntries={[initialRoute]}>
       <AuthContext.Provider value={authValue}>
-        <AppShell />
+        <ThemeModeContext.Provider value={themeValue}>
+          <AppShell />
+        </ThemeModeContext.Provider>
       </AuthContext.Provider>
     </MemoryRouter>,
   );
