@@ -11,7 +11,7 @@
   "terms.linkRetentionTitle": "Link-Aufbewahrung",
   "terms.linkRetention": "Kurzlinks werden nicht auf unbestimmte Zeit vorgehalten. Der Zurückbehaltungszeitraum erstellter Kurzlinks kann sich jederzeit ändern und ist nicht garantiert; ein Link kann ohne Vorankündigung nicht mehr auflösen.",
   "terms.contactTitle": "Kontakt",
-  "terms.contact": "Bei Fragen zu diesen Bedingungen wende dich an support@mikrouli.",
+  "terms.contact": "Bei Fragen zu diesen Bedingungen wende dich an support@mikrou.li.",
   "privacy.title": "Datenschutzerklärung",
   "privacy.lastUpdated": "Zuletzt aktualisiert: 2026-06-17",
   "privacy.intro": "Diese Datenschutzerklärung beschreibt, wie mikrouli mit Daten umgeht, wenn du den Dienst nutzt.",
@@ -22,5 +22,5 @@
   "privacy.retentionTitle": "Datenaufbewahrung",
   "privacy.retention": "Klick-Analysen werden für die betriebliche Lebensdauer des Dienstes vorgehalten, sofern der Zurückbehaltungszeitraum nicht geändert wird. Die Zurückbehaltung von Kurzlinks ist nicht garantiert (siehe Nutzungsbedingungen).",
   "privacy.contactTitle": "Kontakt",
-  "privacy.contact": "Bei Fragen zum Datenschutz oder für Datenanfragen wende dich an support@mikrouli."
+  "privacy.contact": "Bei Fragen zum Datenschutz oder für Datenanfragen wende dich an support@mikrou.li."
 }
