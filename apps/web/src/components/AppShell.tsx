@@ -7,7 +7,8 @@ import MenuItem from '@mui/material/MenuItem';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
-import { Outlet, useNavigate } from 'react-router-dom';
+import Link from '@mui/material/Link';
+import { Outlet, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 
@@ -26,6 +27,17 @@ const TOOLBAR_SX = { gap: 1.5 } as const;
 const FLEX_GROW_SX = { flexGrow: 1 } as const;
 
 const USER_EMAIL_SX = { color: 'text.secondary', fontSize: '0.875rem', mx: 1 } as const;
+
+const FOOTER_SX = {
+  py: 2,
+  px: 2,
+  mt: 'auto',
+  bgcolor: 'background.paper',
+  borderTop: '1px solid',
+  borderColor: 'divider',
+} as const;
+
+const FOOTER_LINK_SX = { color: 'text.secondary' } as const;
 
 interface GuestNavProps {
   onLogin: () => void;
@@ -113,6 +125,25 @@ function AuthNav({ email, onLogout, onDashboard, onApiKeys, onUsage }: AuthNavPr
   );
 }
 
+function Footer() {
+  const { t } = useTranslation('common');
+  return (
+    <Box component="footer" data-testid="footer" sx={FOOTER_SX}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 2 }} alignItems="center">
+        <Link component={RouterLink} to="/terms" data-testid="footer-terms" sx={FOOTER_LINK_SX}>
+          {t('terms')}
+        </Link>
+        <Link component={RouterLink} to="/privacy" data-testid="footer-privacy" sx={FOOTER_LINK_SX}>
+          {t('privacy')}
+        </Link>
+        <Link href="mailto:support@mikrou.li" data-testid="footer-contact" sx={FOOTER_LINK_SX}>
+          {t('contact')}
+        </Link>
+      </Stack>
+    </Box>
+  );
+}
+
 export default function AppShell() {
   const { user, logout } = useAuth();
   const { t } = useTranslation('common');
@@ -162,6 +193,7 @@ export default function AppShell() {
       <Box component="main" data-testid="page-content">
         <Outlet />
       </Box>
+      <Footer />
     </>
   );
 }

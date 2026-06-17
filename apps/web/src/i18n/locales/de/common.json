@@ -13,5 +13,8 @@
   "dashboard": "Dashboard",
   "apiKeys": "API-Schlüssel",
   "usage": "Nutzung",
-  "dismiss": "Schließen"
+  "dismiss": "Schließen",
+  "terms": "Nutzungsbedingungen",
+  "privacy": "Datenschutz",
+  "contact": "Kontakt"
 }

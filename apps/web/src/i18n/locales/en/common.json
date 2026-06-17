@@ -13,5 +13,8 @@
   "dashboard": "Dashboard",
   "apiKeys": "API Keys",
   "usage": "Usage",
-  "dismiss": "Dismiss"
+  "dismiss": "Dismiss",
+  "terms": "Terms",
+  "privacy": "Privacy",
+  "contact": "Contact"
 }
