@@ -9,6 +9,7 @@ import Alert from '@mui/material/Alert';
 import IconButton from '@mui/material/IconButton';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { apiFetch, extractErrorMessage } from '../api/client';
+import QrCode from './QrCode';
 import type { PublicLink } from '../api/types';
 
 // Hoisted style constants: module scope so every render reuses the same object
@@ -16,6 +17,7 @@ import type { PublicLink } from '../api/types';
 const SHORTEN_FIELD_SX = { flex: 1 } as const;
 const SHORTEN_SUBMIT_SX = { whiteSpace: 'nowrap' } as const;
 const NEW_LINK_ALERT_SX = { mt: 1 } as const;
+const QR_CODE_STACK_SX = { mt: 2 } as const;
 const SHORTEN_URL_INPUT_PROPS = { 'data-testid': 'shorten-url' } as const;
 
 interface ShortenCardProps {
@@ -53,18 +55,23 @@ function NewLinkResult({ link }: { link: PublicLink }) {
   const fullUrl = resolveFullShortUrl(link.shortUrl);
   const handleCopyFull = useCallback(() => copyToClipboard(fullUrl), [fullUrl]);
   return (
-    <Alert
-      severity="success"
-      sx={NEW_LINK_ALERT_SX}
-      action={
-        <IconButton size="small" onClick={handleCopyFull} data-testid="copy-link">
-          <ContentCopyIcon fontSize="inherit" />
-        </IconButton>
-      }
-      data-testid="new-link-alert"
-    >
-      {fullUrl}
-    </Alert>
+    <Stack spacing={1.5}>
+      <Alert
+        severity="success"
+        sx={NEW_LINK_ALERT_SX}
+        action={
+          <IconButton size="small" onClick={handleCopyFull} data-testid="copy-link">
+            <ContentCopyIcon fontSize="inherit" />
+          </IconButton>
+        }
+        data-testid="new-link-alert"
+      >
+        {fullUrl}
+      </Alert>
+      <Stack sx={QR_CODE_STACK_SX}>
+        <QrCode value={fullUrl} />
+      </Stack>
+    </Stack>
   );
 }
 
