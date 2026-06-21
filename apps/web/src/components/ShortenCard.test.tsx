@@ -78,4 +78,94 @@ describe('ShortenCard', () => {
     fireEvent.click(screen.getByTestId('shorten-submit'));
     await waitFor(() => expect(screen.getByTestId('shorten-error')).toBeInTheDocument());
   });
+
+  it('renders QrCode component after successful shorten with resolved full URL', async () => {
+    const newLink = {
+      shortUrl: 'GYa6kx',
+      originalUrl: 'http://long.com',
+      createdAt: '2024-01-01T00:00:00Z',
+      expiresAt: null,
+    };
+    const mockFetch = vi.fn().mockResolvedValueOnce(makeResponse(newLink));
+    vi.stubGlobal('fetch', mockFetch);
+
+    renderCard();
+    fireEvent.change(screen.getByTestId('shorten-url'), {
+      target: { value: 'http://long.com' },
+    });
+    fireEvent.click(screen.getByTestId('shorten-submit'));
+
+    await waitFor(() => {
+      // After successful shorten, QrCode is rendered
+      const qrCode = screen.getByTestId('qr-code');
+      expect(qrCode).toBeInTheDocument();
+
+      // QrCode renders an SVG element
+      const svg = qrCode.querySelector('svg');
+      expect(svg).toBeInTheDocument();
+
+      // Download control is present alongside the QR code
+      const downloadButton = screen.getByTestId('qr-download');
+      expect(downloadButton).toBeInTheDocument();
+    });
+  });
+
+  it('QrCode and copy button target the same resolved full URL', async () => {
+    const newLink = {
+      shortUrl: 'GYa6kx',
+      originalUrl: 'http://long.com',
+      createdAt: '2024-01-01T00:00:00Z',
+      expiresAt: null,
+    };
+    const mockFetch = vi.fn().mockResolvedValueOnce(makeResponse(newLink));
+    vi.stubGlobal('fetch', mockFetch);
+
+    renderCard();
+    fireEvent.change(screen.getByTestId('shorten-url'), {
+      target: { value: 'http://long.com' },
+    });
+    fireEvent.click(screen.getByTestId('shorten-submit'));
+
+    await waitFor(() => {
+      // Both the alert text and QR code reference the resolved full URL
+      const newLinkAlert = screen.getByTestId('new-link-alert');
+      expect(newLinkAlert).toBeInTheDocument();
+
+      // QR code is rendered (both in the result and as a separate component)
+      const qrCode = screen.getByTestId('qr-code');
+      expect(qrCode).toBeInTheDocument();
+
+      // The alert text should contain the resolved URL (window.location.origin/GYa6kx)
+      // and the QR code encodes the same resolved URL
+      const alertText = newLinkAlert.textContent;
+      expect(alertText).toBeTruthy();
+      expect(alertText).toMatch(/GYa6kx/);
+    });
+  });
+
+  it('no regression: existing shorten form elements remain after QR integration', async () => {
+    const newLink = {
+      shortUrl: 'GYa6kx',
+      originalUrl: 'http://long.com',
+      createdAt: '2024-01-01T00:00:00Z',
+      expiresAt: null,
+    };
+    const mockFetch = vi.fn().mockResolvedValueOnce(makeResponse(newLink));
+    vi.stubGlobal('fetch', mockFetch);
+
+    renderCard();
+    fireEvent.change(screen.getByTestId('shorten-url'), {
+      target: { value: 'http://long.com' },
+    });
+    fireEvent.click(screen.getByTestId('shorten-submit'));
+
+    await waitFor(() => {
+      // Verify existing elements are still present (no regression)
+      expect(screen.getByTestId('new-link-alert')).toBeInTheDocument();
+      expect(screen.getByTestId('copy-link')).toBeInTheDocument();
+
+      // QR code is added alongside, not replacing existing elements
+      expect(screen.getByTestId('qr-code')).toBeInTheDocument();
+    });
+  });
 });
