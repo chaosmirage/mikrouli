@@ -3,6 +3,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import React from 'react';
 import i18next from 'i18next';
+import { initialize, mswLoader } from 'msw-storybook-addon';
 
 // Initialize i18next with all three locales (en/de/el) and their real JSON
 // resources. This import mirrors what apps/web/src/main.tsx does at app
@@ -11,6 +12,14 @@ import '../src/i18n';
 
 // The app's single source of theme construction — no inline hex anywhere else.
 import { createAppTheme } from '../src/theme';
+
+// MSW request handlers covering every endpoint the SPA calls. Imported once
+// here so all stories get network mocking by default; per-story `msw`
+// parameters override these where a specific variation is needed.
+import { handlers } from './mocks/handlers';
+
+// One-time MSW initialization (starts the service worker) before stories render.
+initialize();
 
 // Locale + theme toolbar descriptors consumed by @storybook/addon-toolbars.
 // The locale toolbar drives i18next.changeLanguage; the theme toolbar feeds
@@ -80,7 +89,9 @@ const preview: Preview = {
         date: /Date$/i,
       },
     },
+    msw: { handlers },
   },
+  loaders: [mswLoader],
 };
 
 export default preview;

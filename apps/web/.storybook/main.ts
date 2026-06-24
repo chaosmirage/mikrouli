@@ -8,7 +8,8 @@ import type { StorybookConfig } from '@storybook/react-vite';
 const config: StorybookConfig = {
   framework: '@storybook/react-vite',
   stories: ['../src/**/*.stories.tsx'],
-  addons: ['@storybook/addon-toolbars'],
+  staticDirs: ['../public'],
+  addons: ['@storybook/addon-toolbars', 'msw-storybook-addon'],
   core: {
     // Prevent phone-home telemetry from dev and CI environments.
     disableTelemetry: true,
