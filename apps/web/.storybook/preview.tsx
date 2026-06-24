@@ -19,7 +19,13 @@ import { createAppTheme } from '../src/theme';
 import { handlers } from './mocks/handlers';
 
 // One-time MSW initialization (starts the service worker) before stories render.
-initialize();
+// The service worker URL is resolved relative to the current page so it works
+// both locally (localhost:6006) and on GitHub Pages (/mikrouli/ subpath).
+initialize({
+  serviceWorker: {
+    url: new URL('mockServiceWorker.js', window.location.href).pathname,
+  },
+});
 
 // Locale + theme toolbar descriptors consumed by @storybook/addon-toolbars.
 // The locale toolbar drives i18next.changeLanguage; the theme toolbar feeds
