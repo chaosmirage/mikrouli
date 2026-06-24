@@ -44,6 +44,9 @@ jobs:
       - name: Build Storybook
         run: pnpm --filter web build-storybook
 
+      - name: Ensure MSW service worker in build output
+        run: npx msw init apps/web/storybook-static/ --save
+
       - name: Configure Pages
         uses: actions/configure-pages@v6
 
