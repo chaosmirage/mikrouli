@@ -1,63 +1,76 @@
 import { createTheme, Theme, ThemeOptions } from '@mui/material/styles';
 import type { PaletteMode } from '@mui/material';
 
-// Design language: "Notion-inspired — clean, minimal, near-black on warm-gray
-// paper, soft mint-blue accent, warm-peach secondary." All raw hex literals in
-// the web app MUST live in this file only — no hex literals in *.tsx.
+// Design language: "Confident brand blue on cool clean white" — bold display
+// typography, generous spacing, polished card hover states, a single confident
+// brand-blue accent (#0047FF), and clean section alternation. All raw hex
+// literals in the web app MUST live in this file only — no hex in *.tsx.
 //
 // Pill-shaped CTA radius — ≥ 24px on contained primary buttons; we use a true
 // pill (9999px). Kept as named constants.
 
 const PILL_RADIUS = 9999;
-const CARD_RADIUS = 12;
-const CONTROL_RADIUS = 6;
+const CARD_RADIUS = 16;
+const CONTROL_RADIUS = 8;
 const FONT_FAMILY =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", sans-serif';
 
-// --- Light palette (the original design language) -------------------------
+// --- Light palette (confident brand blue on cool clean white) ------------
 
-const NAVY = '#191919';
-const NAVY_DEEP = '#000000';
-const MINT = '#0077d4';
-const MINT_LIGHT = '#e8f4fd';
-const CORAL = '#f2a93b';
-const CORAL_LIGHT = '#fdf4e8';
-const GRAY_50 = '#f6f5f4';
-const GRAY_100 = '#edece9';
-const GRAY_200 = '#e0dfdc';
-const GRAY_400 = '#a5a29e';
-const GRAY_500 = '#787572';
-const GRAY_700 = '#37352f';
+const BRAND_BLUE = '#0047ff';
+const BRAND_BLUE_DARK = '#0036b8';
+const BRAND_BLUE_LIGHT = '#e8efff';
+const SLATE = '#1a1a2e';
+const SLATE_LIGHT = '#e4e4e7';
+const AMBER = '#f59e0b';
+const AMBER_LIGHT = '#fef3c7';
+const DANGER = '#dc2626';
+const SUCCESS = '#16a34a';
 const WHITE = '#ffffff';
-const DANGER = '#eb5757';
-const SUCCESS = '#2ecc71';
+const BG_DEFAULT = '#f8fafc';
+const BG_PAPER = '#ffffff';
+const TEXT_PRIMARY = '#0f172a';
+const TEXT_SECONDARY = '#475569';
+const TEXT_DISABLED = '#94a3b8';
+const DIVIDER = '#e2e8f0';
 
-// --- Dark palette ---------------------------------------------------------
-// primary.main is remapped from the light-mode near-black: on a dark surface
-// the near-black is invisible. We use a light desaturated tone so chart series
-// and the landing-page highlight stay legible (contrast >= 3.0:1).
-// secondary / warning stay close to their light-mode hues, brightened as needed.
+const GREY_50 = '#f8fafc';
+const GREY_100 = '#f1f5f9';
+const GREY_200 = '#e2e8f0';
+const GREY_400 = '#94a3b8';
+const GREY_500 = '#475569';
+const GREY_700 = '#334155';
 
-const DARK_PRIMARY = '#e8e6e3'; // warm light gray — high luminance on dark bg
-const DARK_PRIMARY_DEEP = '#cfccbd';
-const DARK_SECONDARY = '#5aa9f0'; // brightened mint, keeps the hue family
-const DARK_SECONDARY_LIGHT = '#1f3a52';
-const DARK_WARNING = '#f5b860'; // brightened coral
-const DARK_WARNING_LIGHT = '#3d2f1a';
-const DARK_BG = '#121212'; // MUI's recommended dark surface
-const DARK_BG_PAPER = '#1e1e1e';
-const DARK_TEXT_PRIMARY = '#ececec';
-const DARK_TEXT_SECONDARY = '#a5a29e';
-const DARK_TEXT_DISABLED = '#5a5754';
-const DARK_DIVIDER = '#2a2a2a';
-const DARK_DANGER = '#f06868';
-const DARK_SUCCESS = '#4dd684';
+// --- Dark palette (blue-tinted dark surface — designed from scratch) -----
+// Pure black background with dark-gray surfaces for depth. Cards lift
+// slightly from the black canvas; dividers and text provide structure.
+
+const DARK_PRIMARY = '#5b8def';
+const DARK_PRIMARY_DARK = '#3b6fd4';
+const DARK_PRIMARY_LIGHT = '#1a2333';
+const DARK_SECONDARY = '#94a3b8';
+const DARK_SECONDARY_LIGHT = '#1a1a1a';
+const DARK_WARNING = '#fbbf24';
+const DARK_WARNING_LIGHT = '#2a2000';
+const DARK_BG = '#000000';
+const DARK_BG_PAPER = '#121212';
+const DARK_TEXT_PRIMARY = '#f5f5f5';
+const DARK_TEXT_SECONDARY = '#a0a0a0';
+const DARK_TEXT_DISABLED = '#505050';
+const DARK_DIVIDER = '#262626';
+const DARK_DANGER = '#f87171';
+const DARK_SUCCESS = '#4ade80';
 
 function paletteFor(mode: PaletteMode): ThemeOptions['palette'] {
   if (mode === 'dark') {
     return {
       mode: 'dark',
-      primary: { main: DARK_PRIMARY, dark: DARK_PRIMARY_DEEP, contrastText: DARK_BG },
+      primary: {
+        main: DARK_PRIMARY,
+        dark: DARK_PRIMARY_DARK,
+        light: DARK_PRIMARY_LIGHT,
+        contrastText: DARK_BG,
+      },
       secondary: {
         main: DARK_SECONDARY,
         light: DARK_SECONDARY_LIGHT,
@@ -77,31 +90,36 @@ function paletteFor(mode: PaletteMode): ThemeOptions['palette'] {
   }
   return {
     mode: 'light',
-    primary: { main: NAVY, dark: NAVY_DEEP, contrastText: WHITE },
-    secondary: { main: MINT, light: MINT_LIGHT, contrastText: WHITE },
-    warning: { main: CORAL, light: CORAL_LIGHT },
+    primary: {
+      main: BRAND_BLUE,
+      dark: BRAND_BLUE_DARK,
+      light: BRAND_BLUE_LIGHT,
+      contrastText: WHITE,
+    },
+    secondary: { main: SLATE, light: SLATE_LIGHT, contrastText: WHITE },
+    warning: { main: AMBER, light: AMBER_LIGHT },
     error: { main: DANGER },
     success: { main: SUCCESS },
-    background: { default: GRAY_50, paper: WHITE },
-    text: { primary: NAVY, secondary: GRAY_500, disabled: GRAY_400 },
-    divider: GRAY_100,
+    background: { default: BG_DEFAULT, paper: BG_PAPER },
+    text: { primary: TEXT_PRIMARY, secondary: TEXT_SECONDARY, disabled: TEXT_DISABLED },
+    divider: DIVIDER,
     grey: {
-      '50': GRAY_50,
-      '100': GRAY_100,
-      '200': GRAY_200,
-      '400': GRAY_400,
-      '500': GRAY_500,
-      '700': GRAY_700,
+      '50': GREY_50,
+      '100': GREY_100,
+      '200': GREY_200,
+      '400': GREY_400,
+      '500': GREY_500,
+      '700': GREY_700,
     },
   };
 }
 
 const typography: ThemeOptions['typography'] = {
   fontFamily: FONT_FAMILY,
-  h1: { fontWeight: 700, letterSpacing: '-0.01em' },
-  h2: { fontWeight: 700, letterSpacing: '-0.01em' },
-  h3: { fontWeight: 700 },
-  h4: { fontWeight: 700, letterSpacing: '-0.005em' },
+  h1: { fontWeight: 800, letterSpacing: '-0.03em' },
+  h2: { fontWeight: 800, letterSpacing: '-0.025em' },
+  h3: { fontWeight: 700, letterSpacing: '-0.02em' },
+  h4: { fontWeight: 700, letterSpacing: '-0.01em' },
   h5: { fontWeight: 600 },
   h6: { fontWeight: 600 },
   button: { fontWeight: 600, textTransform: 'none' },
@@ -129,20 +147,29 @@ function componentsFor(t: Theme): ThemeOptions['components'] {
   const BUTTON_OUTLINED = { borderColor: divider, color: textPrimary };
   const PAPER_ROOT = { backgroundImage: 'none' };
   const PAPER_OUTLINED = { borderColor: divider, borderRadius: CARD_RADIUS };
-  const CARD_ROOT = { borderRadius: CARD_RADIUS, borderColor: divider };
+  const CARD_ROOT = {
+    borderRadius: CARD_RADIUS,
+    borderColor: divider,
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+    '&:hover': {
+      borderColor: t.palette.primary.main,
+      boxShadow:
+        t.palette.mode === 'dark'
+          ? '0 4px 24px rgba(91,141,239,0.12)'
+          : '0 4px 20px rgba(0,71,255,0.08)',
+    },
+  };
   const INPUT_ROOT = { borderRadius: CONTROL_RADIUS };
   const INPUT_NOTCHED = { borderColor: divider };
   const TABLE_HEAD_CELL = {
     color: textSecondary,
     fontSize: '0.75rem',
-    fontWeight: 600,
-    letterSpacing: '0.04em',
+    fontWeight: 700,
+    letterSpacing: '0.06em',
     textTransform: 'uppercase' as const,
-    borderBottom: `2px solid ${divider}`,
+    borderBottom: `2px solid ${t.palette.primary.main}`,
   };
   const TABLE_HEAD_ROOT = { '& .MuiTableCell-head': TABLE_HEAD_CELL };
-  // TableCell border uses a faint surface tint — read from the default bg so it
-  // adapts to the mode without a per-mode literal.
   const TABLE_CELL_ROOT = { borderBottom: `1px solid ${divider}` };
   const ALERT_ROOT = { borderRadius: CONTROL_RADIUS };
   const CHIP_ROOT = { borderRadius: PILL_RADIUS };
@@ -195,8 +222,6 @@ export function createAppTheme(mode: PaletteMode): Theme {
     typography,
     shape,
   });
-  // createTheme returns a full Theme; we layer the overrides on top so the
-  // overrides block can read the resolved palette tokens via `base.palette`.
   return createTheme(base, { components: componentsFor(base) });
 }
 

@@ -15,16 +15,15 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import KeyIcon from '@mui/icons-material/Key';
-import type { Theme } from '@mui/material/styles';
 import ShortenCard from '../components/ShortenCard';
 import { useAuth } from '../auth/AuthContext';
 import { useGuestShortenEnabled } from '../hooks/useGuestShortenEnabled';
 
 // Module-level style constants (static, evaluated once)
-const HERO_PADDING_Y = { xs: 6, sm: 10, md: 14 };
-const FEATURES_PADDING_Y = { xs: 6, sm: 8, md: 10 };
-const AGENT_PADDING_Y = { xs: 6, sm: 8, md: 10 };
-const BOTTOM_PADDING_Y = { xs: 6, sm: 8, md: 12 };
+const HERO_PADDING_Y = { xs: 8, sm: 12, md: 16 };
+const FEATURES_PADDING_Y = { xs: 8, sm: 10, md: 12 };
+const AGENT_PADDING_Y = { xs: 8, sm: 10, md: 12 };
+const BOTTOM_PADDING_Y = { xs: 8, sm: 10, md: 14 };
 
 const HERO_SECTION_SX = { py: HERO_PADDING_Y, bgcolor: 'background.paper' } as const;
 const FEATURES_SECTION_SX = { py: FEATURES_PADDING_Y, bgcolor: 'background.default' } as const;
@@ -37,6 +36,11 @@ const FEATURE_CARD_SX = {
   flexDirection: 'column',
   gap: 1.5,
   height: '100%',
+  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+  '&:hover': {
+    borderColor: 'primary.main',
+    boxShadow: '0 4px 20px rgba(0,71,255,0.08)',
+  },
 } as const;
 
 const FEATURE_CARD_BODY_SX = { color: 'text.secondary' } as const;
@@ -44,19 +48,13 @@ const FEATURE_CARD_TITLE_SX = { color: 'text.primary' } as const;
 
 const HEADLINE_SX = {
   maxWidth: 720,
-  fontWeight: 700,
-  letterSpacing: '-0.02em',
+  fontWeight: 800,
+  letterSpacing: '-0.025em',
   lineHeight: 1.1,
+  fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4rem' },
 } as const;
 
-function highlightSpanSx(theme: Theme) {
-  return {
-    textDecoration: 'underline',
-    textDecorationColor: theme.palette.warning.main,
-    textDecorationThickness: '4px',
-    textUnderlineOffset: '6px',
-  };
-}
+const HIGHLIGHT_SPAN_SX = { color: 'primary.main' } as const;
 
 const HERO_SUBHEADLINE_SX = {
   color: 'text.secondary',
@@ -65,15 +63,15 @@ const HERO_SUBHEADLINE_SX = {
   lineHeight: 1.6,
 } as const;
 
-const HERO_BUTTON_STACK_SX = { pt: 1 } as const;
+const HERO_BUTTON_STACK_SX = { pt: 2 } as const;
 
-const CTA_BUTTON_SX = { px: 4, py: 1.25 } as const;
+const CTA_BUTTON_SX = { px: 5, py: 1.5, fontSize: '1.1rem' } as const;
 
 const FEATURES_MB_SX = { mb: 6 } as const;
 
 const FEATURES_SUBTITLE_SX = { color: 'text.secondary', maxWidth: 480 } as const;
 
-const FEATURES_HEADING_SX = { fontWeight: 700, letterSpacing: '-0.01em' } as const;
+const FEATURES_HEADING_SX = { fontWeight: 800, letterSpacing: '-0.02em' } as const;
 
 const FEATURES_GRID_SX = {
   display: 'grid',
@@ -87,17 +85,17 @@ const AGENT_EYEBROW_SX = {
   letterSpacing: '0.08em',
 } as const;
 
-const AGENT_HEADING_SX = { fontWeight: 700, letterSpacing: '-0.01em' } as const;
+const AGENT_HEADING_SX = { fontWeight: 800, letterSpacing: '-0.02em' } as const;
 
 const AGENT_BODY_SX = { color: 'text.secondary', maxWidth: 520 } as const;
 
-const AGENT_CTA_BUTTON_SX = { px: 4, py: 1.25 } as const;
+const AGENT_CTA_BUTTON_SX = { px: 5, py: 1.5, fontSize: '1.1rem' } as const;
 
-const BOTTOM_HEADING_SX = { fontWeight: 700, letterSpacing: '-0.01em' } as const;
+const BOTTOM_HEADING_SX = { fontWeight: 800, letterSpacing: '-0.02em' } as const;
 
 const BOTTOM_SUBTITLE_SX = { color: 'text.secondary', maxWidth: 440 } as const;
 
-const BOTTOM_CTA_BUTTON_SX = { px: 4.5, py: 1.25 } as const;
+const BOTTOM_CTA_BUTTON_SX = { px: 6, py: 1.75, fontSize: '1.15rem' } as const;
 
 // Guest shorten section: sits between the hero and the features section, only
 // for anonymous visitors when the runtime GUEST_SHORTEN_ENABLED flag is on.
@@ -138,7 +136,7 @@ function HighlightedHeadline({ prefix, highlight }: HighlightedHeadlineProps) {
   return (
     <Typography variant="h2" component="h1" data-testid="landing-headline" sx={HEADLINE_SX}>
       {prefix}{' '}
-      <Box component="span" sx={highlightSpanSx}>
+      <Box component="span" sx={HIGHLIGHT_SPAN_SX}>
         {highlight}
       </Box>
     </Typography>
