@@ -86,4 +86,12 @@ describe('AppShell', () => {
     expect(screen.getByTestId('footer-privacy')).toBeInTheDocument();
     expect(screen.getByTestId('footer-contact')).toBeInTheDocument();
   });
+
+  it('stacks nav actions vertically on narrow screens to prevent horizontal overflow', () => {
+    renderShell(guestAuth);
+    const navActions = screen.getByTestId('nav-actions');
+    // On mobile, the nav controls must arrange vertically (column) rather than
+    // horizontally (row) so they don't force the viewport to scroll sideways.
+    expect(navActions).toHaveStyle({ flexDirection: 'column' });
+  });
 });
