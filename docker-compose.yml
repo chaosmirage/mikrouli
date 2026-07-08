@@ -59,20 +59,20 @@ services:
       NODE_ENV: production
       DB_HOST: postgres
       DB_PORT: '5432'
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
-      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-dev-postgres-password-not-for-production}
+      DB_NAME: ${DB_NAME:-mikrouli}
       REDIS_HOST: redis-primary
       REDIS_PORT: '6379'
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-dev-redis-password-not-for-production}
       CLICKHOUSE_HOST: clickhouse
       CLICKHOUSE_PORT: '8123'
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
-      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-dev-clickhouse-password-not-for-production}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-not-for-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-jwt-refresh-secret-not-for-production}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-placeholder}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-placeholder}
+      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-http://localhost:8888/api/auth/github/callback}
       TRUST_PROXY_HOPS: '1'
       OTEL_ENABLED: 'true'
       OTEL_EXPORTER_OTLP_ENDPOINT: 'http://jaeger:4318'
@@ -148,14 +148,14 @@ services:
     expose:
       - '5432'
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASS}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-dev-postgres-password-not-for-production}
+      POSTGRES_DB: ${DB_NAME:-mikrouli}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-mikrouli}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -165,7 +165,7 @@ services:
     image: redis:7-alpine
     expose:
       - '6379'
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD:-dev-redis-password-not-for-production}
     restart: unless-stopped
     healthcheck:
       test: ['CMD-SHELL', 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping']
@@ -178,7 +178,7 @@ services:
     image: redis:7-alpine
     expose:
       - '6379'
-    command: redis-server --replicaof redis-primary 6379 --requirepass ${REDIS_PASSWORD} --masterauth ${REDIS_PASSWORD}
+    command: redis-server --replicaof redis-primary 6379 --requirepass ${REDIS_PASSWORD:-dev-redis-password-not-for-production} --masterauth ${REDIS_PASSWORD:-dev-redis-password-not-for-production}
     depends_on:
       redis-primary:
         condition: service_healthy
@@ -196,7 +196,7 @@ services:
       - '8123'
       - '9000'
     environment:
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-dev-clickhouse-password-not-for-production}
     volumes:
       - clickhouse_data:/var/lib/clickhouse
       - ./clickhouse/users.xml:/etc/clickhouse-server/users.d/allow-external.xml:ro

@@ -12,13 +12,13 @@ Stack: NestJS + React + MUI v5 + PostgreSQL + Redis (primary + replica) + ClickH
 ## Quick Start
 
 ```bash
-cp .env.example .env
-# edit .env and replace the change-me values with strong secrets
 docker compose up -d
 # wait ~30s for healthchecks, then:
 curl http://localhost:8888/api/health
 # -> {"status":"ok"}
 ```
+
+The stack starts with dev-safe defaults (non-cryptographic secrets, guest shortening enabled). For production or to customize secrets, copy `.env.example` to `.env` and replace the change-me values before starting.
 
 The full stack (api, web, nginx, postgres, redis-primary, redis-replica, clickhouse) listens on host port 8888 via Nginx. The React SPA is served at `/` and the API is served under `/api/`.
 
