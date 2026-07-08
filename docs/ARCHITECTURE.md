@@ -105,9 +105,10 @@ durable even if downstream consumers are unavailable at creation time.
 
 **Why Redis for the cache.** Redirect resolution is the highest-throughput path. Redis
 provides sub-millisecond reads for cached slugs without hitting Postgres on every request.
-The cache is populated on first miss and invalidated explicitly on deletion and expiry
-cleanup. A read-replica (`redis-replica --replicaof redis-primary`) is available in
-compose for horizontal read scaling.
+The cache is populated on first miss, written through on destination edits
+(`PATCH /api/urls/{slug}`, `links.controller.ts`), and invalidated explicitly on deletion
+and expiry cleanup. A read-replica (`redis-replica --replicaof redis-primary`) is available
+in compose for horizontal read scaling.
 
 **Why ClickHouse for analytics.** Click data is append-only and query patterns are
 aggregative (count by day, top browsers, top countries). MergeTree is purpose-built for
@@ -134,9 +135,9 @@ builds URIs in the form `https://mikrou.li/problems/{slug}` and
 Endpoints covered by the spec: `POST /api/auth/register`, `POST /api/auth/login`,
 `POST /api/auth/refresh`, `GET /api/auth/me`, `GET /api/auth/github`,
 `GET /api/auth/github/callback`, `POST /api/urls`, `GET /api/urls`,
-`DELETE /api/urls/{slug}`, `GET /api/stats/{slug}`, `POST /api/api-keys`,
-`GET /api/api-keys`, `DELETE /api/api-keys/{id}`, `GET /api/usage`, `GET /api/health`,
-and the public redirect at `GET /{slug}`.
+`PATCH /api/urls/{slug}`, `DELETE /api/urls/{slug}`, `GET /api/stats/{slug}`,
+`POST /api/api-keys`, `GET /api/api-keys`, `DELETE /api/api-keys/{id}`,
+`GET /api/usage`, `GET /api/health`, and the public redirect at `GET /{slug}`.
 
 Short-link and API-key creation are bounded by a per-user monthly allowance
 counted per calendar month (UTC): `POST /api/urls`, `POST /api/mcp`, and
