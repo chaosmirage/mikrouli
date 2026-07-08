@@ -13,5 +13,9 @@
   "statsLabel": "Statistik",
   "deleteLink": "Link löschen?",
   "deleteLinkBody": "{{slug}} wird unwiderruflich entfernt.",
-  "shortenLabel": "Kürzen"
+  "shortenLabel": "Kürzen",
+  "editLink": "Ziel bearbeiten",
+  "editLinkBody": "Ändere, wohin {{slug}} weiterleitet.",
+  "newDestination": "Neues Ziel",
+  "editLabel": "Bearbeiten"
 }
