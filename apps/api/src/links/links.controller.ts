@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -15,6 +16,7 @@ import { GuestOrAuthenticatedGuard } from '../api-keys/guest-or-authenticated.gu
 import { LinkCacheService } from '../cache/link-cache.service';
 import type { AuthenticatedRequest } from '../common/authenticated-request';
 import { CreateLinkDto } from './dto/create-link.dto';
+import { UpdateLinkDto } from './dto/update-link.dto';
 import { Link } from './entities/link.entity';
 import { LinksService } from './links.service';
 import type { CreateLinkResponse, LinksListResponse, PublicLinkSchema } from '../types/openapi';
@@ -68,5 +70,25 @@ export class LinksController {
   async remove(@Req() req: AuthenticatedRequest, @Param('slug') slug: string): Promise<void> {
     await this.linksService.delete(slug, req.user.id);
     await this.linkCache.del(slug);
+  }
+
+  @Patch(':slug')
+  @UseGuards(BearerOrApiKeyGuard)
+  async update(
+    @Req() req: AuthenticatedRequest,
+    @Param('slug') slug: string,
+    @Body() dto: UpdateLinkDto,
+  ): Promise<PublicLinkSchema> {
+    const link = await this.linksService.updateDestination(slug, req.user.id, dto.url);
+    // Write-through to the same key the redirect path reads, so the very next
+    // request observes the new destination instead of the stale cached one.
+    // An already-expired link is evicted rather than re-cached, matching what
+    // delete does and what the redirect path's expiry treatment expects.
+    if (link.expiresAt && link.expiresAt.getTime() <= Date.now()) {
+      await this.linkCache.del(slug);
+    } else {
+      await this.linkCache.set(link.shortUrl, link.originalUrl, link.expiresAt);
+    }
+    return toPublicLinkSchema(link);
   }
 }

@@ -187,6 +187,10 @@ model LinksList {
   data: PublicLink[];
 }
 
+model UpdateLinkRequest {
+  @maxLength(8192) url: string;
+}
+
 // ---------------------------------------------------------------------------
 // API Keys models
 // ---------------------------------------------------------------------------
@@ -357,6 +361,20 @@ namespace Links {
     | UnauthorizedError
     | ForbiddenError
     | NotFoundError;
+
+  @patch
+  @route("/{slug}")
+  @doc("Change the destination URL of an owned short link; slug and analytics unchanged")
+  op update(
+    @path @pattern("^[A-Za-z0-9_]{6}$") slug: string,
+    @body body: UpdateLinkRequest,
+  ):
+    | { @statusCode _: 200; @body body: PublicLink; }
+    | BadRequestError
+    | UnauthorizedError
+    | ForbiddenError
+    | NotFoundError
+    | ValidationError;
 }
 
 // ---------------------------------------------------------------------------

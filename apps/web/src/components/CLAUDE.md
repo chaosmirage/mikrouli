@@ -1,8 +1,9 @@
 # components
 
 Shared React components used across the web app: reusable UI building
-blocks (QrCode, ThemeModeSwitch, ConfirmDialog) and feature-level forms
-(ShortenCard, AppShell) that are composed into page-level views.
+blocks (QrCode, ThemeModeSwitch, ConfirmDialog, EditLinkDialog) and
+feature-level forms (ShortenCard, AppShell) that are composed into
+page-level views.
 
 ## Purpose
 
@@ -30,6 +31,11 @@ owns the shorten POST); all other data arrives via props.
   follow-system modes via `useThemeMode` from `src/theme-mode-context.tsx`.
 - `ConfirmDialog.tsx` -- Generic confirmation modal; also has a Storybook
   story (`ConfirmDialog.stories.tsx`).
+- `EditLinkDialog.tsx` -- Modal dialog for editing a link's destination
+  URL. Receives the current link (slug + originalUrl), renders a
+  pre-filled TextField for the new URL, and calls `onConfirm(newUrl)` on
+  submit. Displays inline server-error feedback. Composition mirrors
+  ConfirmDialog's modal pattern. Has a colocated test and Storybook story.
 
 ## How to extend safely
 

@@ -19,6 +19,7 @@ const mockLinksService = {
   createGuest: jest.fn(),
   listForUser: jest.fn(),
   delete: jest.fn(),
+  updateDestination: jest.fn(),
 };
 const mockRedisService = { set: jest.fn(), del: jest.fn(), get: jest.fn() };
 const mockBearerGuard = { canActivate: jest.fn().mockReturnValue(true) };
@@ -114,5 +115,37 @@ describe('LinksController', () => {
     await controller.remove(makeRegisteredRequest() as never, TEST_SLUG);
     expect(mockLinksService.delete).toHaveBeenCalledWith(TEST_SLUG, TEST_USER_ID);
     expect(mockRedisService.del).toHaveBeenCalledWith(`link:${TEST_SLUG}`);
+  });
+
+  const NEW_URL = 'https://example.com/new-destination';
+
+  it('PATCH returns the updated link and writes the new destination through the cache', async () => {
+    mockLinksService.updateDestination.mockResolvedValue(makeLink({ originalUrl: NEW_URL }));
+    const result = await controller.update(makeRegisteredRequest() as never, TEST_SLUG, {
+      url: NEW_URL,
+    });
+    expect(mockLinksService.updateDestination).toHaveBeenCalledWith(
+      TEST_SLUG,
+      TEST_USER_ID,
+      NEW_URL,
+    );
+    expect(result.originalUrl).toBe(NEW_URL);
+    expect(result.shortUrl).toBe(TEST_SLUG);
+    expect(mockRedisService.set).toHaveBeenCalledWith(
+      `link:${TEST_SLUG}`,
+      NEW_URL,
+      expect.any(Number),
+    );
+    expect(mockRedisService.del).not.toHaveBeenCalled();
+  });
+
+  it('PATCH evicts the cache entry instead of re-caching an already-expired link', async () => {
+    const PAST_DATE = new Date('2020-01-01T00:00:00Z');
+    mockLinksService.updateDestination.mockResolvedValue(
+      makeLink({ originalUrl: NEW_URL, expiresAt: PAST_DATE }),
+    );
+    await controller.update(makeRegisteredRequest() as never, TEST_SLUG, { url: NEW_URL });
+    expect(mockRedisService.del).toHaveBeenCalledWith(`link:${TEST_SLUG}`);
+    expect(mockRedisService.set).not.toHaveBeenCalled();
   });
 });

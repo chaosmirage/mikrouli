@@ -35,7 +35,15 @@ strings appear in page files.
 --transport http` command for wiring the server into Claude Code. Uses
   the `connect` i18n namespace.
 - `DashboardPage.tsx` -- authenticated user dashboard. Lists the user's
-  shortened links with creation date and click count.
+  shortened links with creation date and click count, and lets the owner
+  edit a link's destination inline. The edit affordance is a per-row
+  `EditIcon` button (`components/EditLinkDialog`) that opens a single
+  shared dialog instance seeded with the row's slug and current
+  `originalUrl`; confirming calls `PATCH /api/urls/{slug}`. On a rejected
+  destination (SSRF or URL-shape validation), the dialog stays open showing
+  the problem-details message so the owner can correct and resubmit
+  instead of losing the previous destination. On success the `links` query
+  is invalidated so the table reflects the new destination.
 - `StatsPage.tsx` -- per-link analytics. Reads the `slug` route parameter
   and renders click-count time series from `GET /api/stats/:slug`.
 - `ApiKeysPage.tsx` -- API key management. Calls `POST /api/api-keys`

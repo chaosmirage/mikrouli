@@ -13,5 +13,9 @@
   "statsLabel": "Στατιστικά",
   "deleteLink": "Διαγραφή συνδέσμου;",
   "deleteLinkBody": "Αυτή η ενέργεια θα διαγράψει οριστικά το {{slug}}.",
-  "shortenLabel": "Σύντμηση"
+  "shortenLabel": "Σύντμηση",
+  "editLink": "Επεξεργασία προορισμού",
+  "editLinkBody": "Αλλάξτε πού ανακατευθύνει το {{slug}}.",
+  "newDestination": "Νέος προορισμός",
+  "editLabel": "Επεξεργασία"
 }

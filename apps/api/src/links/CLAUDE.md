@@ -4,8 +4,8 @@
 
 Owns the link-shortening REST API under `/api/urls`. Handles creation (with
 slug collision retry and transactional outbox dispatch), per-user listing,
-and slug deletion, plus the Guest variant of creation used by the
-landing-page anonymous shorten form.
+slug deletion, and destination-URL editing, plus the Guest variant of
+creation used by the landing-page anonymous shorten form.
 
 ## Key pieces
 
@@ -19,7 +19,12 @@ landing-page anonymous shorten form.
   `LinksService.createGuest`, keeping the service actor-agnostic except for
   the quota-skip path. Responses are mapped through `toPublicLinkSchema`
   before being returned; errors flow to `ProblemDetailsFilter` as RFC 9457
-  problem-details.
+  problem-details. `PATCH /:slug` (`update`) is behind `BearerOrApiKeyGuard`
+  like list/remove; it calls `LinksService.updateDestination`, then
+  write-through-caches the new destination via `LinkCacheService.set` --
+  or evicts the key via `LinkCacheService.del` when the link's `expiresAt`
+  is already in the past -- so the redirect hot path never serves a stale
+  cached destination.
 - `links.service.ts` -- `LinksService`:
   - `create(url, userId, expiresAt?)` -- registered-user creation. Runs the
     per-user quota check, resolves expiry, then enters the
@@ -34,6 +39,17 @@ landing-page anonymous shorten form.
   - `listForUser(userId)`, `delete(slug, userId)` -- read/delete scoped to
     the calling user; Guest-origin calls never reach these (the guard
     refuses Guest on `GET`/`DELETE`).
+  - `getOwnedLink(slug, userId)` -- private helper shared by `delete` and
+    `updateDestination`: loads the link by slug, throws `NotFoundException`
+    when it does not exist, then `ForbiddenException` when `link.userId`
+    does not match the caller. Add any future ownership-gated mutation on
+    top of this helper rather than re-deriving the not-found/forbidden
+    check.
+  - `updateDestination(slug, userId, url)` -- resolves and authorizes via
+    `getOwnedLink`, then updates `originalUrl` scoped by both `shortUrl` and
+    `userId` in the same `WHERE` clause (defense in depth against a
+    check-then-act race), and returns the link with `originalUrl` already
+    reflecting the new value.
 - `slug-generator.service.ts` -- produces the 6-character slug used in the
   short URL and matched by the nginx `[A-Za-z0-9_]{6}` rewrite.
 - `dto/` -- request DTOs and validators (see `dto/CLAUDE.md`).
@@ -59,3 +75,9 @@ landing-page anonymous shorten form.
 - Every creation path must dispatch the outbox event in the same
   transaction as the link insert; the cache populate happens after the
   transaction commits, in the controller, via `LinkCacheService.set`.
+- Any mutation that changes `originalUrl` or expiry must update the Redis
+  cache entry the redirect path reads (`LinkCacheService.set`), or evict it
+  (`LinkCacheService.del`) when the link is already expired -- never leave a
+  write path that lets the cache and PostgreSQL disagree on the destination.
+- Reuse `getOwnedLink` for any new per-slug mutation that must be scoped to
+  the calling user; do not re-implement the not-found/forbidden check.

@@ -18,10 +18,12 @@ import MuiLink from '@mui/material/Link';
 import Tooltip from '@mui/material/Tooltip';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { apiFetch, extractErrorMessage } from '../api/client';
 import type { PublicLink } from '../api/types';
 import ConfirmDialog from '../components/ConfirmDialog';
+import EditLinkDialog from '../components/EditLinkDialog';
 import ShortenCard from '../components/ShortenCard';
 
 async function loadUserLinks(): Promise<PublicLink[]> {
@@ -31,6 +33,15 @@ async function loadUserLinks(): Promise<PublicLink[]> {
 
 async function attemptDelete(slug: string): Promise<void> {
   await apiFetch('/api/urls/{slug}', 'delete', { pathParams: { slug } });
+}
+
+async function attemptUpdate(slug: string, url: string): Promise<void> {
+  await apiFetch('/api/urls/{slug}', 'patch', { pathParams: { slug }, body: { url } });
+}
+
+interface EditCandidate {
+  slug: string;
+  currentUrl: string;
 }
 
 const COL_WIDTH_SHORT_URL = 220;
@@ -79,15 +90,21 @@ interface LinkTableRowProps {
   link: PublicLink;
   onCopy: (text: string) => void;
   onDelete: (slug: string) => void;
+  onEdit: (slug: string, originalUrl: string) => void;
   onStats: (slug: string) => void;
 }
-function LinkTableRow({ link, onCopy, onDelete, onStats }: LinkTableRowProps) {
+function LinkTableRow({ link, onCopy, onDelete, onEdit, onStats }: LinkTableRowProps) {
   const slug = extractSlug(link.shortUrl);
   const fullUrl = resolveFullShortUrl(link.shortUrl);
   const { t } = useTranslation('common');
+  const { t: tDashboard } = useTranslation('dashboard');
   const handleCopy = useCallback(() => onCopy(fullUrl), [onCopy, fullUrl]);
   const handleStats = useCallback(() => onStats(slug), [onStats, slug]);
   const handleDelete = useCallback(() => onDelete(slug), [onDelete, slug]);
+  const handleEdit = useCallback(
+    () => onEdit(slug, link.originalUrl),
+    [onEdit, slug, link.originalUrl],
+  );
   return (
     <TableRow data-testid={`link-row-${slug}`} hover>
       <TableCell sx={ELLIPSIS_CELL_SX} title={fullUrl}>
@@ -122,6 +139,16 @@ function LinkTableRow({ link, onCopy, onDelete, onStats }: LinkTableRowProps) {
               <BarChartIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          <Tooltip title={tDashboard('editLabel')}>
+            <IconButton
+              size="small"
+              onClick={handleEdit}
+              data-testid={`edit-${slug}`}
+              aria-label={tDashboard('editLabel')}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Tooltip title={t('delete')}>
             <IconButton
               size="small"
@@ -144,12 +171,26 @@ interface LinksTableProps {
   fetchError: string | null;
   onCopy: (text: string) => void;
   onDelete: (slug: string) => void;
+  onEdit: (slug: string, originalUrl: string) => void;
   onStats: (slug: string) => void;
 }
-function LinksTable({ links, loading, fetchError, onCopy, onDelete, onStats }: LinksTableProps) {
+function LinksTable({
+  links,
+  loading,
+  fetchError,
+  onCopy,
+  onDelete,
+  onEdit,
+  onStats,
+}: LinksTableProps) {
   const { t } = useTranslation('dashboard');
   if (loading) return <CircularProgress data-testid="dashboard-loading" />;
-  if (fetchError) return <Alert severity="error" data-testid="links-table-error">{fetchError}</Alert>;
+  if (fetchError)
+    return (
+      <Alert severity="error" data-testid="links-table-error">
+        {fetchError}
+      </Alert>
+    );
   if (links.length === 0)
     return <Typography data-testid="no-links-message">{t('noLinks')}</Typography>;
   return (
@@ -171,6 +212,7 @@ function LinksTable({ links, loading, fetchError, onCopy, onDelete, onStats }: L
               link={link}
               onCopy={onCopy}
               onDelete={onDelete}
+              onEdit={onEdit}
               onStats={onStats}
             />
           ))}
@@ -193,6 +235,9 @@ export default function DashboardPage() {
   });
   const [pageError, setPageError] = useState<string | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null);
+  const [editCandidate, setEditCandidate] = useState<EditCandidate | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // The shared ShortenCard owns its input/loading/error/result state. The
@@ -218,6 +263,35 @@ export default function DashboardPage() {
   const handleStats = useCallback((slug: string) => navigate(`/stats/${slug}`), [navigate]);
   const handleCancelDelete = useCallback(() => setDeleteCandidate(null), []);
 
+  const handleOpenEdit = useCallback((slug: string, currentUrl: string) => {
+    setEditError(null);
+    setEditCandidate({ slug, currentUrl });
+  }, []);
+  const handleCancelEdit = useCallback(() => {
+    setEditCandidate(null);
+    setEditError(null);
+  }, []);
+  // On a rejected destination (SSRF/validation), the dialog stays open with
+  // the problem-details message so the owner can correct and resubmit,
+  // matching the "previous destination kept" DoD guarantee.
+  const handleEditConfirm = useCallback(
+    async (url: string) => {
+      if (!editCandidate) return;
+      setEditSubmitting(true);
+      try {
+        await attemptUpdate(editCandidate.slug, url);
+        setEditCandidate(null);
+        setEditError(null);
+        void queryClient.invalidateQueries({ queryKey: ['links'] });
+      } catch (err) {
+        setEditError(extractErrorMessage(err));
+      } finally {
+        setEditSubmitting(false);
+      }
+    },
+    [editCandidate, queryClient],
+  );
+
   const fetchError = linksError ? extractErrorMessage(linksError) : pageError;
 
   return (
@@ -229,6 +303,7 @@ export default function DashboardPage() {
         fetchError={fetchError}
         onCopy={handleCopy}
         onDelete={setDeleteCandidate}
+        onEdit={handleOpenEdit}
         onStats={handleStats}
       />
       <ConfirmDialog
@@ -242,6 +317,15 @@ export default function DashboardPage() {
         titleTestId="delete-dialog-title"
         cancelTestId="delete-cancel"
         confirmTestId="delete-confirm"
+      />
+      <EditLinkDialog
+        open={!!editCandidate}
+        slug={editCandidate?.slug ?? ''}
+        currentUrl={editCandidate?.currentUrl ?? ''}
+        onConfirm={handleEditConfirm}
+        onCancel={handleCancelEdit}
+        loading={editSubmitting}
+        error={editError ?? undefined}
       />
     </Stack>
   );

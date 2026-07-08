@@ -224,7 +224,8 @@ export interface paths {
     delete: operations['Links_remove'];
     options?: never;
     head?: never;
-    patch?: never;
+    /** @description Change the destination URL of an owned short link; slug and analytics unchanged */
+    patch: operations['Links_update'];
     trace?: never;
   };
   '/api/usage': {
@@ -441,6 +442,9 @@ export interface components {
       detail?: string;
       /** Format: uri */
       instance?: string;
+    };
+    UpdateLinkRequest: {
+      url?: string;
     };
     UsageSummary: {
       linksCreated: number;
@@ -1046,6 +1050,77 @@ export interface operations {
         };
         content: {
           'application/problem+json': components['schemas']['NotFoundError'];
+        };
+      };
+    };
+  };
+  Links_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateLinkRequest'];
+      };
+    };
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PublicLink'];
+        };
+      };
+      /** @description The server could not understand the request due to invalid syntax. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['BadRequestError'];
+        };
+      };
+      /** @description Access is unauthorized. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedError'];
+        };
+      };
+      /** @description Access is forbidden. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenError'];
+        };
+      };
+      /** @description The server cannot find the requested resource. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['NotFoundError'];
+        };
+      };
+      /** @description Client error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ValidationError'];
         };
       };
     };
