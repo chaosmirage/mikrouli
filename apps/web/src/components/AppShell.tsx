@@ -194,7 +194,12 @@ export default function AppShell() {
         <Toolbar data-testid="nav-toolbar" sx={TOOLBAR_SX}>
           {title}
           <Box sx={FLEX_GROW_SX} />
-          <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            alignItems="center"
+            spacing={{ xs: 1, sm: 1.5 }}
+            data-testid="nav-actions"
+          >
             {navContent}
             <ThemeModeSwitch />
             <LocaleSwitcher />
