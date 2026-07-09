@@ -1,13 +1,16 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
+import Menu from '@mui/material/Menu';
+import IconButton from '@mui/material/IconButton';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Link from '@mui/material/Link';
+import MenuIcon from '@mui/icons-material/Menu';
 import { Outlet, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
@@ -29,6 +32,12 @@ const FLEX_GROW_SX = { flexGrow: 1 } as const;
 
 const USER_EMAIL_SX = { color: 'text.secondary', fontSize: '0.875rem', mx: 1 } as const;
 
+const MENU_EMAIL_SX = { color: 'text.secondary', fontSize: '0.875rem' } as const;
+
+const MENU_BUTTON_SX = { display: { xs: 'inline-flex', md: 'none' } } as const;
+
+const DESKTOP_NAV_SX = { display: { xs: 'none', md: 'flex' } } as const;
+
 const FOOTER_SX = {
   py: 2,
   px: 2,
@@ -44,17 +53,34 @@ const SHELL_SX = { display: 'flex', flexDirection: 'column', minHeight: '100vh' 
 
 const MAIN_SX = { flex: '1 0 auto' } as const;
 
-interface GuestNavProps {
-  onLogin: () => void;
-  onRegister: () => void;
+// A single nav action rendered as BOTH a desktop inline Button (carrying the
+// testId) and a mobile MenuItem (without testId). Both surfaces draw from the
+// same array so exactly ONE auth-state branch produces all nav content.
+interface NavAction {
+  label: string;
+  testId?: string;
+  onClick: () => void;
+  variant?: 'text' | 'contained' | 'outlined';
+  color?: 'inherit' | 'primary';
+  sx?: typeof NAV_BUTTON_SX;
 }
 
-interface AuthNavProps {
-  email: string;
-  onLogout: () => void;
-  onDashboard: () => void;
-  onApiKeys: () => void;
-  onUsage: () => void;
+// Presentation helper: closes the overflow Menu then fires the action. Using a
+// dedicated component with useCallback avoids react/jsx-no-bind inside .map().
+function NavMenuItem({
+  label,
+  onActivate,
+  onClose,
+}: {
+  label: string;
+  onActivate: () => void;
+  onClose: () => void;
+}) {
+  const handleClick = useCallback(() => {
+    onClose();
+    onActivate();
+  }, [onClose, onActivate]);
+  return <MenuItem onClick={handleClick}>{label}</MenuItem>;
 }
 
 function LocaleSwitcher() {
@@ -85,48 +111,6 @@ function LocaleSwitcher() {
         Ελληνικά
       </MenuItem>
     </Select>
-  );
-}
-
-function GuestNav({ onLogin, onRegister }: GuestNavProps) {
-  const { t } = useTranslation('common');
-  return (
-    <>
-      <Button onClick={onLogin} data-testid="nav-login" sx={NAV_BUTTON_SX}>
-        {t('login')}
-      </Button>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={onRegister}
-        data-testid="nav-register"
-      >
-        {t('register')}
-      </Button>
-    </>
-  );
-}
-
-function AuthNav({ email, onLogout, onDashboard, onApiKeys, onUsage }: AuthNavProps) {
-  const { t } = useTranslation('common');
-  return (
-    <>
-      <Button onClick={onDashboard} data-testid="nav-dashboard" sx={NAV_BUTTON_SX}>
-        {t('dashboard')}
-      </Button>
-      <Button onClick={onApiKeys} data-testid="nav-api-keys" sx={NAV_BUTTON_SX}>
-        {t('apiKeys')}
-      </Button>
-      <Button onClick={onUsage} data-testid="nav-usage" sx={NAV_BUTTON_SX}>
-        {t('usage')}
-      </Button>
-      <Typography component="span" data-testid="nav-user-email" sx={USER_EMAIL_SX}>
-        {email}
-      </Typography>
-      <Button variant="outlined" onClick={onLogout} data-testid="nav-logout" sx={NAV_BUTTON_SX}>
-        {t('logout')}
-      </Button>
-    </>
   );
 }
 
@@ -166,17 +150,43 @@ export default function AppShell() {
   const handleUsage = useCallback(() => navigate('/usage'), [navigate]);
   const handleHome = useCallback(() => navigate('/'), [navigate]);
 
-  const navContent = user ? (
-    <AuthNav
-      email={user.email}
-      onLogout={logout}
-      onDashboard={handleDashboard}
-      onApiKeys={handleApiKeys}
-      onUsage={handleUsage}
-    />
-  ) : (
-    <GuestNav onLogin={handleLogin} onRegister={handleRegister} />
-  );
+  const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
+  const menuOpen = Boolean(menuAnchorEl);
+
+  const handleOpenMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    setMenuAnchorEl(event.currentTarget);
+  }, []);
+  const handleCloseMenu = useCallback(() => {
+    setMenuAnchorEl(null);
+  }, []);
+
+  // SINGLE auth-state branch: ONE `user ?` ternary produces ALL nav actions.
+  // Both the desktop inline Buttons and the mobile Menu MenuItems render from
+  // this array, eliminating any second auth-state branch that could diverge.
+  const navActions: NavAction[] = user
+    ? [
+        { label: t('dashboard'), testId: 'nav-dashboard', onClick: handleDashboard, sx: NAV_BUTTON_SX },
+        { label: t('apiKeys'), testId: 'nav-api-keys', onClick: handleApiKeys, sx: NAV_BUTTON_SX },
+        { label: t('usage'), testId: 'nav-usage', onClick: handleUsage, sx: NAV_BUTTON_SX },
+        {
+          label: t('logout'),
+          testId: 'nav-logout',
+          onClick: logout,
+          variant: 'outlined',
+          sx: NAV_BUTTON_SX,
+        },
+      ]
+    : [
+        { label: t('login'), testId: 'nav-login', onClick: handleLogin, sx: NAV_BUTTON_SX },
+        {
+          label: t('register'),
+          testId: 'nav-register',
+          onClick: handleRegister,
+          variant: 'contained',
+          color: 'primary',
+        },
+      ];
+
   const title = (
     <Typography
       variant="h6"
@@ -194,13 +204,51 @@ export default function AppShell() {
         <Toolbar data-testid="nav-toolbar" sx={TOOLBAR_SX}>
           {title}
           <Box sx={FLEX_GROW_SX} />
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            alignItems="center"
-            spacing={{ xs: 1, sm: 1.5 }}
-            data-testid="nav-actions"
-          >
-            {navContent}
+          <Stack direction="row" alignItems="center" spacing={1.5} data-testid="nav-actions">
+            <IconButton
+              data-testid="nav-menu-button"
+              aria-label={t('menu')}
+              onClick={handleOpenMenu}
+              sx={MENU_BUTTON_SX}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Menu anchorEl={menuAnchorEl} open={menuOpen} onClose={handleCloseMenu}>
+              {user && (
+                <MenuItem disabled>
+                  <Typography component="span" sx={MENU_EMAIL_SX}>
+                    {user.email}
+                  </Typography>
+                </MenuItem>
+              )}
+              {navActions.map((action) => (
+                <NavMenuItem
+                  key={action.label}
+                  label={action.label}
+                  onActivate={action.onClick}
+                  onClose={handleCloseMenu}
+                />
+              ))}
+            </Menu>
+            <Stack direction="row" alignItems="center" spacing={1.5} sx={DESKTOP_NAV_SX}>
+              {navActions.map((action) => (
+                <Button
+                  key={action.label}
+                  onClick={action.onClick}
+                  variant={action.variant}
+                  color={action.color}
+                  data-testid={action.testId}
+                  sx={action.sx}
+                >
+                  {action.label}
+                </Button>
+              ))}
+              {user && (
+                <Typography component="span" data-testid="nav-user-email" sx={USER_EMAIL_SX}>
+                  {user.email}
+                </Typography>
+              )}
+            </Stack>
             <ThemeModeSwitch />
             <LocaleSwitcher />
           </Stack>

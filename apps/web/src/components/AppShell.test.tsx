@@ -59,6 +59,22 @@ describe('AppShell', () => {
     expect(screen.queryByTestId('nav-login')).not.toBeInTheDocument();
   });
 
+  it('shows the hamburger menu button alongside inline nav buttons when authenticated', () => {
+    renderShell(authedAuth);
+    expect(screen.getByTestId('nav-menu-button')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-api-keys')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-usage')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-logout')).toBeInTheDocument();
+  });
+
+  it('shows the hamburger menu button alongside inline nav buttons when not authenticated', () => {
+    renderShell(guestAuth);
+    expect(screen.getByTestId('nav-menu-button')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-login')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-register')).toBeInTheDocument();
+  });
+
   it('renders the global footer with all three links when not authenticated', () => {
     renderShell(guestAuth);
     expect(screen.getByTestId('footer')).toBeInTheDocument();
@@ -87,11 +103,9 @@ describe('AppShell', () => {
     expect(screen.getByTestId('footer-contact')).toBeInTheDocument();
   });
 
-  it('stacks nav actions vertically on narrow screens to prevent horizontal overflow', () => {
+  it('keeps nav actions in a single horizontal row at all viewport widths', () => {
     renderShell(guestAuth);
     const navActions = screen.getByTestId('nav-actions');
-    // On mobile, the nav controls must arrange vertically (column) rather than
-    // horizontally (row) so they don't force the viewport to scroll sideways.
-    expect(navActions).toHaveStyle({ flexDirection: 'column' });
+    expect(navActions).toHaveStyle({ flexDirection: 'row' });
   });
 });
