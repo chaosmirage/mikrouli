@@ -2,9 +2,10 @@
 
 ## Purpose
 
-Defines and validates the request shapes for link creation. Enforces that
-submitted URLs are syntactically valid http(s) URLs and that their host is not a
-private, loopback, or link-local address (SSRF prevention).
+Defines and validates the request shapes for link creation and destination
+editing. Enforces that submitted URLs are syntactically valid http(s) URLs
+and that their host is not a private, loopback, or link-local address (SSRF
+prevention).
 
 ## Key pieces
 
@@ -12,6 +13,10 @@ private, loopback, or link-local address (SSRF prevention).
   field: `@IsUrl` (from class-validator) for protocol and length constraints, and
   `@IsPublicHttpUrl` to block literal private / loopback / link-local IP
   addresses. The `expiresAt` field is optional.
+- `update-link.dto.ts` -- `UpdateLinkDto`. `PickType(CreateLinkDto, ['url'])`,
+  so the destination-change write path (`PATCH /api/urls/:slug`) is held to
+  the exact same `@IsUrl` + `@IsPublicHttpUrl` SSRF barrier as creation
+  instead of a second, independently maintained rule set.
 - `is-public-http-url.validator.ts` -- `IsPublicHttpUrlConstraint`. Parses the
   URL with the WHATWG `URL` constructor, then uses `ipaddr.js` to check the
   hostname. Returns false for IPv4 ranges private / loopback / linkLocal /
@@ -31,3 +36,6 @@ private, loopback, or link-local address (SSRF prevention).
   names recognized by `ipaddr.js`.
 - The validator does not reject hostname-based private addresses (e.g.
   `http://internal-host/`) -- only literal IP addresses are checked.
+- `UpdateLinkDto` must stay derived from `CreateLinkDto` via `PickType`
+  rather than redeclaring its own `url` decorators; a hand-copied validator
+  set can silently drift from the create path.

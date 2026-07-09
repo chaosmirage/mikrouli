@@ -111,10 +111,25 @@ export class LinksService {
     return this.dataSource.manager.findOne(Link, { where: { shortUrl: slug } });
   }
 
-  async delete(slug: string, userId: string): Promise<void> {
+  // Shared resolve-and-authorize shape: both delete and updateDestination need
+  // "does this slug exist, and does it belong to this caller" before mutating
+  // a row, so the check lives once and both write paths consume it.
+  private async getOwnedLink(slug: string, userId: string): Promise<Link> {
     const link = await this.dataSource.manager.findOne(Link, { where: { shortUrl: slug } });
     if (!link) throw new NotFoundException(`Link ${slug} not found`);
     if (link.userId !== userId) throw new ForbiddenException();
+    return link;
+  }
+
+  async delete(slug: string, userId: string): Promise<void> {
+    await this.getOwnedLink(slug, userId);
     await this.dataSource.manager.delete(Link, { shortUrl: slug });
+  }
+
+  async updateDestination(slug: string, userId: string, url: string): Promise<Link> {
+    const link = await this.getOwnedLink(slug, userId);
+    await this.dataSource.manager.update(Link, { shortUrl: slug, userId }, { originalUrl: url });
+    link.originalUrl = url;
+    return link;
   }
 }

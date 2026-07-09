@@ -102,4 +102,10 @@ describe('AppShell', () => {
     expect(screen.getByTestId('footer-privacy')).toBeInTheDocument();
     expect(screen.getByTestId('footer-contact')).toBeInTheDocument();
   });
+
+  it('keeps nav actions in a single horizontal row at all viewport widths', () => {
+    renderShell(guestAuth);
+    const navActions = screen.getByTestId('nav-actions');
+    expect(navActions).toHaveStyle({ flexDirection: 'row' });
+  });
 });

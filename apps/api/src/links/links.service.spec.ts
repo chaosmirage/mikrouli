@@ -24,6 +24,7 @@ const mockManager = {
   insert: jest.fn(),
   save: jest.fn(),
   delete: jest.fn(),
+  update: jest.fn(),
 };
 
 const mockDataSource = {
@@ -148,5 +149,36 @@ describe('LinksService', () => {
       MonthlyLinkLimitExceededError,
     );
     expect(mockDataSource.transaction).not.toHaveBeenCalled();
+  });
+
+  const NEW_URL = 'https://example.com/new-destination';
+
+  it('updateDestination() throws NotFoundException when slug does not exist', async () => {
+    mockDataSource.manager.findOne.mockResolvedValue(null);
+    await expect(service.updateDestination(TEST_SLUG, TEST_USER_ID, NEW_URL)).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(mockDataSource.manager.update).not.toHaveBeenCalled();
+  });
+
+  it('updateDestination() throws ForbiddenException when caller is not the owner', async () => {
+    mockDataSource.manager.findOne.mockResolvedValue(makeLink({ userId: 'other-user' }));
+    await expect(service.updateDestination(TEST_SLUG, TEST_USER_ID, NEW_URL)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(mockDataSource.manager.update).not.toHaveBeenCalled();
+  });
+
+  it('updateDestination() persists the new originalUrl scoped by slug and owner', async () => {
+    mockDataSource.manager.findOne.mockResolvedValue(makeLink());
+    mockDataSource.manager.update.mockResolvedValue({ affected: 1 });
+    const result = await service.updateDestination(TEST_SLUG, TEST_USER_ID, NEW_URL);
+    expect(mockDataSource.manager.update).toHaveBeenCalledWith(
+      Link,
+      { shortUrl: TEST_SLUG, userId: TEST_USER_ID },
+      { originalUrl: NEW_URL },
+    );
+    expect(result.originalUrl).toBe(NEW_URL);
+    expect(result.shortUrl).toBe(TEST_SLUG);
   });
 });

@@ -204,7 +204,7 @@ export default function AppShell() {
         <Toolbar data-testid="nav-toolbar" sx={TOOLBAR_SX}>
           {title}
           <Box sx={FLEX_GROW_SX} />
-          <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Stack direction="row" alignItems="center" spacing={1.5} data-testid="nav-actions">
             <IconButton
               data-testid="nav-menu-button"
               aria-label={t('menu')}

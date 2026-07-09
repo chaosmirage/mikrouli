@@ -81,4 +81,35 @@ describe('DashboardPage', () => {
     resolve(undefined);
     await waitFor(() => expect(screen.queryByTestId('dashboard-loading')).not.toBeInTheDocument());
   });
+
+  it('editing a link opens the dialog pre-filled and updates the row on confirm', async () => {
+    const link = {
+      shortUrl: 'http://s.io/abc',
+      originalUrl: 'http://long.com',
+      createdAt: '2024-01-01T00:00:00Z',
+      expiresAt: null,
+    };
+    const updatedLink = { ...link, originalUrl: 'http://new-destination.com' };
+    const mockFetch = vi.fn();
+    mockFetch.mockResolvedValueOnce(makeResponse({ data: [link] })); // initial load
+    mockFetch.mockResolvedValueOnce(makeResponse(updatedLink)); // PATCH
+    mockFetch.mockResolvedValueOnce(makeResponse({ data: [updatedLink] })); // refetch
+    vi.stubGlobal('fetch', mockFetch);
+
+    renderDashboard();
+    await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('edit-abc'));
+    await waitFor(() => expect(screen.getByTestId('edit-dialog')).toBeInTheDocument());
+    expect(screen.getByTestId('edit-url-input')).toHaveValue('http://long.com');
+
+    fireEvent.change(screen.getByTestId('edit-url-input'), {
+      target: { value: 'http://new-destination.com' },
+    });
+    fireEvent.click(screen.getByTestId('edit-confirm'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('link-row-abc')).toHaveTextContent('http://new-destination.com'),
+    );
+  });
 });
