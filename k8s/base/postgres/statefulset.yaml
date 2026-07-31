@@ -36,6 +36,11 @@ spec:
       containers:
         - name: postgres
           image: postgres:16-alpine
+          # Loads pg_stat_statements into shared memory at postmaster start; this
+          # GUC cannot be applied via ALTER SYSTEM + reload, only at process start.
+          args:
+            - -c
+            - shared_preload_libraries=pg_stat_statements
           ports:
             - containerPort: 5432
               name: postgres
