@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -51,6 +52,54 @@ function extractSlugFromUrl(url: string): string {
 }
 
 /**
+ * Serializes an SVG element into a percent-encoded `data:` URL.
+ *
+ * This is the single URL-construction site for both export formats: every
+ * href the export paths build is a `data:image/svg+xml` URL, never `blob:`.
+ * The application Content-Security-Policy is `img-src 'self' data:`
+ * (see nginx/nginx.conf), which blocks `blob:` images; staying on `data:`
+ * keeps the exports working under that policy. `encodeURIComponent` escapes
+ * commas, so `href.split(',')[1]` cannot be truncated by payload content.
+ *
+ * `XMLSerializer` namespace fixup supplies the `xmlns` declaration, so the
+ * serialized markup is a standalone, namespace-well-formed SVG document.
+ */
+function serializeSvgToDataUrl(svgElement: SVGSVGElement): string {
+  const svgString = new XMLSerializer().serializeToString(svgElement);
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+}
+
+/**
+ * Triggers a file download through a transient anchor element.
+ *
+ * The anchor is created but never appended to the DOM; its `click()` hands
+ * the href to the browser's download mechanism. Both export formats use this
+ * one transport.
+ */
+function triggerDownload(href: string, filename: string): void {
+  const link = document.createElement('a');
+  link.href = href;
+  link.download = filename;
+  link.click();
+}
+
+/**
+ * Downloads the QR SVG element as a standalone SVG file.
+ *
+ * Synchronous by design: the SVG carries its own intrinsic geometry, so no
+ * Image decode or canvas rasterization is needed. Serializes the exact
+ * element rendered on the page and hands it to `triggerDownload` as a
+ * `data:` URL.
+ *
+ * Guards for SSR (no document).
+ */
+function downloadSvg(svgElement: SVGSVGElement, filename: string): void {
+  if (typeof document === 'undefined' || !svgElement) return;
+
+  triggerDownload(serializeSvgToDataUrl(svgElement), filename);
+}
+
+/**
  * Converts the QR SVG element to a PNG and triggers a file download.
  * Rasterizes SVG -> data URL -> canvas -> PNG data URL -> download.
  *
@@ -61,16 +110,10 @@ function extractSlugFromUrl(url: string): string {
  *
  * Guards for SSR (no document) and a missing 2D context.
  */
-function downloadSvgAsPng(
-  svgElement: SVGSVGElement,
-  filename: string,
-  size: number,
-): void {
+function downloadSvgAsPng(svgElement: SVGSVGElement, filename: string, size: number): void {
   if (typeof document === 'undefined' || !svgElement) return;
 
-  const serializer = new XMLSerializer();
-  const svgString = serializer.serializeToString(svgElement);
-  const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+  const svgDataUrl = serializeSvgToDataUrl(svgElement);
 
   // Intrinsic SVG size (QRCodeSVG sets width/height to `size`); fall back to the
   // size prop when the DOM attribute is unavailable (e.g. jsdom).
@@ -92,10 +135,7 @@ function downloadSvgAsPng(
     ctx.drawImage(img, 0, 0, width, height);
 
     const pngDataUrl = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.href = pngDataUrl;
-    link.download = filename;
-    link.click();
+    triggerDownload(pngDataUrl, filename);
   };
 
   img.src = svgDataUrl;
@@ -103,7 +143,7 @@ function downloadSvgAsPng(
 
 /**
  * QrCode: A reusable, side-effect-free presentational component that renders
- * a scannable QR code for a URL plus a "Download PNG" control.
+ * a scannable QR code for a URL plus PNG and SVG export controls.
  *
  * Props:
  *   value: The full public short URL to encode
@@ -111,45 +151,57 @@ function downloadSvgAsPng(
  *
  * Renders:
  *   - Wrapper div with data-testid="qr-code" containing the SVG
- *   - Download button with data-testid="qr-download"
+ *   - Download PNG button with data-testid="qr-download"
+ *   - Download SVG button with data-testid="qr-download-svg"
  *
- * The download mechanism rasterizes the SVG to a PNG via `data:` URLs only, so
- * it works under the app CSP (img-src 'self' data:); see downloadSvgAsPng.
+ * Both download mechanisms use `data:` URLs only, so they work under the app
+ * CSP (img-src 'self' data:); see serializeSvgToDataUrl and downloadSvgAsPng.
  */
 export default function QrCode({ value, size = 160 }: QrCodeProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const { t } = useTranslation('common');
 
-  // Stable callback (react-runtime-best-practices: useCallback for stable identity)
-  const handleDownload = useCallback(() => {
+  // Stable callbacks (react-runtime-best-practices: useCallback for stable identity)
+  const handleDownloadPng = useCallback(() => {
     const svg = svgRef.current;
     if (!svg) return;
 
-    const slug = extractSlugFromUrl(value);
-    const filename = `qr-${slug}.png`;
-    downloadSvgAsPng(svg, filename, size);
+    downloadSvgAsPng(svg, `qr-${extractSlugFromUrl(value)}.png`, size);
   }, [value, size]);
+
+  const handleDownloadSvg = useCallback(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    downloadSvg(svg, `qr-${extractSlugFromUrl(value)}.svg`);
+  }, [value]);
 
   return (
     <Stack spacing={2}>
       <Box sx={QR_CODE_WRAPPER_SX} data-testid="qr-code">
-        <QRCodeSVG
-          ref={svgRef}
-          value={value}
-          size={size}
-          level="H"
-          includeMargin={true}
-        />
+        <QRCodeSVG ref={svgRef} value={value} size={size} level="H" includeMargin={true} />
       </Box>
       <Box sx={QR_BUTTON_WRAPPER_SX}>
-        <Button
-          variant="outlined"
-          startIcon={<FileDownloadIcon />}
-          onClick={handleDownload}
-          data-testid="qr-download"
-          size="small"
-        >
-          Download PNG
-        </Button>
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" justifyContent="center">
+          <Button
+            variant="outlined"
+            startIcon={<FileDownloadIcon />}
+            onClick={handleDownloadPng}
+            data-testid="qr-download"
+            size="small"
+          >
+            {t('downloadPng')}
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<FileDownloadIcon />}
+            onClick={handleDownloadSvg}
+            data-testid="qr-download-svg"
+            size="small"
+          >
+            {t('downloadSvg')}
+          </Button>
+        </Stack>
       </Box>
     </Stack>
   );

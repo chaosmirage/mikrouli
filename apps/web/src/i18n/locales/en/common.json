@@ -6,6 +6,8 @@
   "delete": "Delete",
   "copy": "Copy",
   "copied": "Copied",
+  "downloadPng": "Download PNG",
+  "downloadSvg": "Download SVG",
   "logout": "Sign out",
   "language": "Language",
   "login": "Sign in",

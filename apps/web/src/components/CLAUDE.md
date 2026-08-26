@@ -22,10 +22,13 @@ owns the shorten POST); all other data arrives via props.
   presence of a credential; this component just POSTs to `/api/urls`.
 - `QrCode.tsx` -- Presentational component wrapping `qrcode.react`
   (`QRCodeSVG`). Accepts a full public URL (`value`) and an optional pixel
-  `size` (default 160). Renders the SVG and a "Download PNG" button.
-  Download rasterizes SVG to PNG via `data:` URLs only (never `blob:`) to
-  stay within the `img-src 'self' data:` Content-Security-Policy enforced
-  by nginx. Test id `qr-code` on the wrapper, `qr-download` on the button.
+  `size` (default 160). Renders the SVG and two export controls: Download
+  PNG and Download SVG. Both deliver the artifact via `data:` URLs only
+  (never `blob:`) to stay within the `img-src 'self' data:`
+  Content-Security-Policy enforced by nginx; button labels are localized
+  through the `common` i18n namespace (en/de/el). Test id `qr-code` on the
+  wrapper, `qr-download` on the PNG button, `qr-download-svg` on the SVG
+  button.
 - `AppShell.tsx` -- Persistent navigation chrome (drawer, top bar).
 - `ThemeModeSwitch.tsx` -- Icon button that cycles through light / dark /
   follow-system modes via `useThemeMode` from `src/theme-mode-context.tsx`.
@@ -48,7 +51,7 @@ owns the shorten POST); all other data arrives via props.
 - For QR download: keep the download path on `data:` URLs only. Switching
   to `blob:` would be blocked by the CSP (`img-src 'self' data:`).
 - Add a colocated `*.test.tsx` (Vitest + jsdom) beside every new component.
-  `QRCodeSVG` is mocked in tests via a `vi.mock('qrcode.react', ...)` shim
-  that renders a plain `<svg>` with the same testid.
+  `qrcode.react` runs unmocked in Vitest and renders a real `<svg>`; only
+  the canvas 2D context and `Image` are stubbed (jsdom has no canvas).
 - Storybook stories (`*.stories.tsx`) go beside the component. Router,
   QueryClient, and AuthContext are per-story decorators, not global.

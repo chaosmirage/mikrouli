@@ -25,7 +25,7 @@ The full stack (api, web, nginx, postgres, redis-primary, redis-replica, clickho
 ## Features
 
 - 6-character short links with 302 redirects
-- QR code generated in-browser after shortening (guest and registered), downloadable as PNG
+- QR code generated in-browser after shortening (guest and registered), downloadable as PNG or SVG
 - Guest shortening on the landing page (no account needed, gated by `GUEST_SHORTEN_ENABLED`)
 - Per-link click analytics
 - API keys for programmatic access (REST)

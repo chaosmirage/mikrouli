@@ -39,9 +39,11 @@ describe('QrCode', () => {
     // rather than wrapping a non-existent method.
     const createObjectURLSpy = vi.fn(() => 'blob:should-not-be-used');
     let capturedHref: string | null;
+    let capturedDownload: string | null;
 
     beforeEach(() => {
       capturedHref = null;
+      capturedDownload = null;
 
       // The app CSP is `img-src 'self' data:` (no blob:). A blob: URL anywhere
       // in the download path is the regression we guard against, so fail loudly
@@ -76,13 +78,16 @@ describe('QrCode', () => {
       }
       vi.stubGlobal('Image', MockImage);
 
-      // Capture the href of the <a download> the handler clicks.
+      // Capture the href and the download filename of the <a download> the
+      // handler clicks. The handler never appends the anchor to the DOM, so
+      // this spy is the only seam both export formats can be observed through.
       const realCreateElement = document.createElement.bind(document);
       vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
         const el = realCreateElement(tag);
         if (tag === 'a') {
           vi.spyOn(el, 'click').mockImplementation(() => {
             capturedHref = (el as HTMLAnchorElement).getAttribute('href');
+            capturedDownload = (el as HTMLAnchorElement).getAttribute('download');
           });
         }
         return el;
@@ -106,6 +111,43 @@ describe('QrCode', () => {
 
       expect(createObjectURLSpy).not.toHaveBeenCalled();
       expect(capturedHref).toMatch(/^data:image\/png/);
+      expect(capturedDownload).toBe('qr-abc123.png');
+    });
+
+    it('downloads a data: SVG and never creates a blob: URL', () => {
+      render(<QrCode value="https://example.com/abc123" />);
+
+      const svgButton = screen.getByTestId('qr-download-svg');
+      expect(svgButton).not.toBeDisabled();
+
+      // The SVG export is synchronous: no Image, no canvas, so jsdom runs it
+      // natively and only the anchor-click spy above is involved.
+      fireEvent.click(svgButton);
+
+      expect(createObjectURLSpy).not.toHaveBeenCalled();
+      expect(capturedHref).toMatch(/^data:image\/svg\+xml;charset=utf-8,/);
+
+      // encodeURIComponent escapes commas, so the first comma separates the
+      // URL scheme from the full percent-encoded payload.
+      const encodedPayload = (capturedHref ?? '').split(',')[1] ?? '';
+      const payload = decodeURIComponent(encodedPayload);
+
+      // The standalone artifact is namespace-well-formed XML (serializer
+      // namespace fixup; qrcode.react itself sets no xmlns).
+      expect(payload.startsWith('<svg')).toBe(true);
+      expect(payload).toContain('xmlns="http://www.w3.org/2000/svg"');
+
+      expect(capturedDownload).toBe('qr-abc123.svg');
+    });
+
+    it('labels the PNG control "Download PNG" (en locale from the i18next test setup)', () => {
+      render(<QrCode value="https://example.com/abc123" />);
+      expect(screen.getByTestId('qr-download')).toHaveTextContent('Download PNG');
+    });
+
+    it('labels the SVG control "Download SVG" (en locale from the i18next test setup)', () => {
+      render(<QrCode value="https://example.com/abc123" />);
+      expect(screen.getByTestId('qr-download-svg')).toHaveTextContent('Download SVG');
     });
   });
 });

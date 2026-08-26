@@ -104,9 +104,12 @@ describe('ShortenCard', () => {
       const svg = qrCode.querySelector('svg');
       expect(svg).toBeInTheDocument();
 
-      // Download control is present alongside the QR code
+      // Download controls are present alongside the QR code
       const downloadButton = screen.getByTestId('qr-download');
       expect(downloadButton).toBeInTheDocument();
+
+      const downloadSvgButton = screen.getByTestId('qr-download-svg');
+      expect(downloadSvgButton).toBeInTheDocument();
     });
   });
 
