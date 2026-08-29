@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer, useState } from 'react';
+import { Fragment, useCallback, useMemo, useReducer, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -101,9 +101,12 @@ interface DestinationCorrectionProps {
 }
 
 // The destination cell while correcting: the entering opens on the
-// destination as it stands, confirm and cancel stay inside the row, and a
-// refused destination is stated in place so the owner can correct and
-// confirm again — never silently lost.
+// destination as it stands, and it travels on one line with its confirm
+// whenever the row has room — folding onto separate lines only when the row
+// is narrow. The standing's caption is the entering's ONE visible label;
+// the input carries its accessible name itself. A refused destination is
+// stated in place so the owner can correct and confirm again — never
+// silently lost.
 function DestinationCorrection({
   slug,
   currentUrl,
@@ -115,7 +118,13 @@ function DestinationCorrection({
   const { t } = useTranslation('dashboard');
   const { t: tCommon } = useTranslation('common');
   const [draft, setDraft] = useState(currentUrl);
-  const inputProps = useMemo(() => ({ 'data-testid': `edit-url-input-${slug}` }), [slug]);
+  // The entering renders no label of its own (the standing's caption
+  // "Original URL" is the one visible label); the input's accessible name
+  // rides along on the input element itself.
+  const inputProps = useMemo(
+    () => ({ 'data-testid': `edit-url-input-${slug}`, 'aria-label': t('correctedDestination') }),
+    [slug, t],
+  );
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => setDraft(event.target.value),
@@ -124,10 +133,15 @@ function DestinationCorrection({
   const handleConfirm = useCallback(() => onConfirm(draft), [onConfirm, draft]);
 
   return (
-    <Stack sx={CORRECTION_SX} useFlexGap>
+    <Stack
+      direction="row"
+      sx={CORRECTION_SX}
+      useFlexGap
+      data-testid={`edit-correction-${slug}`}
+    >
       <TextField
         size="small"
-        label={t('correctedDestination')}
+        fullWidth
         value={draft}
         onChange={handleChange}
         error={!!error}
@@ -145,7 +159,7 @@ function DestinationCorrection({
           {error}
         </Typography>
       ) : null}
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} sx={CORRECTION_ACTS_SX}>
         <Button
           size="small"
           onClick={onCancel}
@@ -205,7 +219,7 @@ function LinkSetRow({
   const activeCorrection = correction?.slug === slug ? correction : null;
   const destinationValue =
     activeCorrection === null ? (
-      <Typography component="span" sx={ELLIPSIS_SX} title={link.originalUrl}>
+      <Typography component="span" sx={DESTINATION_SX} title={link.originalUrl}>
         {link.originalUrl}
       </Typography>
     ) : (
@@ -222,6 +236,7 @@ function LinkSetRow({
 
   return (
     <StandingsRow
+      aligned
       rowTestId={`link-row-${slug}`}
       identity={
         <MuiLink
@@ -358,26 +373,26 @@ function LinksSet({
           </Alert>
         </Box>
       ) : (
-        <Stack
+        <Box
           key={fragment.toLowerCase()}
           sx={isNarrowing ? narrowedSetSx : ROWS_SX}
-          divider={<Divider component="div" />}
-          spacing={1.5}
-          useFlexGap
+          data-testid="dashboard-links-rows"
         >
-          {narrowed.map((link) => (
-            <LinkSetRow
-              key={link.shortUrl}
-              link={link}
-              correction={correction}
-              onOpenCorrection={onOpenCorrection}
-              onConfirmCorrection={onConfirmCorrection}
-              onCancelCorrection={onCancelCorrection}
-              onStats={onStats}
-              onRetire={onRetire}
-            />
+          {narrowed.map((link, index) => (
+            <Fragment key={link.shortUrl}>
+              {index > 0 ? <Divider component="div" sx={ROW_DIVIDER_SX} /> : null}
+              <LinkSetRow
+                link={link}
+                correction={correction}
+                onOpenCorrection={onOpenCorrection}
+                onConfirmCorrection={onConfirmCorrection}
+                onCancelCorrection={onCancelCorrection}
+                onStats={onStats}
+                onRetire={onRetire}
+              />
+            </Fragment>
           ))}
-        </Stack>
+        </Box>
       )}
     </Paper>
   );
@@ -399,6 +414,9 @@ export default function DashboardPage() {
   const [pageError, setPageError] = useState<string | null>(null);
   const [fragment, setFragment] = useState('');
   const [retireCandidate, setRetireCandidate] = useState<string | null>(null);
+  // The open correction lives at the PAGE, not the row: no row re-render —
+  // the responsive xs/md switch in these rows is pure CSS — can remount the
+  // editor away, so an open correction survives any viewport change.
   const [correction, dispatchCorrection] = useReducer(correctionReducer, null);
   const navigate = useNavigate();
 
@@ -489,11 +507,23 @@ export default function DashboardPage() {
 
 const NARROW_ANIMATION_NAME = 'mikrouli-set-narrow';
 
+// The set's ONE shared row template: the short link and the destination are
+// the only flexible tracks (fr shares over a zero floor, so their widths
+// never depend on any row's content), the destination is the widest and the
+// only track whose matter wraps; the dates size to their strings and the
+// acts end the row. Every row of the set adopts these exact tracks, so
+// like-positioned standings — and the acts — start at the same x in every
+// row, whatever a destination carries, editor open or closed.
+const LINK_ROW_COLUMNS = 'minmax(0, 1fr) minmax(0, 3fr) max-content max-content auto';
+
 // The narrowing's own motion: each further fragment re-mounts the rows so
-// the shrinking set itself reads as the progress. The reduced-motion
-// preference is owned by the theme's single centralized collapse
-// (MuiCssBaseline in src/theme.ts), which turns this animation instant too.
+// the shrinking set itself reads as the progress. The box rhythm rides
+// along (the animation is added to it, never traded for it). The
+// reduced-motion preference is owned by the theme's single centralized
+// collapse (MuiCssBaseline in src/theme.ts), which turns this animation
+// instant too.
 const narrowedSetSx = (theme: Theme) => ({
+  ...ROWS_SX,
   animation: `${NARROW_ANIMATION_NAME} ${theme.transitions.duration.narrow ?? 150}ms ${
     theme.transitions.easing.easeOut
   } both`,
@@ -503,23 +533,61 @@ const narrowedSetSx = (theme: Theme) => ({
   },
 });
 
-const ROWS_SX = { pt: 1.5 } as const;
+// The set's rows: inset from the set's edges on every side the head already
+// breathes on (the head carries the same sides), with the rows' vertical
+// rhythm between. From md up the rows become one grid carrying the shared
+// template — each row adopts its tracks, so the columns hold one line.
+// Below md the rows fold individually, which is the readable shape there.
+const ROWS_SX = {
+  px: 2,
+  pt: 1.5,
+  pb: 2,
+  display: { xs: 'flex', md: 'grid' },
+  flexDirection: 'column',
+  rowGap: 1.5,
+  columnGap: { md: 3 },
+  gridTemplateColumns: { md: LINK_ROW_COLUMNS },
+} as const;
+
+// A row divider spans every track of the shared template at md; below md it
+// is the set's plain hairline.
+const ROW_DIVIDER_SX = { gridColumn: { md: '1 / -1' } } as const;
 
 const SET_HEAD_SX = { p: 2, pb: 1.5 } as const;
 const SET_BODY_SX = { p: 2 } as const;
 
-const CORRECTION_SX = { gap: 1, minWidth: { xs: '100%', sm: 320 } } as const;
-const CORRECTION_FIELD_SX = { minWidth: 0 } as const;
-// A refused destination is stated in place with the entering it refused —
-// severity by ink step, never a second hue.
-const CORRECTION_ERROR_SX = { color: 'error.main' } as const;
-
-const ELLIPSIS_SX = {
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-  maxWidth: 360,
+// The in-row correction lays out on one line — entering beside confirm —
+// whenever the destination's track has room for both, and wraps each onto
+// its own line only when the track is narrow. It is never a fixed-width
+// island: the form is bounded by the track it renders in. The top margin is
+// the ladder's inline step, so the standing's caption and the entering's
+// input never glue together.
+const CORRECTION_SX = {
+  mt: 1,
+  gap: 1,
+  width: '100%',
+  minWidth: 0,
+  flexWrap: 'wrap',
+  alignItems: 'center',
 } as const;
+
+// The entering fills whatever line the row gives it; minWidth 0 lets it
+// shrink with the row instead of holding a fixed width, so a long
+// destination value never expands or overflows the container.
+const CORRECTION_FIELD_SX = { flex: '1 1 240px', minWidth: 0 } as const;
+
+// Confirm and cancel travel as one unit: they share the entering's line on
+// wide rows and wrap below it whole on narrow ones.
+const CORRECTION_ACTS_SX = { flexShrink: 0 } as const;
+
+// A refused destination is stated on the correction's own full-width line —
+// severity by ink step, never a second hue.
+const CORRECTION_ERROR_SX = { color: 'error.main', flexBasis: '100%' } as const;
+
+// The standing destination wraps inside the row it occupies: a spaceless
+// URL breaks anywhere rather than overflowing the row (or being clipped
+// into a fixed-width island), with the full string still at hand on hover.
+const DESTINATION_SX = { overflowWrap: 'anywhere' } as const;
 
 // The short link reads in the fixed-width register so the character-exact
 // string is read character-exactly. (The optional chain keeps the link

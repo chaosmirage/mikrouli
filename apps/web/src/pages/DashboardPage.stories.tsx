@@ -39,6 +39,38 @@ export const FullSet: Story = {
   },
 };
 
+// A very long, spaceless destination (a documents-style URL) beside a short
+// one: the row must contain the long URL — it wraps inside its own track
+// instead of overflowing the row or moving the other columns — so both
+// rows' Created/Expired/acts columns align, and the in-row correction stays
+// within its track at every viewport.
+export const LongDestination: Story = {
+  parameters: {
+    msw: {
+      handlers: [
+        http.get('/api/urls', () =>
+          HttpResponse.json({
+            data: [
+              {
+                shortUrl: 'docs-link',
+                originalUrl: `https://docs.example.com/document/d/${'a'.repeat(320)}/edit`,
+                createdAt: '2026-01-15T09:00:00Z',
+                expiresAt: '2027-01-15T09:00:00Z',
+              },
+              {
+                shortUrl: 'short',
+                originalUrl: 'https://example.com/usage-count-target',
+                createdAt: '2026-02-05T09:00:00Z',
+                expiresAt: null,
+              },
+            ],
+          }),
+        ),
+      ],
+    },
+  },
+};
+
 // Empty state: no links yet. The set is replaced by the honest empty message.
 export const EmptyState: Story = {
   parameters: {

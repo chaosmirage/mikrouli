@@ -28,9 +28,18 @@ const queryClient = new QueryClient({
   },
 });
 
-// Contained pages sit inside the reading measure with the page's own margin
-// rhythm — a wider viewport buys margins and calm, never longer lines.
-const CONTAINED_LAYOUT_SX = { py: SPACE.page, maxWidth: `${SPACE.measure}px`, mx: 'auto' };
+// Contained pages sit in the wide content zone with the page's own margin
+// rhythm — the dashboard set is a scanning zone, so the shared column is the
+// content token, not the reading measure; sustained reading bounds itself
+// (the legal columns' own measure, the connect form's own sm column). The
+// horizontal padding keeps the column off the viewport edges below the cap,
+// growing with the ladder once the viewport allows.
+const CONTAINED_LAYOUT_SX = {
+  py: SPACE.page,
+  px: { xs: SPACE.element, sm: SPACE.block },
+  maxWidth: `${SPACE.content}px`,
+  mx: 'auto',
+};
 
 // Inner layout for content pages — wraps the outlet in a centred Container.
 // Landing page deliberately renders outside this layout: its composition —
