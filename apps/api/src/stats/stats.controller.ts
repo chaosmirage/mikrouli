@@ -7,8 +7,14 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { BearerOrApiKeyGuard } from '../api-keys/bearer-or-api-key.guard';
 import type { AuthenticatedRequest } from '../common/authenticated-request';
+import {
+  AUTH_THROTTLE_NAME,
+  DEFAULT_THROTTLE_NAME,
+  REDIRECT_THROTTLE_NAME,
+} from '../common/throttler-policy';
 import { LinksService } from '../links/links.service';
 import { AggregatedStats, StatsService } from './stats.service';
 import type { StatsAggregateResponse } from '../types/openapi';
@@ -35,6 +41,14 @@ async function verifyLinkOwnership(
 
 @Controller('stats')
 @UseGuards(BearerOrApiKeyGuard)
+// Authenticated traffic runs under the generous data budget alone: the skip
+// sheds the three public names, whose floors would otherwise bind through
+// the min-rule. Auth remains the primary control on these routes.
+@SkipThrottle({
+  [DEFAULT_THROTTLE_NAME]: true,
+  [AUTH_THROTTLE_NAME]: true,
+  [REDIRECT_THROTTLE_NAME]: true,
+})
 export class StatsController {
   constructor(
     private readonly statsService: StatsService,

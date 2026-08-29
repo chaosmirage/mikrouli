@@ -1,5 +1,6 @@
 import { test, expect, apiCall, registerAndLogin } from './fixtures';
 
+const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:8888';
 const TARGET_URL = 'https://example.com/stats-target';
 const REDIRECT_HITS = 3;
 const STATS_POLL_TIMEOUT_MS = 15_000;
@@ -84,7 +85,7 @@ test('stats endpoint returns 403 when called by another user', async ({ page, re
   await page.context().clearCookies();
   // Owner logs in and creates a link.
   const owner = await registerAndLogin(page);
-  const createResp = await page.request.fetch('http://localhost:8888/api/urls', {
+  const createResp = await page.request.fetch(`${BASE_URL}/api/urls`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: { url: TARGET_URL },
@@ -96,7 +97,7 @@ test('stats endpoint returns 403 when called by another user', async ({ page, re
   await registerAndLogin(page);
 
   // The intruder's session cookies are now in the browser context.
-  const resp = await page.request.fetch(`http://localhost:8888/api/stats/${slug}`);
+  const resp = await page.request.fetch(`${BASE_URL}/api/stats/${slug}`);
   expect(resp.status()).toBe(403);
 
   // Suppress unused variable warning

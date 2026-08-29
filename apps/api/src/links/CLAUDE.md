@@ -17,7 +17,12 @@ creation used by the landing-page anonymous shorten form.
   `BearerOrApiKeyGuard` (registered users only). The controller branches on
   `req.user.isGuest` and calls either `LinksService.create` or
   `LinksService.createGuest`, keeping the service actor-agnostic except for
-  the quota-skip path. Responses are mapped through `toPublicLinkSchema`
+  the quota-skip path. Rate limits are selected per route from
+  `common/throttler-policy.ts`: `POST /` pins the per-IP
+  `GUEST_CREATE_BUDGET` override (the deliberate bound on anonymous
+  creation), while `GET /`, `DELETE /:slug`, and `PATCH /:slug` shed the
+  three public throttle names via `@SkipThrottle` so authenticated traffic
+  runs under the generous `data` budget alone. Responses are mapped through `toPublicLinkSchema`
   before being returned; errors flow to `ProblemDetailsFilter` as RFC 9457
   problem-details. `PATCH /:slug` (`update`) is behind `BearerOrApiKeyGuard`
   like list/remove; it calls `LinksService.updateDestination`, then
@@ -33,9 +38,11 @@ creation used by the landing-page anonymous shorten form.
   - `createGuest(url, guestUserId, expiresAt?)` -- Guest variant. Reuses the
     slug-insert-outbox chain verbatim but skips the per-user quota check:
     quota is meaningless on the shared Guest row (one visitor could exhaust
-    it for everyone), and the global `ThrottlerGuard` is the only per-IP
-    abuse bound on Guest. Owner of the new row is the shared Guest
-    pseudo-identity resolved by `GuestOrAuthenticatedGuard`.
+    it for everyone); the deliberate per-IP `GUEST_CREATE_BUDGET` override
+    declared in `common/throttler-policy.ts` and pinned on `POST /` in
+    `links.controller.ts` is the only abuse bound on Guest. Owner of the new
+    row is the shared Guest pseudo-identity resolved by
+    `GuestOrAuthenticatedGuard`.
   - `listForUser(userId)`, `delete(slug, userId)` -- read/delete scoped to
     the calling user; Guest-origin calls never reach these (the guard
     refuses Guest on `GET`/`DELETE`).
@@ -62,10 +69,11 @@ creation used by the landing-page anonymous shorten form.
 - Keep the controller thin: it should branch on `req.user.isGuest` and pick
   the service method, nothing more. New admission policies belong in a guard
   under `api-keys/`, not in a controller-side check.
-- `createGuest` must never run a per-user quota check. If a future change
-  adds abuse protection for Guest, do it via the global `ThrottlerGuard` or
-  a dedicated rate-limit, not by reusing the registered-user quota path --
-  the Guest row is shared across all anonymous visitors.
+- `createGuest` must never run a per-user quota check. Guest abuse bounds
+  are per-IP rate limits declared in `common/throttler-policy.ts` and
+  applied per route on the controller (today the `GUEST_CREATE_BUDGET`
+  override on `POST /`), never the registered-user quota path -- the Guest
+  row is shared across all anonymous visitors.
 - The slug collision retry in `retryOnSlugConflict` is shared by both
   creation paths. Change it in one place; do not duplicate the retry loop in
   `createGuest`.

@@ -15,6 +15,13 @@ responses to an `ApiError` with the RFC 9457 problem-details message extracted.
   session cookies without script-visible token storage. Generates a UUID v4
   `X-Correlation-ID` header on every outgoing request so the API can trace the
   call. Throws `ApiError` on non-2xx responses, carrying the correlation ID back.
+- `short-url.ts` -- `resolveFullShortUrl(raw)`. The single canonical
+  short-URL resolver: the API returns `shortUrl` as a bare slug, and the
+  public address is composed here with the current origin. Pre-resolved
+  URLs (test fixtures, a future API change) pass through unchanged, and a
+  non-browser context returns the raw value. Every surface that renders a
+  short address (`ShortenCard`'s result moment, the dashboard link rows)
+  reads this one implementation -- do not hand-roll parallel copies.
 - `openapi-generated.ts` -- generated from `apps/api/spec/main.tsp` via
   `pnpm spec:all`; do not hand-edit.
 - `types.ts` -- re-exports the subset of OpenAPI types that the app consumes

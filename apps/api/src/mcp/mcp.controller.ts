@@ -25,12 +25,18 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
 import { ApiKeyAuthGuard } from '../api-keys/api-key-auth.guard';
 import type { AuthenticatedRequest } from '../common/authenticated-request';
+import {
+  AUTH_THROTTLE_NAME,
+  DEFAULT_THROTTLE_NAME,
+  REDIRECT_THROTTLE_NAME,
+} from '../common/throttler-policy';
 import { LinksService } from '../links/links.service';
 import { createShortLinkHandler } from './create-short-link.handler';
 import { PUBLIC_BASE_URL_TOKEN } from './mcp.constants';
@@ -56,6 +62,14 @@ const createShortLinkSchema = z.object({
 });
 
 @Controller('mcp')
+// API-key-authenticated traffic runs under the generous data budget alone:
+// the skip sheds the three public names, whose floors would otherwise bind
+// through the min-rule. The API key check remains the primary control.
+@SkipThrottle({
+  [DEFAULT_THROTTLE_NAME]: true,
+  [AUTH_THROTTLE_NAME]: true,
+  [REDIRECT_THROTTLE_NAME]: true,
+})
 export class McpController {
   constructor(
     private readonly linksService: LinksService,

@@ -5,6 +5,7 @@ import type { Browser, Page } from '@playwright/test';
 const JOURNEY_URL = 'https://example.com/journey-link';
 const JOURNEY_API_URL = 'https://example.com/api-key-journey';
 const JOURNEY_KEY_LABEL = 'journey-key';
+const REVOKED_STANDING = 'Revoked';
 const STATS_FLUSH_WAIT_MS = 11_000;
 const JOURNEY_TIMEOUT_MS = 90_000;
 const API_KEY_PATTERN = /mk_\S+/;
@@ -13,8 +14,8 @@ async function createLinkViaUi(page: Page, url: string): Promise<string> {
   await page.getByTestId('shorten-url').fill(url);
   await page.getByTestId('shorten-submit').click();
   await expect(page.getByTestId('new-link-alert')).toBeVisible();
-  const alertText = await page.getByTestId('new-link-alert').innerText();
-  return alertText.trim();
+  const linkText = await page.getByTestId('result-link').innerText();
+  return linkText.trim();
 }
 
 async function openSlugIncognito(browser: Browser, slug: string): Promise<void> {
@@ -24,11 +25,7 @@ async function openSlugIncognito(browser: Browser, slug: string): Promise<void> 
   await ctx.close();
 }
 
-async function assertStatsFlush(
-  page: Page,
-  api: ApiClient,
-  slug: string,
-): Promise<void> {
+async function assertStatsFlush(page: Page, api: ApiClient, slug: string): Promise<void> {
   await page.waitForTimeout(STATS_FLUSH_WAIT_MS);
   await page.goto(`/stats/${slug}`);
   const resp = await api.call('GET', `/api/stats/${slug}`);
@@ -46,23 +43,22 @@ async function createKeyAndCaptureSecret(page: Page): Promise<string> {
   return match![0];
 }
 
-async function revokeKeyByLabel(
-  page: Page,
-  api: ApiClient,
-  label: string,
-): Promise<void> {
+async function revokeKeyByLabel(page: Page, api: ApiClient, label: string): Promise<void> {
   const resp = await api.call('GET', '/api/api-keys');
   const body = (await resp.json()) as { data: Array<{ id: string; label: string }> };
   const keyEntry = body.data.find((k) => k.label === label);
   const id = keyEntry?.id ?? '';
-  await page.getByTestId(`revoke-${id}`).click();
-  // Wait for DELETE to commit before returning so the caller can assume
-  // the key is fully revoked (otherwise next API call may race).
+  // Retiring is one act on the row: the reach itself fires the DELETE, so the
+  // response wait must be armed BEFORE the click. Awaiting it lets the caller
+  // assume the key is fully revoked (otherwise next API call may race).
   const revokeResponse = page.waitForResponse(
     (r) => r.url().includes(`/api/api-keys/${id}`) && r.request().method() === 'DELETE',
   );
-  await page.getByTestId('revoke-confirm').click();
+  await page.getByTestId(`revoke-${id}`).click();
   await revokeResponse;
+  // The row's retired standing confirms the SPA finished its post-revoke
+  // state update before the caller relies on the key being spent.
+  await expect(page.getByTestId(`key-row-${id}`)).toContainText(REVOKED_STANDING);
 }
 
 async function deleteLinkBySlug(page: Page, slug: string): Promise<void> {

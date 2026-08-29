@@ -8,11 +8,17 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { StatsService } from '../stats/stats.service';
 import { RedirectService, RedirectResolution } from './redirect.service';
-import { REDIRECT_THROTTLE_NAME } from '../app.module';
+import {
+  AUTH_THROTTLE_NAME,
+  DATA_THROTTLE_NAME,
+  DEFAULT_THROTTLE_NAME,
+  REDIRECT_HOT_PATH_BUDGET,
+  REDIRECT_THROTTLE_NAME,
+} from '../common/throttler-policy';
 
 const REDIRECT_STATUS = HttpStatus.FOUND; // 302
 const SLUG_LENGTH = 6;
@@ -59,7 +65,16 @@ export class RedirectController {
   ) {}
 
   @Get()
-  @Throttle({ [REDIRECT_THROTTLE_NAME]: { limit: 120, ttl: 10_000 } })
+  // The hot path runs on the redirect budget alone: the min-rule over all
+  // non-skipped names would otherwise cap it at the stricter 300/60s default
+  // floor, below this route's designed 120 req / 10 s. The override pins the
+  // budget; the skip sheds every other declared name.
+  @Throttle({ [REDIRECT_THROTTLE_NAME]: REDIRECT_HOT_PATH_BUDGET })
+  @SkipThrottle({
+    [DEFAULT_THROTTLE_NAME]: true,
+    [AUTH_THROTTLE_NAME]: true,
+    [DATA_THROTTLE_NAME]: true,
+  })
   async redirect(
     @Param('slug') slug: string,
     @Res() res: Response,

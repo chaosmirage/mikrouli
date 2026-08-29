@@ -6,6 +6,8 @@
   "delete": "Διαγραφή",
   "copy": "Αντιγραφή",
   "copied": "Αντιγράφηκε",
+  "copyFailed": "Η αντιγραφή δεν είναι διαθέσιμη σε αυτό το πρόγραμμα περιήγησης",
+  "resultCreated": "Ο σύντομος σύνδεσμός σας είναι έτοιμος",
   "downloadPng": "Λήψη PNG",
   "downloadSvg": "Λήψη SVG",
   "logout": "Αποσύνδεση",
@@ -23,5 +25,9 @@
   "themeMode": "Θέμα",
   "themeLight": "Φωτεινό",
   "themeDark": "Σκοτεινό",
-  "themeSystem": "Ακολούθηση συστήματος"
+  "themeSystem": "Ακολούθηση συστήματος",
+  "settings": "Ρυθμίσεις",
+  "closeSettings": "Τέλος",
+  "statementUnderway": "Σε εξέλιξη…",
+  "statementEmpty": "Ακόμα τίποτα εδώ"
 }

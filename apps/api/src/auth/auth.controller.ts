@@ -19,7 +19,13 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RequestUser } from './jwt.strategy';
-import { AUTH_THROTTLE_NAME } from '../app.module';
+import {
+  AUTH_CREDENTIAL_BUDGET,
+  AUTH_THROTTLE_NAME,
+  DATA_THROTTLE_NAME,
+  DEFAULT_THROTTLE_NAME,
+  REDIRECT_THROTTLE_NAME,
+} from '../common/throttler-policy';
 import type { RegisterResponse, MeResponse } from '../types/openapi';
 import { GithubOauthGuard } from './github.strategy';
 import { GithubOauthRedirectFilter } from './github-oauth.errors';
@@ -67,7 +73,7 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(201)
-  @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
+  @Throttle({ [AUTH_THROTTLE_NAME]: AUTH_CREDENTIAL_BUDGET })
   async register(@Body() dto: RegisterDto): Promise<RegisterResponse> {
     const user = await this.authService.register(dto);
     return toRegisterResponse(user);
@@ -75,7 +81,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
+  @Throttle({ [AUTH_THROTTLE_NAME]: AUTH_CREDENTIAL_BUDGET })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -89,7 +95,7 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(200)
-  @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
+  @Throttle({ [AUTH_THROTTLE_NAME]: AUTH_CREDENTIAL_BUDGET })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -117,7 +123,16 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(204)
-  @SkipThrottle()
+  // Session checks are per-request JWT verifications, so a per-IP limit here
+  // adds nothing the JWT check does not already enforce. Every declared
+  // throttler name must be skipped explicitly: @nestjs/throttler 6.x applies
+  // every non-skipped name and a bare @SkipThrottle() skips only 'default'.
+  @SkipThrottle({
+    [DEFAULT_THROTTLE_NAME]: true,
+    [AUTH_THROTTLE_NAME]: true,
+    [REDIRECT_THROTTLE_NAME]: true,
+    [DATA_THROTTLE_NAME]: true,
+  })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
     const cookies = req.cookies as Record<string, string | undefined>;
     const refreshToken = cookies[REFRESH_COOKIE_NAME];
@@ -141,7 +156,14 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  @SkipThrottle()
+  // Same rationale as logout: skip every declared throttler name — this
+  // endpoint runs once per SPA page load and only verifies the JWT.
+  @SkipThrottle({
+    [DEFAULT_THROTTLE_NAME]: true,
+    [AUTH_THROTTLE_NAME]: true,
+    [REDIRECT_THROTTLE_NAME]: true,
+    [DATA_THROTTLE_NAME]: true,
+  })
   async me(@Req() req: AuthenticatedRequest): Promise<MeResponse> {
     const user = await this.usersService.findById(req.user.id);
     if (!user) throw new UnauthorizedException();
@@ -153,7 +175,7 @@ export class AuthController {
   // and redirects the browser to GitHub's authorization endpoint.
   @Get('github')
   @UseGuards(GithubOauthGuard)
-  @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
+  @Throttle({ [AUTH_THROTTLE_NAME]: AUTH_CREDENTIAL_BUDGET })
   githubAuthorize(): void {
     // Guard redirects to GitHub before this body executes.
   }
@@ -168,7 +190,7 @@ export class AuthController {
   @Get('github/callback')
   @UseGuards(GithubOauthGuard)
   @UseFilters(GithubOauthRedirectFilter)
-  @Throttle({ [AUTH_THROTTLE_NAME]: { limit: 10, ttl: 60_000 } })
+  @Throttle({ [AUTH_THROTTLE_NAME]: AUTH_CREDENTIAL_BUDGET })
   async githubCallback(@Req() req: GithubCallbackRequest, @Res() res: Response): Promise<void> {
     const { cookies } = await this.authService.loginWithGithub(req.user);
     applySessionCookies(res, cookies);

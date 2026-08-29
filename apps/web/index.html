@@ -35,8 +35,10 @@
         var root = document.documentElement;
         root.setAttribute('data-mui-color-scheme', effective);
         // Body background set via a CSS variable so CssBaseline's later rules
-        // don't have to race: the var is consumed inline below.
-        var bg = effective === 'dark' ? '#121212' : '#f6f5f4';
+        // don't have to race: the var is consumed inline below. Both literals
+        // are the theme factory's canvas token per mode — they must not
+        // diverge from it.
+        var bg = effective === 'dark' ? '#000000' : '#f8fafc';
         root.style.setProperty('--mikrouli-initial-bg', bg);
         var metaTheme = document.querySelector('meta[name="theme-color"]');
         if (metaTheme) {
@@ -53,14 +55,16 @@
       })();
     </script>
     <style>
-      body { background-color: var(--mikrouli-initial-bg, #f6f5f4); }
+      body {
+        background-color: var(--mikrouli-initial-bg, #f8fafc);
+      }
     </style>
 
     <!-- Primary meta -->
     <title>mikrouli — Shorten your links, track every click</title>
     <meta
       name="description"
-      content="Free URL shortener with click analytics. Shorten links instantly, automate via REST API or MCP for AI agents."
+      content="Free URL shortener with click analytics and QR codes (PNG and SVG). Shorten links with no account, automate via REST API or MCP for AI agents."
     />
     <meta name="theme-color" content="#191919" />
     <link rel="canonical" href="https://mikrou.li/" />
@@ -71,7 +75,7 @@
     <meta property="og:title" content="mikrouli — Shorten your links, track every click" />
     <meta
       property="og:description"
-      content="Free URL shortener with click analytics. Shorten links instantly, automate via REST API or MCP for AI agents."
+      content="Free URL shortener with click analytics and QR codes (PNG and SVG). Shorten links with no account, automate via REST API or MCP for AI agents."
     />
     <meta property="og:url" content="https://mikrou.li/" />
     <meta property="og:image" content="https://mikrou.li/og-image.png" />
@@ -83,7 +87,7 @@
     <meta name="twitter:title" content="mikrouli — Shorten your links, track every click" />
     <meta
       name="twitter:description"
-      content="Free URL shortener with click analytics and MCP for AI agents."
+      content="Free URL shortener with click analytics, QR codes, and MCP for AI agents."
     />
     <meta name="twitter:image" content="https://mikrou.li/og-image.png" />
 
@@ -95,7 +99,7 @@
         "name": "mikrouli",
         "applicationCategory": "WebApplication",
         "operatingSystem": "Web",
-        "description": "Free URL shortener with click analytics. Shorten links instantly, automate via REST API or MCP for AI agents.",
+        "description": "Free URL shortener with click analytics and QR codes (PNG and SVG). Shorten links with no account, automate via REST API or MCP for AI agents.",
         "url": "https://mikrou.li/",
         "offers": {
           "@type": "Offer",
@@ -104,10 +108,11 @@
         },
         "featureList": [
           "URL shortening",
-          "QR code download",
+          "QR code download (PNG and SVG)",
           "Click analytics",
           "REST API",
-          "MCP server for AI agents"
+          "MCP server for AI agents",
+          "Interface in English, German, and Greek"
         ]
       }
     </script>

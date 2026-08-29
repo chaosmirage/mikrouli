@@ -1,9 +1,10 @@
 {
   "title": "API keys",
+  "intro": "Issue and retire the API keys that authorize machine access to your account.",
   "label": "Label",
   "prefix": "Prefix",
   "create": "Create key",
-  "secretOnce": "Copy this secret NOW — it will never be shown again: {{key}}",
+  "secretReceipt": "Key issued. The secret is shown once below — copy it now; it will not be shown again.",
   "revoke": "Revoke",
   "active": "Active",
   "revoked": "Revoked",
@@ -11,8 +12,6 @@
   "neverUsed": "Never used",
   "status": "Status",
   "created": "Created",
-  "revokeKey": "Revoke API key?",
-  "revokeBody": "This will permanently revoke the key and cannot be undone.",
   "noKeys": "No API keys yet",
   "dismiss": "Dismiss"
 }

@@ -6,7 +6,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { TestQueryClientProvider } from '../test/queryClient';
 import DashboardPage from './DashboardPage';
 
-function makeHeaders() { return { get: () => null }; }
+function makeHeaders() {
+  return { get: () => null };
+}
 function makeOk(data: unknown) {
   return { ok: true, status: 200, json: () => Promise.resolve(data), headers: makeHeaders() };
 }
@@ -58,14 +60,14 @@ describe('DashboardPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeOk({ data: [] })));
     renderDashboard();
     await waitFor(() => expect(screen.getByTestId('no-links-message')).toBeInTheDocument());
-    expect(screen.queryByTestId('dashboard-links-table')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('dashboard-links-set')).not.toBeInTheDocument();
   });
 
-  it('pins fetch-error render (error message shown, no table, no empty message)', async () => {
+  it('pins fetch-error render (error message shown, no set, no empty message)', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeErr(500, { detail: 'load failed boom' })));
     renderDashboard();
     await waitFor(() => expect(screen.getByText('load failed boom')).toBeInTheDocument());
-    expect(screen.queryByTestId('dashboard-links-table')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('dashboard-links-set')).not.toBeInTheDocument();
     expect(screen.queryByTestId('no-links-message')).not.toBeInTheDocument();
   });
 });

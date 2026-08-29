@@ -1,5 +1,6 @@
 {
   "title": "Nutzung",
+  "intro": "Der monatliche Stand deines Kontos gegenüber deinen Link- und Schlüssel-Limits.",
   "linksQuota": "Kurzlinks",
   "keysQuota": "API-Schlüssel",
   "created": "Erstellt",
@@ -8,6 +9,8 @@
   "usageProgress": "{{used}} von {{total}} verwendet",
   "resetDate": "Zurückgesetzt am",
   "retention": "Standard-Link-Aufbewahrungsdauer",
+  "retentionYears_one": "{{count}} Jahr",
+  "retentionYears_other": "{{count}} Jahre",
   "requestMore": "Höheres Limit beantragen",
   "requestSubject": "Anfrage zur Erhöhung des Nutzungslimits",
   "requestBody": "Hallo,\n\nIch möchte eine Erhöhung meines monatlichen Nutzungslimits beantragen.\n\nKonto: {{email}}\n\nDanke.",

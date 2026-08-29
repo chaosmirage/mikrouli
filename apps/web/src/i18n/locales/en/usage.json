@@ -1,5 +1,6 @@
 {
   "title": "Usage",
+  "intro": "Your account's monthly standing against its link and key limits.",
   "linksQuota": "Short Links",
   "keysQuota": "API Keys",
   "created": "Created",
@@ -8,6 +9,8 @@
   "usageProgress": "{{used}} of {{total}} used",
   "resetDate": "Resets on",
   "retention": "Default link retention",
+  "retentionYears_one": "{{count}} year",
+  "retentionYears_other": "{{count}} years",
   "requestMore": "Request higher limit",
   "requestSubject": "Usage limit increase request",
   "requestBody": "Hello,\n\nI would like to request an increase to my monthly usage limit.\n\nAccount: {{email}}\n\nThank you.",

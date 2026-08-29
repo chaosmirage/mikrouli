@@ -49,7 +49,8 @@ test.describe('Guest shorten on the landing page', () => {
     await page.getByTestId('shorten-submit').click();
 
     // Short link renders with a copy affordance.
-    await expect(page.getByTestId('new-link-alert')).toBeVisible();
+    await expect(page.getByTestId('result-confirmation')).toBeVisible();
+    await expect(page.getByTestId('result-link')).toBeVisible();
     await expect(page.getByTestId('copy-link')).toBeVisible();
 
     // The nudge appears after the Guest shorten, naming EXACTLY the two

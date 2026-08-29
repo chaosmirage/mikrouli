@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { TestQueryClientProvider } from '../test/queryClient';
 import { AuthContext } from '../auth/AuthContext';
 import type { AuthContextValue } from '../auth/AuthContext';
+import i18next from '../i18n';
 import UsagePage from './UsagePage';
 import * as client from '../api/client';
+import { ApiError } from '../api/client';
 import type { UsageSummary } from '../api/types';
 
 const mockAuth: AuthContextValue = {
@@ -45,8 +47,18 @@ describe('UsagePage', () => {
     vi.spyOn(client, 'apiFetch').mockResolvedValue(USAGE_FIXTURE);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.restoreAllMocks();
+    await act(async () => {
+      await i18next.changeLanguage('en');
+    });
+  });
+
+  it('names the surface with a heading and one capability line', async () => {
+    renderUsagePage();
+    await waitFor(() => expect(screen.getByTestId('usage-page')).toBeInTheDocument());
+    expect(screen.getByRole('heading', { level: 1, name: 'Usage' })).toBeInTheDocument();
+    expect(screen.getByText(/monthly standing against its link and key limits/i)).toBeInTheDocument();
   });
 
   it('renders the usage page with link quota information', async () => {
@@ -98,16 +110,33 @@ describe('UsagePage', () => {
     expect(linksBar.className).toMatch(/colorError/);
   });
 
-  it('renders the reset date', async () => {
+  it('states the exhausted standing as resolved matter beside its fill proportion', async () => {
+    vi.spyOn(client, 'apiFetch').mockResolvedValue({
+      ...USAGE_FIXTURE,
+      linksCreated: 100,
+      linksRemaining: 0,
+    });
     renderUsagePage();
     await waitFor(() => expect(screen.getByTestId('usage-page')).toBeInTheDocument());
-    expect(screen.getByTestId('reset-date')).toBeInTheDocument();
+    const exhausted = screen.getByTestId('links-quota-card-exhausted');
+    expect(exhausted).toHaveTextContent('You have reached your monthly short-link limit.');
+    // A standing with room left states no exhaustion.
+    expect(screen.queryByTestId('keys-quota-card-exhausted')).not.toBeInTheDocument();
   });
 
-  it('renders the retention period', async () => {
+  it('renders the reset date in the locale convention', async () => {
     renderUsagePage();
-    await waitFor(() => expect(screen.getByTestId('usage-page')).toBeInTheDocument());
-    expect(screen.getByTestId('retention-info')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('reset-date')).toBeInTheDocument());
+    expect(screen.getByTestId('reset-date')).toHaveTextContent('Jul 1, 2026');
+  });
+
+  it('renders the retention period in the active locale', async () => {
+    await act(async () => {
+      await i18next.changeLanguage('de');
+    });
+    renderUsagePage();
+    await waitFor(() => expect(screen.getByTestId('retention-info')).toBeInTheDocument());
+    expect(screen.getByTestId('retention-info')).toHaveTextContent('3 Jahre');
   });
 
   it('renders a contact support button linking to mailto:support@mikrou.li', async () => {
@@ -128,9 +157,16 @@ describe('UsagePage', () => {
     expect(screen.getByTestId('usage-loading')).toBeInTheDocument();
   });
 
-  it('shows an error alert when the api call fails', async () => {
-    vi.spyOn(client, 'apiFetch').mockRejectedValue(new client.ApiError(401, 'Unauthorized'));
+  it('states the failure as the resolved problem-details message', async () => {
+    vi.spyOn(client, 'apiFetch').mockRejectedValue(
+      new ApiError(500, 'usage load failed'),
+    );
     renderUsagePage();
-    await waitFor(() => expect(screen.getByTestId('usage-error')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('usage load failed')).toBeInTheDocument());
+    // The exhausted-standing wording is reserved for an exhausted allowance,
+    // never for a failed load.
+    expect(
+      screen.queryByText('You have reached your monthly short-link limit.'),
+    ).not.toBeInTheDocument();
   });
 });

@@ -42,9 +42,9 @@ describe('locale switching', () => {
     });
   });
 
-  it('locale-switcher renders in the app shell', () => {
+  it('the language reach renders in the app shell', () => {
     renderShell();
-    expect(screen.getByTestId('locale-switcher')).toBeInTheDocument();
+    expect(screen.getByTestId('settings-language-reach')).toBeInTheDocument();
   });
 
   it('switching to de renders German nav labels', async () => {

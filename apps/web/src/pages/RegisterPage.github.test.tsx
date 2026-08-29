@@ -15,9 +15,9 @@ const mockAuth: AuthContextValue = {
   loginWithGithub: mockLoginWithGithub,
 };
 
-function renderRegister() {
+function renderRegister(search = '') {
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[`/register${search}`]}>
       <AuthContext.Provider value={mockAuth}>
         <RegisterPage />
       </AuthContext.Provider>
@@ -36,5 +36,37 @@ describe('RegisterPage GitHub button', () => {
     renderRegister();
     screen.getByTestId('register-github').click();
     expect(mockLoginWithGithub).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('RegisterPage OAuth error query', () => {
+  it('shows no error statement when no ?error param is present', () => {
+    renderRegister();
+    expect(screen.queryByTestId('register-oauth-error')).not.toBeInTheDocument();
+  });
+
+  it('shows the no-verified-email statement for the github-no-verified-email slug', () => {
+    renderRegister('?error=github-no-verified-email');
+    const statement = screen.getByTestId('register-oauth-error');
+    expect(statement).toBeInTheDocument();
+    // Renders the resolved message, never the raw slug
+    expect(statement).toHaveTextContent(/GitHub/i);
+    expect(statement).not.toHaveTextContent('github-no-verified-email');
+  });
+
+  it('shows the oauth-failed statement for the github-oauth-failed slug', () => {
+    renderRegister('?error=github-oauth-failed');
+    const statement = screen.getByTestId('register-oauth-error');
+    expect(statement).toBeInTheDocument();
+    expect(statement).toHaveTextContent(/GitHub/i);
+    expect(statement).not.toHaveTextContent('github-oauth-failed');
+  });
+
+  it('shows the generic fallback for an unknown error slug', () => {
+    renderRegister('?error=some-unknown-slug');
+    const statement = screen.getByTestId('register-oauth-error');
+    expect(statement).toBeInTheDocument();
+    // Unknown slugs must never render the raw param value directly
+    expect(statement).not.toHaveTextContent('some-unknown-slug');
   });
 });

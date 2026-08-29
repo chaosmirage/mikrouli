@@ -13,7 +13,9 @@ export default meta;
 
 type Story = StoryObj<typeof ConnectPage>;
 
-// Renders the full connect page with the API key prerequisite, REST API, and
-// MCP sections including the Claude Code wiring command. The page has its own
-// Container maxWidth="md" so no container decorator is composed.
+// Renders the full connect page inside the reading measure: the connection
+// statement, the credential's authorization terms (obtaining, header, key
+// format), and the machine terms with the takeable example calls — the direct
+// REST call and the harness-add command. The page has its own Container
+// maxWidth="sm" so no container decorator is composed.
 export const Default: Story = {};

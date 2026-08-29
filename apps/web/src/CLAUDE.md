@@ -19,7 +19,7 @@ plus the visual-mode context that drives light/dark switching.
 - Name React components in PascalCase: `DashboardPage.tsx`.
 - Colocate unit tests beside the source: `*.test.tsx` / `*.test.ts` (Vitest).
 - All raw hex color literals MUST live in `theme.ts`; use palette tokens elsewhere.
-- Call `createAppTheme(mode)` from any provider, decorator, or story; never use the deprecated `theme` bridge export in new code.
+- Call `createAppTheme(mode)` from any provider, decorator, or story.
 
 ## Constraints
 
@@ -49,9 +49,6 @@ plus the visual-mode context that drives light/dark switching.
   `t.palette.text.primary`, `t.palette.divider`, etc.) so one overrides
   block serves both modes. Contrast for primary, secondary, and warning
   tones stays >= 3.0:1 against the background in both light and dark.
-  Also re-exports a deprecated pre-built `theme = createAppTheme('light')`
-  bridge; remove it once every consumer (Storybook) calls the factory
-  directly.
 - `theme-mode-context.tsx` -- React context, provider, and `useThemeMode`
   hook for the user's visual-mode choice (`light` / `dark` /
   `follow-system`). Persists the choice to `localStorage` under
@@ -86,8 +83,7 @@ plus the visual-mode context that drives light/dark switching.
   fetch calls are made.
 - All raw hex color literals in the web app MUST live in `theme.ts` only.
   Call `createAppTheme(mode)` from any provider, decorator, or story; never
-  inline hex values in `*.tsx`, and never reach for the deprecated pre-built
-  `theme` bridge export in new code.
+  inline hex values in `*.tsx`.
 - When overriding a MUI component, read colors from palette tokens
   (`t.palette.background.default`, `t.palette.text.primary`,
   `t.palette.divider`, etc.) inside `componentsFor(t)`. This is the mechanism

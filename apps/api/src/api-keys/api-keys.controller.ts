@@ -10,8 +10,14 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/authenticated-request';
+import {
+  AUTH_THROTTLE_NAME,
+  DEFAULT_THROTTLE_NAME,
+  REDIRECT_THROTTLE_NAME,
+} from '../common/throttler-policy';
 import { ApiKeysService, ApiKeySummary, CreatedApiKey } from './api-keys.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
 import type {
@@ -43,6 +49,14 @@ function toApiKeySummarySchema(key: ApiKeySummary): ApiKeySummarySchema {
 
 @Controller('api-keys')
 @UseGuards(JwtAuthGuard)
+// Authenticated traffic runs under the generous data budget alone: the skip
+// sheds the three public names, whose floors would otherwise bind through
+// the min-rule. JWT auth remains the primary control on these routes.
+@SkipThrottle({
+  [DEFAULT_THROTTLE_NAME]: true,
+  [AUTH_THROTTLE_NAME]: true,
+  [REDIRECT_THROTTLE_NAME]: true,
+})
 export class ApiKeysController {
   constructor(private readonly apiKeysService: ApiKeysService) {}
 

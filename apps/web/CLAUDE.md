@@ -30,7 +30,7 @@ theme and i18n provider.
 - Colocate unit tests beside the source: `*.test.tsx` / `*.test.ts` (Vitest).
 - Keep the three locales (`en`, `de`, `el`) under `src/i18n/locales/` in parity.
 - All raw hex color literals MUST live in `theme.ts`; use palette tokens elsewhere.
-- Call `createAppTheme(mode)` in any decorator, story, or provider; never use the deprecated `theme` bridge export in new code.
+- Call `createAppTheme(mode)` in any decorator, story, or provider.
 
 ## Constraints
 
@@ -70,10 +70,8 @@ theme and i18n provider.
   Owns every raw hex literal in the web app (light and dark palettes);
   component overrides are written once against palette tokens so a single
   overrides block serves both modes. Callers (stories, `main.tsx`) call
-  the factory and never inline hex values. The module also re-exports a
-  deprecated pre-built `theme = createAppTheme('light')` bridge for
-  not-yet-migrated consumers; remove it once every caller uses the
-  factory directly.
+  the factory and never inline hex values; there is no pre-built theme
+  instance, every consumer goes through the factory.
 - `src/theme-mode-context.tsx` -- React context, provider, and
   `useThemeMode` hook for the user's visual-mode choice. Persists the
   choice to `localStorage` under `mikrouli.themeMode`; resolves
@@ -108,8 +106,7 @@ theme and i18n provider.
   than weakening the rule globally.
 - Call `createAppTheme(mode)` from `src/theme.ts` in any decorator,
   story, or provider; never pass inline color literals to ThemeProvider
-  or story args, and never reach for the deprecated `theme` bridge
-  export in new code.
+  or story args.
 - When adding a new visual element, express its colors via palette
   tokens (`t.palette.background.default`, `t.palette.text.primary`, etc.)
   inside the `componentsFor` overrides block so the element renders

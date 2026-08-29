@@ -1,39 +1,59 @@
 import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link as RouterLink, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
-import CircularProgress from '@mui/material/CircularProgress';
-import Paper from '@mui/material/Paper';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
-import { useTheme } from '@mui/material/styles';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Stack from '@mui/material/Stack';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useTheme, Theme } from '@mui/material/styles';
 import { BarChart } from '@mui/x-charts/BarChart';
+import StandingsRow from '../components/StandingsRow';
 import { ApiError, apiFetch } from '../api/client';
-import type { StatsAggregate, ClickByPeriod, ClickByCountry, ClickByBrowser } from '../api/types';
+import { formatDate, formatNumber } from '../i18n/format';
+import type { StatsAggregate, ClickByPeriod } from '../api/types';
 
 const HTTP_NOT_FOUND = 404;
 const HTTP_FORBIDDEN = 403;
 const CHART_HEIGHT = 240;
-const HORIZONTAL_CHART_HEIGHT_PER_ROW = 32;
-const HORIZONTAL_CHART_MIN_HEIGHT = 160;
-const UNKNOWN_LABEL_FALLBACK = '—';
 
-// Module-level style constants (static, evaluated once)
-const CARD_SECTION_TITLE_SX = { mb: 2, color: 'grey.700' } as const;
-const CARD_SECTION_SX = { p: 3 } as const;
-const CHART_BOX_SX = { width: '100%', height: CHART_HEIGHT } as const;
-const STATS_SUBTITLE_SX = { color: 'text.secondary' } as const;
-const TOTAL_OVERLINE_SX = { color: 'text.secondary', letterSpacing: '0.06em' } as const;
-const TOTAL_NUMBER_SX = { fontVariantNumeric: 'tabular-nums', color: 'text.primary' } as const;
+// Zone separation between the record's readings: magnitude, trend, comparison.
+const ZONE_SPACING = 5;
+
+const CHART_MARGIN = { top: 16, right: 16, bottom: 24, left: 40 } as const;
+
+// Module-level style constants (static, evaluated once). Numerals align in
+// tabular figures wherever standings are compared.
+const STATS_VIEW_SX = { pt: 2 } as const;
 const STATS_BODY2_SX = { color: 'text.secondary' } as const;
+const ZONE_TITLE_SX = { color: 'text.secondary' } as const;
+const TOTAL_LABEL_SX = { color: 'text.secondary', letterSpacing: '0.06em' } as const;
+const TOTAL_NUMBER_SX = { fontVariantNumeric: 'tabular-nums', color: 'text.primary' } as const;
+const TOTAL_QUALIFICATION_SX = { color: 'text.disabled' } as const;
+const CHART_BOX_SX = {
+  width: '100%',
+  height: CHART_HEIGHT,
+  // Inherited by the chart's SVG text so axis numerals stand in tabular figures.
+  fontVariantNumeric: 'tabular-nums',
+} as const;
+const LIST_RESET_SX = { listStyle: 'none', m: 0, p: 0 } as const;
+const LIST_ITEM_SX = { display: 'list-item' } as const;
+const EMPTY_READING_SX = { color: 'text.secondary' } as const;
+
+// The chart reads its typography from the theme so the axis standings follow
+// the same register and ink as the page's meta text.
+function chartAxisSlotProps(theme: Theme) {
+  return {
+    axisTickLabel: {
+      fontSize: theme.typography.caption.fontSize,
+      fontFamily: theme.typography.fontFamily,
+      fill: theme.palette.text.secondary,
+    },
+  };
+}
 
 function mapStatsError(err: unknown): string {
   if (err instanceof ApiError && err.status === HTTP_NOT_FOUND) return 'errors:noSuchLink';
@@ -45,213 +65,107 @@ async function loadStats(slug: string): Promise<StatsAggregate> {
   return apiFetch('/api/stats/{slug}', 'get', { pathParams: { slug } });
 }
 
-function horizontalChartHeight(rowCount: number): number {
-  return Math.max(HORIZONTAL_CHART_MIN_HEIGHT, rowCount * HORIZONTAL_CHART_HEIGHT_PER_ROW);
+/** Rank the arriving breakdown by recorded clicks so rows read as standings;
+ * a name the arriving data does not say stands as exactly "Unknown". */
+function rankStandings(
+  rows: Array<{ name: string; clicks: number }>,
+  unknownLabel: string,
+): Array<{ name: string; clicks: number }> {
+  return rows
+    .map((row) => ({ name: row.name.trim() === '' ? unknownLabel : row.name, clicks: row.clicks }))
+    .sort((a, b) => b.clicks - a.clicks);
 }
 
-function fallbackLabel(name: string | null | undefined): string {
-  if (!name) return UNKNOWN_LABEL_FALLBACK;
-  return name;
-}
-
-interface StatRowProps {
-  name: string;
-  clicks: number;
-}
-function StatRow({ name, clicks }: StatRowProps) {
-  return (
-    <TableRow>
-      <TableCell>{name}</TableCell>
-      <TableCell align="right">{clicks}</TableCell>
-    </TableRow>
-  );
-}
-
-interface NameClicksHeadProps {
-  nameLabel: string;
-  clicksLabel: string;
-}
-function NameClicksHead({ nameLabel, clicksLabel }: NameClicksHeadProps) {
-  return (
-    <TableHead>
-      <TableRow>
-        <TableCell>{nameLabel}</TableCell>
-        <TableCell align="right">{clicksLabel}</TableCell>
-      </TableRow>
-    </TableHead>
-  );
-}
-
-interface CardSectionProps {
-  title: string;
-  testId: string;
-  children: React.ReactNode;
-}
-function CardSection({ title, testId, children }: CardSectionProps) {
-  return (
-    <Paper variant="outlined" data-testid={testId} sx={CARD_SECTION_SX}>
-      <Typography variant="h6" sx={CARD_SECTION_TITLE_SX}>
-        {title}
-      </Typography>
-      {children}
-    </Paper>
-  );
-}
-
-interface ClicksOverTimeChartProps {
-  rows: ClickByPeriod[];
-  title: string;
-  emptyLabel: string;
-  clicksLabel: string;
-  color: string;
-}
-function ClicksOverTimeChart({ rows, title, emptyLabel, clicksLabel, color }: ClicksOverTimeChartProps) {
-  if (rows.length === 0) {
-    return (
-      <CardSection title={title} testId="stats-clicks-chart">
-        <Typography color="text.secondary">{emptyLabel}</Typography>
-      </CardSection>
-    );
-  }
-  const labels = rows.map((r) => r.period);
-  const clicks = rows.map((r) => r.clicks);
-  return (
-    <CardSection title={title} testId="stats-clicks-chart">
-      <Box sx={CHART_BOX_SX}>
-        <BarChart
-          xAxis={[{ scaleType: 'band', data: labels }]}
-          series={[{ data: clicks, label: clicksLabel, color }]}
-          height={CHART_HEIGHT}
-          margin={{ top: 16, right: 16, bottom: 24, left: 40 }}
-        />
-      </Box>
-    </CardSection>
-  );
-}
-
-interface HorizontalChartProps {
-  rows: Array<{ name: string; clicks: number }>;
-  title: string;
-  emptyLabel: string;
-  clicksLabel: string;
-  color: string;
-  testId: string;
-}
-function HorizontalChart({ rows, title, emptyLabel, clicksLabel, color, testId }: HorizontalChartProps) {
-  const height = horizontalChartHeight(rows.length);
-  const chartBoxSx = useMemo(() => ({ width: '100%', height }), [height]);
-  if (rows.length === 0) {
-    return (
-      <CardSection title={title} testId={testId}>
-        <Typography color="text.secondary">{emptyLabel}</Typography>
-      </CardSection>
-    );
-  }
-  const labels = rows.map((r) => r.name);
-  const clicks = rows.map((r) => r.clicks);
-  return (
-    <CardSection title={title} testId={testId}>
-      <Box sx={chartBoxSx}>
-        <BarChart
-          layout="horizontal"
-          yAxis={[{ scaleType: 'band', data: labels }]}
-          series={[{ data: clicks, label: clicksLabel, color }]}
-          height={height}
-          margin={{ top: 16, right: 16, bottom: 24, left: 96 }}
-        />
-      </Box>
-    </CardSection>
-  );
-}
-
-interface DayTableProps {
-  rows: ClickByPeriod[];
-}
-function DayTable({ rows }: DayTableProps) {
-  const { t } = useTranslation('stats');
-  return (
-    <Stack spacing={1} data-testid="stats-days-section">
-      <Typography variant="subtitle2" sx={STATS_SUBTITLE_SX}>
-        {t('byDay')}
-      </Typography>
-      <TableContainer component={Paper} variant="outlined">
-        <Table size="small">
-          <NameClicksHead nameLabel={t('date')} clicksLabel={t('clicks')} />
-          <TableBody>
-            {rows.map((r) => (
-              <StatRow key={r.period} name={r.period} clicks={r.clicks} />
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Stack>
-  );
-}
-
-interface CountryTableProps {
-  rows: ClickByCountry[];
-  title: string;
-}
-function CountryTable({ rows, title }: CountryTableProps) {
-  const { t } = useTranslation('stats');
-  return (
-    <Stack spacing={1} data-testid="stats-countries-section">
-      <Typography variant="subtitle2" sx={STATS_SUBTITLE_SX}>
-        {title}
-      </Typography>
-      <TableContainer component={Paper} variant="outlined">
-        <Table size="small">
-          <NameClicksHead nameLabel={t('name')} clicksLabel={t('clicks')} />
-          <TableBody>
-            {rows.map((r) => (
-              <StatRow key={r.country} name={fallbackLabel(r.country)} clicks={r.clicks} />
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Stack>
-  );
-}
-
-interface BrowserTableProps {
-  rows: ClickByBrowser[];
-  title: string;
-}
-function BrowserTable({ rows, title }: BrowserTableProps) {
-  const { t } = useTranslation('stats');
-  return (
-    <Stack spacing={1} data-testid="stats-browsers-section">
-      <Typography variant="subtitle2" sx={STATS_SUBTITLE_SX}>
-        {title}
-      </Typography>
-      <TableContainer component={Paper} variant="outlined">
-        <Table size="small">
-          <NameClicksHead nameLabel={t('name')} clicksLabel={t('clicks')} />
-          <TableBody>
-            {rows.map((r) => (
-              <StatRow key={r.browser} name={fallbackLabel(r.browser)} clicks={r.clicks} />
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Stack>
-  );
-}
-
-interface TotalCardProps {
+interface TotalReadingProps {
   total: number;
   label: string;
+  qualification: string;
 }
-function TotalCard({ total, label }: TotalCardProps) {
+function TotalReading({ total, label, qualification }: TotalReadingProps) {
   return (
-    <Paper variant="outlined" sx={CARD_SECTION_SX} data-testid="stats-total-card">
-      <Typography variant="overline" sx={TOTAL_OVERLINE_SX}>
+    <Stack spacing={0.5} data-testid="stats-total-zone">
+      <Typography variant="overline" sx={TOTAL_LABEL_SX}>
         {label}
       </Typography>
-      <Typography variant="h3" data-testid="stats-total" sx={TOTAL_NUMBER_SX}>
-        {total.toLocaleString()}
+      {/* One numeral, honest about what it counts; zero use reads here too. */}
+      <Typography variant="h2" data-testid="stats-total" sx={TOTAL_NUMBER_SX}>
+        {formatNumber(total)}
       </Typography>
-    </Paper>
+      <Typography variant="caption" sx={TOTAL_QUALIFICATION_SX}>
+        {qualification}
+      </Typography>
+    </Stack>
+  );
+}
+
+interface CourseOverTimeProps {
+  rows: ClickByPeriod[];
+  title: string;
+  emptyLabel: string;
+  clicksLabel: string;
+  color: string;
+  axisSlotProps: ReturnType<typeof chartAxisSlotProps>;
+}
+function CourseOverTime({
+  rows,
+  title,
+  emptyLabel,
+  clicksLabel,
+  color,
+  axisSlotProps,
+}: CourseOverTimeProps) {
+  const labels = rows.map((r) => formatDate(r.period));
+  const clicks = rows.map((r) => r.clicks);
+  return (
+    <Stack spacing={1} data-testid="stats-clicks-chart">
+      <Typography variant="subtitle2" sx={ZONE_TITLE_SX}>
+        {title}
+      </Typography>
+      {rows.length === 0 ? (
+        <Typography variant="body2" sx={EMPTY_READING_SX}>
+          {emptyLabel}
+        </Typography>
+      ) : (
+        <Box sx={CHART_BOX_SX}>
+          <BarChart
+            xAxis={[{ scaleType: 'band', data: labels }]}
+            series={[{ data: clicks, label: clicksLabel, color }]}
+            height={CHART_HEIGHT}
+            margin={CHART_MARGIN}
+            slotProps={axisSlotProps}
+          />
+        </Box>
+      )}
+    </Stack>
+  );
+}
+
+interface RankedStandingsProps {
+  title: string;
+  testId: string;
+  rows: Array<{ name: string; clicks: number }>;
+  emptyLabel: string;
+}
+function RankedStandings({ title, testId, rows, emptyLabel }: RankedStandingsProps) {
+  return (
+    <Stack spacing={1} data-testid={testId}>
+      <Typography variant="subtitle2" sx={ZONE_TITLE_SX}>
+        {title}
+      </Typography>
+      {rows.length === 0 ? (
+        <Typography variant="body2" sx={EMPTY_READING_SX}>
+          {emptyLabel}
+        </Typography>
+      ) : (
+        <Stack component="ul" sx={LIST_RESET_SX}>
+          {rows.map((row) => (
+            <Box component="li" key={row.name} sx={LIST_ITEM_SX}>
+              <StandingsRow standings={[{ label: row.name, value: formatNumber(row.clicks) }]} />
+            </Box>
+          ))}
+        </Stack>
+      )}
+    </Stack>
   );
 }
 
@@ -262,14 +176,40 @@ interface StatsViewProps {
 function StatsView({ slug, stats }: StatsViewProps) {
   const { t } = useTranslation('stats');
   const theme = useTheme();
-  const primaryColor = theme.palette.primary.main;
-  const secondaryColor = theme.palette.secondary.main;
-  const warningColor = theme.palette.warning.main;
-  const countryRows = stats.byCountry.map((r) => ({ name: fallbackLabel(r.country), clicks: r.clicks }));
-  const browserRows = stats.byBrowser.map((r) => ({ name: fallbackLabel(r.browser), clicks: r.clicks }));
+  // The record states; it does not ask. Series and standings read as ink, not
+  // as accent hues, so no reading carries a promotional color.
+  const inkColor = theme.palette.text.secondary;
+  const axisSlotProps = useMemo(() => chartAxisSlotProps(theme), [theme]);
+  const unknownLabel = t('unknown');
+  const countryRows = useMemo(
+    () =>
+      rankStandings(
+        stats.byCountry.map(({ country, clicks }) => ({ name: country, clicks })),
+        unknownLabel,
+      ),
+    [stats.byCountry, unknownLabel],
+  );
+  const browserRows = useMemo(
+    () =>
+      rankStandings(
+        stats.byBrowser.map(({ browser, clicks }) => ({ name: browser, clicks })),
+        unknownLabel,
+      ),
+    [stats.byBrowser, unknownLabel],
+  );
   return (
-    <Stack spacing={3} data-testid="stats-view">
+    <Stack spacing={ZONE_SPACING} sx={STATS_VIEW_SX} data-testid="stats-view">
       <Stack spacing={0.5}>
+        <Button
+          component={RouterLink}
+          to="/dashboard"
+          size="small"
+          startIcon={<ArrowBackIcon />}
+          sx={{ alignSelf: 'flex-start' }}
+          data-testid="stats-leave"
+        >
+          {t('backToDashboard')}
+        </Button>
         <Typography variant="h4" data-testid="stats-slug">
           {slug}
         </Typography>
@@ -277,33 +217,31 @@ function StatsView({ slug, stats }: StatsViewProps) {
           {t('title', { slug })}
         </Typography>
       </Stack>
-      <TotalCard total={stats.totalClicks} label={t('totalClicks', { count: stats.totalClicks })} />
-      <ClicksOverTimeChart
+      <TotalReading
+        total={stats.totalClicks}
+        label={t('totalClicks', { count: stats.totalClicks })}
+        qualification={t('recordedRedirects')}
+      />
+      <CourseOverTime
         rows={stats.byDay}
         title={t('byDay')}
         emptyLabel={t('noData')}
         clicksLabel={t('clicks')}
-        color={primaryColor}
+        color={inkColor}
+        axisSlotProps={axisSlotProps}
       />
-      <HorizontalChart
-        rows={countryRows}
+      <RankedStandings
         title={t('topCountries')}
+        testId="stats-countries-rows"
+        rows={countryRows}
         emptyLabel={t('noData')}
-        clicksLabel={t('clicks')}
-        color={secondaryColor}
-        testId="stats-countries-chart"
       />
-      <HorizontalChart
-        rows={browserRows}
+      <RankedStandings
         title={t('topBrowsers')}
+        testId="stats-browsers-rows"
+        rows={browserRows}
         emptyLabel={t('noData')}
-        clicksLabel={t('clicks')}
-        color={warningColor}
-        testId="stats-browsers-chart"
       />
-      <DayTable rows={stats.byDay} />
-      <CountryTable title={t('topCountries')} rows={stats.byCountry} />
-      <BrowserTable title={t('topBrowsers')} rows={stats.byBrowser} />
     </Stack>
   );
 }
@@ -312,7 +250,11 @@ export default function StatsPage() {
   const { t } = useTranslation('stats');
   const { slug = '' } = useParams<{ slug: string }>();
 
-  const { data: stats, error, isLoading } = useQuery({
+  const {
+    data: stats,
+    error,
+    isLoading,
+  } = useQuery({
     queryKey: ['stats', slug],
     queryFn: () => loadStats(slug),
   });

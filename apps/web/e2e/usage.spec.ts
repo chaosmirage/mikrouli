@@ -1,6 +1,6 @@
 import { test, expect, registerAndLogin } from './fixtures';
 
-const BASE_URL = 'http://localhost:8888';
+const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:8888';
 const SUPPORT_MAILTO = 'mailto:support@mikrou.li';
 const PROBLEM_JSON = 'application/problem+json';
 
@@ -13,6 +13,14 @@ interface UsageSummary {
   keysRemaining: number;
   resetDate: string;
   retentionMs: number;
+}
+
+// The fill proportion a quota bar must carry: the used share of the allowance,
+// rounded and clamped exactly the way the page renders it, so the assertion
+// checks the proportion itself rather than a shape.
+function fillPercent(created: number, limit: number): number {
+  if (limit <= 0) return 100;
+  return Math.min(100, Math.max(0, Math.round((created / limit) * 100)));
 }
 
 test('usage page renders both quota cards with determinate progress bars', async ({
@@ -40,6 +48,26 @@ test('usage page renders both quota cards with determinate progress bars', async
   const requestMore = page.getByTestId('request-more-btn');
   await expect(requestMore).toBeVisible();
   await expect(requestMore).toHaveAttribute('href', new RegExp(SUPPORT_MAILTO));
+});
+
+test('quota bars carry the standing fill proportion of each allowance', async ({
+  page,
+  api,
+  auth: _auth,
+}) => {
+  const summary = (await (await api.call('GET', '/api/usage')).json()) as UsageSummary;
+
+  await page.goto('/usage');
+  await expect(page.getByTestId('usage-page')).toBeVisible();
+
+  await expect(page.getByTestId('links-quota-card-progress')).toHaveAttribute(
+    'aria-valuenow',
+    String(fillPercent(summary.linksCreated, summary.linkLimit)),
+  );
+  await expect(page.getByTestId('keys-quota-card-progress')).toHaveAttribute(
+    'aria-valuenow',
+    String(fillPercent(summary.keysCreated, summary.keyLimit)),
+  );
 });
 
 test('GET /api/usage reflects a newly created link', async ({ page: _page, api }) => {
@@ -71,9 +99,7 @@ test('creating API keys beyond the monthly limit returns 429 problem-details', a
   await page.context().clearCookies();
   await registerAndLogin(page);
 
-  const usage = (await (
-    await page.request.fetch(`${BASE_URL}/api/usage`)
-  ).json()) as UsageSummary;
+  const usage = (await (await page.request.fetch(`${BASE_URL}/api/usage`)).json()) as UsageSummary;
   const remaining = usage.keyLimit - usage.keysCreated;
   expect(remaining).toBeGreaterThan(0);
 
