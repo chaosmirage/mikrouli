@@ -46,16 +46,17 @@ owns the shorten POST); all other data arrives via props.
   story (`ConfirmDialog.stories.tsx`).
 - `CopyControl.tsx` -- The taking control: one activation of the icon
   button puts the exact `value` onto the clipboard through
-  `useCopyToClipboard`, and the landed (or failed) confirmation stands
-  beside it in the same glance as a `role="status"` statement -- never a
-  silent write. The confirmation's place is reserved from the first paint:
-  the same statement stands hidden until the take lands, so the landing
-  never reflows the row. Its address is `<testId>-confirmation` while
-  reserved, `<testId>-landed` once visible, `<testId>-failed` on a refused
-  take -- all derived from the `testId` prop (default `copy-link`);
-  localized via the `common` namespace. Consumed wherever a takeable
-  string appears: ShortenCard and the Connect, ApiKeys, and Dashboard
-  pages.
+  `useCopyToClipboard`, and the landed (or failed) confirmation floats
+  over the control in the same glance as a `role="status"` statement --
+  never a silent write. The confirmation is reflow-free by construction:
+  idle renders nothing at all, and the resolved statement mounts as an
+  absolutely positioned chip anchored above the control (no flow space,
+  `pointer-events: none`, so it neither shifts the row nor covers a
+  sibling's click target). Its address is `<testId>-landed` once landed,
+  `<testId>-failed` on a refused take -- derived from the `testId` prop
+  (default `copy-link`); localized via the `common` namespace. Consumed
+  wherever a takeable string appears: ShortenCard and the Connect,
+  ApiKeys, and Dashboard pages.
 - `StandingsRow.tsx` -- The shared row shape for every surface that
   compares standings: an optional `identity` node (wraps under the
   standings at narrow widths), `standings` (label + value pairs, values in

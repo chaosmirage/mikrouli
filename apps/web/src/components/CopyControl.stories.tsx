@@ -39,7 +39,7 @@ export const BeforeTake: Story = {
 };
 
 // The take: click the control — the exact value reaches the real clipboard of
-// the Storybook browser and the landed confirmation stands beside the control.
+// the Storybook browser and the landed confirmation floats above the control.
 export const AfterTake: Story = {
   args: {
     value: 'https://mikrou.li/GYa6kx',
@@ -47,7 +47,7 @@ export const AfterTake: Story = {
 };
 
 // The refused take: the clipboard refuses every write, so one activation
-// stands the failure statement beside the control instead of a silent no-op.
+// floats the failure statement above the control instead of a silent no-op.
 export const ClipboardUnavailable: Story = {
   decorators: [(Story: () => ReactNode) => <ClipboardRefusing Story={Story} />],
   args: {
