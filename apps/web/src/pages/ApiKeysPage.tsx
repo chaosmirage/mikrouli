@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useCallback, useState } from 'react';
+import { Fragment, FormEvent, ReactNode, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
@@ -56,6 +56,34 @@ const SECRET_ACTS_SX = { display: 'flex', alignItems: 'center', gap: 0.5 } as co
 
 const REVIEW_LIST_SX = { p: 2 } as const;
 
+// The review's ONE shared row template: the key name is the only flexible
+// track and it is bounded (fr over a zero floor, so its width never depends
+// on any row's content — a longer name folds inside its own track), the
+// prefix/dates/status size to their strings, and the acts end the row. Every
+// review row adopts these exact tracks, so like-positioned standings — and
+// the acts — start at the same x in every row, whatever a credential is
+// named.
+const KEY_ROW_COLUMNS = 'minmax(0, 1fr) max-content max-content max-content max-content auto';
+
+// The review's rows: from md up they become one grid carrying the shared
+// template — each row adopts its tracks, so the columns hold one line.
+// Below md the rows fold individually, which is the readable shape there.
+const REVIEW_ROWS_SX = {
+  display: { xs: 'flex', md: 'grid' },
+  flexDirection: 'column',
+  columnGap: { md: 3 },
+  gridTemplateColumns: { md: KEY_ROW_COLUMNS },
+} as const;
+
+// A row divider spans every track of the shared template at md; below md it
+// is the review's plain hairline.
+const ROW_DIVIDER_SX = { gridColumn: { md: '1 / -1' } } as const;
+
+// The credential's name is bounded matter: it can shrink below its content
+// inside its track and folds there (a spaceless name breaks anywhere),
+// never widening the track or pushing another column's x.
+const KEY_NAME_SX = { minWidth: 0, overflowWrap: 'anywhere' } as const;
+
 /**
  * The issuing act's whole aftermath, one state at a time: idle, under way,
  * refused with its cause, or issued with the secret received into keeping.
@@ -104,7 +132,11 @@ function IssueZone({ label, outcome, onLabelChange, onSubmit }: IssueZoneProps) 
       <CardContent>
         <form onSubmit={onSubmit} data-testid="create-key-form">
           <Stack spacing={1.5}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1.5}
+              alignItems={{ sm: 'center' }}
+            >
               <TextField
                 label={t('label')}
                 value={label}
@@ -172,9 +204,10 @@ function KeyReviewRow({ apiKey, onRevoke }: KeyReviewRowProps) {
   const handleRevoke = useCallback(() => onRevoke(apiKey.id), [onRevoke, apiKey.id]);
   return (
     <StandingsRow
+      aligned
       rowTestId={`key-row-${apiKey.id}`}
       identity={
-        <Typography variant="subtitle1" component="span" fontWeight={600}>
+        <Typography variant="subtitle1" component="span" fontWeight={600} sx={KEY_NAME_SX}>
           {apiKey.label}
         </Typography>
       }
@@ -216,14 +249,18 @@ interface ReviewZoneProps {
 function ReviewZone({ keys, loading, fetchError, onRevoke }: ReviewZoneProps) {
   if (loading) return <CircularProgress data-testid="keys-loading" />;
   if (fetchError !== null) return <StatementBand state={{ kind: 'failure', cause: fetchError }} />;
-  if (keys.length === 0) return <StatementBand state={{ kind: 'empty' }} emptyKey="apiKeys:noKeys" />;
+  if (keys.length === 0)
+    return <StatementBand state={{ kind: 'empty' }} emptyKey="apiKeys:noKeys" />;
   return (
     <Paper variant="outlined" sx={REVIEW_LIST_SX} data-testid="api-keys-table">
-      <Stack divider={<Divider flexItem />}>
-        {keys.map((k) => (
-          <KeyReviewRow key={k.id} apiKey={k} onRevoke={onRevoke} />
+      <Box sx={REVIEW_ROWS_SX} data-testid="api-keys-rows">
+        {keys.map((k, index) => (
+          <Fragment key={k.id}>
+            {index > 0 ? <Divider component="div" sx={ROW_DIVIDER_SX} /> : null}
+            <KeyReviewRow apiKey={k} onRevoke={onRevoke} />
+          </Fragment>
         ))}
-      </Stack>
+      </Box>
     </Paper>
   );
 }
