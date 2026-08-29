@@ -88,58 +88,38 @@ describe('CopyControl', () => {
     expect(await screen.findByTestId('copy-link-def456-landed')).toBeInTheDocument();
   });
 
-  it('reserves the confirmation place: one constant slot across idle and landed, nothing mounts on the take', async () => {
+  it('floats the confirmation over the control: absolute when landed, no in-flow matter when idle', async () => {
     installClipboard('works');
     renderControl({ testId: 'copy-link-abc' });
 
-    // Before the take the confirmation's slot already stands in the row,
-    // hidden: the space it will land into is owned from the first paint, so
-    // the row's box — and everything beside and below it — is already sized
-    // for the landing.
-    const reserved = screen.getByTestId('copy-link-abc-confirmation');
-    expect(reserved).toHaveTextContent('Copied');
-    expect(reserved).toHaveStyle({ visibility: 'hidden' });
-    expect(screen.queryByTestId('copy-link-abc-landed')).not.toBeInTheDocument();
+    // Idle: nothing of the confirmation renders at all. The control's flow
+    // carries only the take button, so the control's box is the button's
+    // alone — the cluster the control stands in reads as one tight group,
+    // with the icon a single cluster gap from its siblings.
+    expect(screen.queryByTestId('copy-link-abc-confirmation')).not.toBeInTheDocument();
+    const controlRoot = screen.getByTestId('copy-link-abc').parentElement;
+    expect(controlRoot?.childElementCount).toBe(1);
+    expect(controlRoot?.textContent).toBe('');
 
     fireEvent.click(screen.getByTestId('copy-link-abc'));
 
-    // The take lands into the reserved place: the SAME node turns visible —
-    // no element mounts or unmounts in the row, and a visibility change
-    // cannot reflow layout, so the confirmation's container keeps its
-    // height (and its width) across idle and landed.
+    // Landed: the confirmation is a floating statement anchored above the
+    // control — position absolute, so it occupies no flow space by
+    // construction, and pointer-events none, so it can never cover a
+    // sibling control's click target while it stands.
     const landed = await screen.findByTestId('copy-link-abc-landed');
-    expect(landed).toBe(reserved);
-    expect(landed).toBeVisible();
+    expect(getComputedStyle(landed).position).toBe('absolute');
+    expect(getComputedStyle(landed).pointerEvents).toBe('none');
   });
 
-  it('reserves the confirmation at the weight it lands in: identical typography, so the slot never widens on the take', async () => {
-    installClipboard('works');
+  it('floats the refused take statement the same way: absolute, out of the flow', () => {
+    installClipboard('missing');
     renderControl({ testId: 'copy-link-abc' });
-
-    // The metrics that size the statement's box, measured on the reserved
-    // slot before the take.
-    const reserved = screen.getByTestId('copy-link-abc-confirmation');
-    const reservedStyle = getComputedStyle(reserved);
-    const reservedWeight = reservedStyle.fontWeight;
-    const reservedSize = reservedStyle.fontSize;
-    const reservedFamily = reservedStyle.fontFamily;
 
     fireEvent.click(screen.getByTestId('copy-link-abc'));
 
-    // The same node lands with the SAME computed typography — the bold
-    // reading is already inside the reserved width, so the flip cannot
-    // grow (or shrink) the slot's contribution to the row: identical text,
-    // identical metrics, bit-identical width.
-    const landed = await screen.findByTestId('copy-link-abc-landed');
-    const landedStyle = getComputedStyle(landed);
-    expect(landed).toBe(reserved);
-    expect(landedStyle.fontWeight).toBe(reservedWeight);
-    expect(landedStyle.fontSize).toBe(reservedSize);
-    expect(landedStyle.fontFamily).toBe(reservedFamily);
-    // And the shared weight is the confirmed reading's own quiet emphasis
-    // (bold), not the idle body weight the reservation would otherwise
-    // under-size by.
-    expect(reservedWeight).toBe('600');
-    expect(landedStyle.fontWeight).toBe('600');
+    const refused = screen.getByTestId('copy-link-abc-failed');
+    expect(getComputedStyle(refused).position).toBe('absolute');
+    expect(getComputedStyle(refused).pointerEvents).toBe('none');
   });
 });

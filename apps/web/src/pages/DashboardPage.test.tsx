@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
 import { TestQueryClientProvider } from '../test/queryClient';
 import DashboardPage from './DashboardPage';
+import { createAppTheme } from '../theme';
+
+const LIGHT_THEME = createAppTheme('light');
 
 function makeResponse(data: unknown) {
   return { ok: true, status: 200, json: () => Promise.resolve(data) };
@@ -21,11 +25,13 @@ function makeRefusal(detail: string) {
 
 function renderDashboard() {
   render(
-    <MemoryRouter>
-      <TestQueryClientProvider>
-        <DashboardPage />
-      </TestQueryClientProvider>
-    </MemoryRouter>,
+    <ThemeProvider theme={LIGHT_THEME}>
+      <MemoryRouter>
+        <TestQueryClientProvider>
+          <DashboardPage />
+        </TestQueryClientProvider>
+      </MemoryRouter>
+    </ThemeProvider>,
   );
 }
 
@@ -325,6 +331,65 @@ describe('DashboardPage', () => {
       expect(entering).toHaveClass('MuiFormControl-fullWidth');
       expect(entering).toHaveStyle({ flex: '1 1 240px' });
       expect(entering).toHaveStyle({ minWidth: '0' });
+    });
+  });
+
+  describe("the row's act reaches stand as one cluster", () => {
+    const LINK = {
+      shortUrl: 'abc',
+      originalUrl: 'http://long.com',
+      createdAt: '2024-01-01T00:00:00Z',
+      expiresAt: null,
+    };
+
+    // jsdom lays nothing out, so the cluster's order and membership are read
+    // from the DOM: the act cluster is the parent the edit reach stands in.
+    function readCluster() {
+      const acts = screen.getByTestId('edit-abc').parentElement;
+      return { acts, members: Array.from(acts?.children ?? []) };
+    }
+
+    it('stands the copy reach immediately beside the stats, edit, and retire reaches', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [LINK] })));
+      renderDashboard();
+      await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
+
+      // The four reaches and nothing else stand in the row's act cluster, in
+      // this order — the copy reach directly beside its siblings.
+      const copy = screen.getByTestId('copy-abc');
+      const stats = screen.getByTestId('stats-abc');
+      const edit = screen.getByTestId('edit-abc');
+      const retire = screen.getByTestId('delete-abc');
+      const { members } = readCluster();
+      expect(members).toEqual([copy.parentElement, stats, edit, retire]);
+
+      // The copy reach contributes ONLY its button to the cluster's flow: no
+      // reserved statement matter rides beside or under the icon, so the
+      // cluster reads as one tight group with a single shared gap.
+      expect(copy.parentElement?.childElementCount).toBe(1);
+      expect(copy.parentElement?.textContent).toBe('');
+    });
+
+    it('keeps the cluster untouched when a take lands: the confirmation floats over it', async () => {
+      const taken: string[] = [];
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: (text: string) => (taken.push(text), Promise.resolve()) },
+      });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [LINK] })));
+      renderDashboard();
+      await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
+
+      const { acts, members } = readCluster();
+      fireEvent.click(screen.getByTestId('copy-abc'));
+
+      const landed = await screen.findByTestId('copy-abc-landed');
+      // The landing joins nothing: the cluster's membership and order are
+      // bit-identical, and the confirmation stands absolute — out of the
+      // row's flow entirely, so nothing in the row shifts on the take.
+      expect(Array.from(acts?.children ?? [])).toEqual(members);
+      expect(getComputedStyle(landed).position).toBe('absolute');
+      expect(taken).toHaveLength(1);
     });
   });
 
