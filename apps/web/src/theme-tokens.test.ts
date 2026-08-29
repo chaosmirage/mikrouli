@@ -154,10 +154,38 @@ describe('theme token surface relations', () => {
     );
   });
 
+  it('light mode: raised sits clearly above canvas (>= 1.07:1) so cards read', () => {
+    const t = createAppTheme('light');
+    expect(
+      contrastRatio(t.palette.surface.canvas, t.palette.surface.raised),
+    ).toBeGreaterThanOrEqual(1.07);
+  });
+
+  it('dark mode: the hairline rides above the raised surface so dividers read', () => {
+    const t = createAppTheme('dark');
+    expect(relativeLuminance(hexToRgb(t.palette.line.hairline))).toBeGreaterThan(
+      relativeLuminance(hexToRgb(t.palette.surface.raised)),
+    );
+  });
+
+  it('light mode: the hairline stays below the raised surface so outlines read', () => {
+    const t = createAppTheme('light');
+    expect(relativeLuminance(hexToRgb(t.palette.line.hairline))).toBeLessThan(
+      relativeLuminance(hexToRgb(t.palette.surface.raised)),
+    );
+  });
+
   it('dark mode: canvas is the darkest surface, raised one step lighter', () => {
     const t = createAppTheme('dark');
     expect(relativeLuminance(hexToRgb(t.palette.surface.raised))).toBeGreaterThan(
       relativeLuminance(hexToRgb(t.palette.surface.canvas)),
+    );
+  });
+
+  it('dark mode: raised sits clearly above canvas (>= 1.2:1) so rows and cards read', () => {
+    const t = createAppTheme('dark');
+    expect(contrastRatio(t.palette.surface.raised, t.palette.surface.canvas)).toBeGreaterThanOrEqual(
+      1.2,
     );
   });
 
@@ -242,6 +270,14 @@ describe('theme token spacing ladder', () => {
   it('measure bounds sustained reading near the text-width reference', () => {
     expect(SPACE.measure).toBeGreaterThanOrEqual(542);
     expect(SPACE.measure).toBeLessThanOrEqual(550);
+  });
+
+  it('content token restores the wide zone the dashboard set scans (the prior lg container)', () => {
+    // The content zone is the wide scanning width the dashboard set always
+    // occupied (MUI's lg container, 1200px); it must stand clearly above the
+    // reading measure so the two zones can never be confused again.
+    expect(SPACE.content).toBe(1200);
+    expect(SPACE.content).toBeGreaterThan(SPACE.measure);
   });
 });
 

@@ -55,7 +55,8 @@ interface DepthScale {
   float: string;
 }
 
-/** Named spacing steps over the 8px base, plus the reading measure. */
+/** Named spacing steps over the 8px base, plus the two width bounds: the
+ *  reading measure for sustained reading and the wide content zone. */
 export interface SpaceScale {
   inline: string;
   element: string;
@@ -63,6 +64,7 @@ export interface SpaceScale {
   zone: string;
   page: string;
   measure: number;
+  content: number;
 }
 
 declare module '@mui/material/styles' {
@@ -147,14 +149,17 @@ function rgbaFromHex(hex: string, alpha: number): string {
 
 // --- Palette tokens ----------------------------------------------------------
 
-// Light mode: the canvas is the lightest surface; raised sits exactly one
-// luminance step darker in the same cool near-white family.
+// Light mode: the canvas is the lightest surface; raised sits one clear step
+// darker in the same cool near-white family — a visible step, not a whisper,
+// while staying lighter than the hairline so outlines keep their place.
 const LIGHT_CANVAS = '#f8fafc';
-const LIGHT_RAISED = '#f1f5f9';
+const LIGHT_RAISED = '#ecf0f5';
 const LIGHT_VEIL_ALPHA = 0.86;
-// Dark mode: the canvas is the darkest surface; raised sits one step lighter.
+// Dark mode: the canvas is the darkest surface; raised sits one step lighter —
+// far enough above the canvas that rows and cards read at a glance, still a
+// calm neutral (zero chroma).
 const DARK_CANVAS = '#000000';
-const DARK_RAISED = '#121212';
+const DARK_RAISED = '#1e1e1e';
 const DARK_VEIL_ALPHA = 0.72;
 // How opaque the floating dialog paper is over the veil: translucent, so the
 // kept place beneath stays present.
@@ -167,12 +172,14 @@ const LIGHT_INK_MUTED = '#64748b';
 const LIGHT_ACCENT = '#0047ff';
 const LIGHT_HAIRLINE = '#e2e8f0';
 
-// Ink ladder (dark) -- the same ratio set in the dark realization.
+// Ink ladder (dark) -- the same ratio set in the dark realization. The
+// hairline rides above the raised surface (not just the canvas) so row
+// dividers and outlines stay legible on the lighter raised step.
 const DARK_INK_PRIMARY = '#f5f5f5';
 const DARK_INK_SECONDARY = '#a0a0a0';
 const DARK_INK_MUTED = '#767676';
 const DARK_ACCENT = '#5b8def';
-const DARK_HAIRLINE = '#262626';
+const DARK_HAIRLINE = '#333333';
 
 // Accent shades for state changes of the one saturated hue.
 const BRAND_BLUE_DARK = '#0036b8';
@@ -323,9 +330,8 @@ export const REDUCED_MOTION_COLLAPSE = {
 
 // --- Spacing ladder --------------------------------------------------------------
 
-// One 8px base; five named steps at 1x/2x/3x/5x/8x of it, plus the reading
-// measure that bounds sustained text. Every gap in the product is one of
-// these steps.
+// One 8px base; five named steps at 1x/2x/3x/5x/8x of it, plus the two width
+// bounds. Every gap in the product is one of these steps.
 const SPACING_BASE = 8;
 const SPACE_STEP_MULTIPLIERS = { inline: 1, element: 2, block: 3, zone: 5, page: 8 } as const;
 
@@ -335,7 +341,13 @@ export const SPACE: SpaceScale = {
   block: `${SPACING_BASE * SPACE_STEP_MULTIPLIERS.block}px`,
   zone: `${SPACING_BASE * SPACE_STEP_MULTIPLIERS.zone}px`,
   page: `${SPACING_BASE * SPACE_STEP_MULTIPLIERS.page}px`,
+  // The measure bounds the one activity whose visual condition is the measure
+  // itself: sustained reading (the legal columns, the landing sections).
   measure: 546,
+  // The content zone is the wide width the dashboard set scans — the lg
+  // container (1200px) the contained pages always occupied before the token
+  // system. A wider viewport buys margins, never longer lines.
+  content: 1200,
 };
 
 // --- Typographic scale -------------------------------------------------------------

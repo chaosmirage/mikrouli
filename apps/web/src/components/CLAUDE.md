@@ -56,10 +56,15 @@ owns the shorten POST); all other data arrives via props.
   compares standings: an optional `identity` node (wraps under the
   standings at narrow widths), `standings` (label + value pairs, values in
   tabular numerals so like-positioned values compare across rows), and
-  optional right-aligned `acts`. Purely presentational; a value renders as
-  `component="div"` because it may be block matter (the dashboard's in-row
-  correction form). Consumed by five pages (Dashboard, Stats, Usage,
-  ApiKeys, Connect).
+  optional right-aligned `acts`. The optional `aligned` prop opts a row
+  into a set's shared columns: the set's container owns ONE grid template
+  (a consumer-hoisted constant, switched on at the theme's md step) and
+  the row adopts those tracks via subgrid, so no row's content can shift
+  another row's columns; below md the row keeps the content-sized wrap
+  layout. Purely presentational; a value renders as `component="div"`
+  because it may be block matter (the dashboard's in-row correction
+  form). Consumed by five pages (Dashboard, Stats, Usage, ApiKeys,
+  Connect).
 - `StatementBand.tsx` -- The aftermath vehicle for one asynchronous act:
   takes a `StatementBandState | null` discriminated union (`underway`,
   `landed`, `empty`, `failure` with unknown `cause`) and states it as one

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import App from './App';
+import { SPACE, createAppTheme } from './theme';
+import { ThemeModeProvider } from './theme-mode-context';
 import { AuthContext } from './auth/AuthContext';
 import type { AuthContextValue } from './auth/AuthContext';
 
@@ -23,5 +27,25 @@ describe('App', () => {
     );
     render(tree);
     expect(screen.getByTestId('stub')).toBeInTheDocument();
+  });
+
+  it('bounds the contained layout at the wide content token, never the reading measure', async () => {
+    // A user opening any contained page (here /login) sees the shared content
+    // column: the wide zone the dashboard set scans, not the reading measure
+    // that bounds only sustained reading (the legal columns bound themselves).
+    // The auth bootstrap probe resolves before the route settles, hence findBy.
+    render(
+      <ThemeModeProvider>
+        <ThemeProvider theme={createAppTheme('light')}>
+          <MemoryRouter initialEntries={['/login']}>
+            <App />
+          </MemoryRouter>
+        </ThemeProvider>
+      </ThemeModeProvider>,
+    );
+    const layout = await screen.findByTestId('contained-layout');
+    expect(layout).toHaveStyle({ maxWidth: `${SPACE.content}px` });
+    // The measure must not leak back into the content zone.
+    expect(SPACE.content).not.toBe(SPACE.measure);
   });
 });

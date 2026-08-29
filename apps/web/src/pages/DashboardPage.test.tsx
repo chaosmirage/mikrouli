@@ -159,6 +159,21 @@ describe('DashboardPage', () => {
       expiresAt: null,
     };
 
+    it('stands closed by default and opens only on the row edit reach', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [LINK] })));
+      renderDashboard();
+      await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
+
+      // No editor is mounted anywhere in the set on load: the destination
+      // stands as text until the row's own edit reach opens it.
+      expect(screen.queryByTestId('edit-url-input-abc')).not.toBeInTheDocument();
+      expect(screen.getByTestId('link-row-abc')).toHaveTextContent('http://long.com');
+
+      fireEvent.click(screen.getByTestId('edit-abc'));
+
+      expect(screen.getByTestId('edit-url-input-abc')).toBeInTheDocument();
+    });
+
     it('opens on the standing destination inside the row, with no dialog', async () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [LINK] })));
       renderDashboard();
@@ -228,6 +243,145 @@ describe('DashboardPage', () => {
 
       expect(screen.queryByTestId('edit-url-input-abc')).not.toBeInTheDocument();
       expect(screen.getByTestId('link-row-abc')).toHaveTextContent('http://long.com');
+    });
+
+    it('labels the entering once: the standing caption names it, the input carries the accessible name', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [LINK] })));
+      renderDashboard();
+      await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
+      fireEvent.click(screen.getByTestId('edit-abc'));
+
+      const input = screen.getByTestId('edit-url-input-abc');
+      // ONE visible label: the standing's caption. The entering adds no
+      // second one — its TextField renders no InputLabel of its own.
+      const control = input.closest('div.MuiFormControl-root');
+      expect(control?.querySelector('label')).toBeNull();
+      expect(screen.getByTestId('link-row-abc')).toHaveTextContent('Original URL');
+      // The accessible name survives the dedupe, carried by the input.
+      expect(input).toHaveAttribute('aria-label', 'Destination');
+    });
+
+    it('separates the caption from the entering with ladder rhythm', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [LINK] })));
+      renderDashboard();
+      await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
+      fireEvent.click(screen.getByTestId('edit-abc'));
+
+      expect(screen.getByTestId('edit-correction-abc')).toHaveStyle({ marginTop: '8px' });
+    });
+
+    it('keeps an open editor and its draft across viewport changes', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [LINK] })));
+      renderDashboard();
+      await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
+      fireEvent.click(screen.getByTestId('edit-abc'));
+      fireEvent.change(screen.getByTestId('edit-url-input-abc'), {
+        target: { value: 'http://edited.example' },
+      });
+
+      // The correction state lives at the page, not the row: a viewport
+      // change crosses the responsive switch (pure CSS in these rows) and
+      // must never remount the editor away.
+      fireEvent(window, new Event('resize'));
+
+      const input = screen.getByTestId('edit-url-input-abc');
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveValue('http://edited.example');
+    });
+  });
+
+  describe('long destinations stay inside the row', () => {
+    const LONG_URL = `http://long.example/${'a'.repeat(320)}`;
+    const LONG_LINK = {
+      shortUrl: 'abc',
+      originalUrl: LONG_URL,
+      createdAt: '2024-01-01T00:00:00Z',
+      expiresAt: null,
+    };
+
+    it('wraps the destination text instead of overflowing the row', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [LONG_LINK] })));
+      renderDashboard();
+      await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
+
+      // The wrap-anywhere rule is what engages the flex min-width chain, so
+      // a spaceless URL folds inside its standing instead of widening it.
+      expect(screen.getByText(LONG_URL)).toHaveStyle({ overflowWrap: 'anywhere' });
+    });
+
+    it('constrains the in-row editor to the row width: the entering fills the line it is given', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [LONG_LINK] })));
+      renderDashboard();
+      await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
+      fireEvent.click(screen.getByTestId('edit-abc'));
+
+      const entering = screen
+        .getByTestId('edit-url-input-abc')
+        .closest('div.MuiFormControl-root');
+      expect(entering).not.toBeNull();
+      // fullWidth + flex basis + min-width 0: the entering carries no fixed px
+      // width, fills the line it is given, and shrinks with the row — so a
+      // long value can neither expand nor overflow the container.
+      expect(entering).toHaveClass('MuiFormControl-fullWidth');
+      expect(entering).toHaveStyle({ flex: '1 1 240px' });
+      expect(entering).toHaveStyle({ minWidth: '0' });
+    });
+  });
+
+  describe('the set owns its box rhythm', () => {
+    const LINKS = [
+      {
+        shortUrl: 'http://s.io/abc',
+        originalUrl: 'http://long.com',
+        createdAt: '2024-01-01T00:00:00Z',
+        expiresAt: null,
+      },
+      {
+        shortUrl: 'http://s.io/xyz',
+        originalUrl: 'http://other.example/with/a/much/longer/destination/path',
+        createdAt: '2024-01-02T00:00:00Z',
+        expiresAt: '2025-02-05T00:00:00Z',
+      },
+    ];
+
+    it('insets the rows from the set edges, full set and narrowed set alike', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: LINKS })));
+      renderDashboard();
+      await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
+
+      const rows = screen.getByTestId('dashboard-links-rows');
+      expect(rows).toHaveStyle({ paddingLeft: '16px' });
+      expect(rows).toHaveStyle({ paddingRight: '16px' });
+      expect(rows).toHaveStyle({ paddingBottom: '16px' });
+
+      // The narrowing motion must not trade the inset away: the rows keep
+      // their breathing room while the set narrows.
+      fireEvent.change(screen.getByTestId('narrow-links'), { target: { value: 'long' } });
+      expect(screen.getByTestId('dashboard-links-rows')).toHaveStyle({
+        paddingLeft: '16px',
+        paddingRight: '16px',
+      });
+    });
+
+    it('keeps every row on one shared track template so columns align across rows', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: LINKS })));
+      renderDashboard();
+      await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
+
+      const rows = screen.getAllByTestId(/^link-row-/);
+      expect(rows).toHaveLength(2);
+      // One hoisted row style: every row in the set carries the same
+      // generated classes — no row restyles its own columns.
+      expect(new Set(rows.map((row) => row.className)).size).toBe(1);
+
+      // The set's single shared template (bounded tracks; the destination
+      // is the widest flexible track) and the subgrid adoption that pins
+      // like-positioned standings to the same x in every row.
+      const styles = Array.from(document.querySelectorAll('style'))
+        .map((sheet) => sheet.textContent ?? '')
+        .join('');
+      expect(styles).toContain('minmax(0, 1fr) minmax(0, 3fr) max-content max-content auto');
+      expect(styles).toContain('grid-template-columns:subgrid');
     });
   });
 });
