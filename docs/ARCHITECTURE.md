@@ -331,9 +331,17 @@ The following controls are applied at startup in `apps/api/src/main.ts`:
   can extract tokens from `mikrouli_access`.
 - **Swagger UI**: only mounted when `NODE_ENV` is not `"production"`, preventing API
   schema disclosure in the production environment.
-- **Rate limiting**: `ThrottlerModule` applies per-IP in-memory counters: a default
-  limit (300 req/min), a strict auth limit (30 req/min on login/register/refresh), and
-  a redirect limit (120 req/10 s on the hot path).
+- **Rate limiting**: the throttler policy (`apps/api/src/common/throttler-policy.ts`,
+  a leaf that imports only `@nestjs/throttler` types) applies per-IP in-memory counters
+  through four named budgets with liberal floors — `default` (300 req/min), `auth`
+  (300 req/min, kept equal to the default so it only tightens at route level),
+  `redirect` (120 req/10 s on the hot path), and `data` (1000 req/min, which
+  authenticated data routes select by skipping the other names). Route-level
+  tightenings cover credential entry (10 req/min) and anonymous link creation
+  (30 req/min per IP — the only abuse bound on guest creation). A route's effective
+  budget is the minimum over all non-skipped names, so a route that forgets a
+  declaration degrades to the liberal floor rather than running unbounded. See
+  ADR 0019.
 
 nginx (`nginx/nginx.conf`, `k8s/base/web/configmap-nginx.yaml`) sets
 `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, and

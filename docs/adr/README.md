@@ -28,3 +28,5 @@ accordingly and a new record describes the replacement decision.
 | [0015](0015-mcp-tool-endpoint-for-llm-agents.md) | MCP Tool Endpoint for LLM Agents | Accepted |
 | [0016](0016-ci-manifest-validation-and-policy-gate.md) | CI Manifest Validation and Policy Gate | Accepted |
 | [0017](0017-dark-light-theme-with-anti-flash-cascade.md) | Dark/Light Theme with Anti-Flash Cascade | Accepted |
+| [0018](0018-web-theme-token-system.md) | Web Theme Token System | Accepted |
+| [0019](0019-centralized-api-throttler-policy.md) | Centralized API Throttler Policy | Accepted |

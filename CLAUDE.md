@@ -66,6 +66,9 @@ nginx       prod and dev reverse-proxy configs
   CI fails on stale generated output.
 - Keep the three locales (`en`, `de`, `el`) under `apps/web/src/i18n/locales/` in parity:
   add or remove every key in all three.
+- Define every visual value as a named token in `apps/web/src/theme.ts` (palette,
+  typography, spacing, depth, motion, radii); components must not carry raw hex,
+  shadow, or transition literals.
 - Tag deployment images with the git SHA via the `GITSHA-PLACEHOLDER` in `k8s/overlays/production/`.
 
 ## Constraints
