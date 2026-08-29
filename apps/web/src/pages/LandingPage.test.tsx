@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { AuthContext } from '../auth/AuthContext';
 import type { AuthContextValue } from '../auth/AuthContext';
 import { TestQueryClientProvider } from '../test/queryClient';
+import { createAppTheme } from '../theme';
 import LandingPage from './LandingPage';
-import { theme } from '../theme';
 
 // Anonymous visitor context (the only audience for the guest shorten form).
 const mockAuth: AuthContextValue = {
@@ -27,7 +27,7 @@ function makeConfigResponse(body: string) {
 }
 
 beforeEach(() => {
-  // Default: GUEST_SHORTEN_ENABLED=false so the guest section stays hidden.
+  // Default: GUEST_SHORTEN_ENABLED=false so the guest act stays hidden.
   // Per-test overrides re-stub fetch to flip the flag.
   vi.stubGlobal(
     'fetch',
@@ -41,7 +41,7 @@ beforeEach(() => {
 
 function renderLanding() {
   render(
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={createAppTheme('light')}>
       <MemoryRouter>
         <AuthContext.Provider value={mockAuth}>
           <TestQueryClientProvider>
@@ -53,71 +53,90 @@ function renderLanding() {
   );
 }
 
+// The rendered page, in DOM order, as the collection of its test ids.
+function renderedSectionIds(): string[] {
+  const page = screen.getByTestId('landing-page');
+  const sections = page.querySelectorAll('[data-testid]');
+  return Array.from(sections).map((el) => el.getAttribute('data-testid') ?? '');
+}
+
 describe('LandingPage', () => {
-  it('renders the three hero sections', () => {
+  it('renders the first-sight statement as the page heading with its supporting line', () => {
     renderLanding();
-    expect(screen.getByTestId('landing-page')).toBeInTheDocument();
-    expect(screen.getByTestId('landing-hero')).toBeInTheDocument();
-    expect(screen.getByTestId('landing-features')).toBeInTheDocument();
-    expect(screen.getByTestId('landing-bottom-cta')).toBeInTheDocument();
+    const statement = screen.getByTestId('landing-statement');
+    const heading = within(statement).getByRole('heading', { level: 1 });
+    expect(heading).toHaveTextContent(/Shorten your links/i);
+    expect(heading).toHaveTextContent(/track every click/i);
+    expect(statement).toHaveTextContent(/free, no account needed/i);
   });
 
-  it('renders three feature cards', () => {
+  it('renders the claims band as one list of four comparable entries', () => {
     renderLanding();
-    expect(screen.getByTestId('landing-feature-1')).toBeInTheDocument();
-    expect(screen.getByTestId('landing-feature-2')).toBeInTheDocument();
-    expect(screen.getByTestId('landing-feature-3')).toBeInTheDocument();
+    const band = screen.getByTestId('landing-claims');
+    const entries = within(band).getAllByRole('listitem');
+    expect(entries).toHaveLength(4);
+    // Every entry is rendered identically and carries its own claim address.
+    const addressed = band.querySelectorAll('li[data-testid^="landing-claim-"]');
+    expect(addressed).toHaveLength(4);
   });
 
-  it('hero CTA buttons link to register and login', () => {
+  it('each claim names its compared analog', () => {
     renderLanding();
-    const registerCta = screen.getByTestId('landing-cta-register');
-    const loginCta = screen.getByTestId('landing-cta-login');
-    expect(registerCta).toHaveAttribute('href', '/register');
-    expect(loginCta).toHaveAttribute('href', '/login');
+    const band = screen.getByTestId('landing-claims');
+    // Free analytics depth vs the tier-gated incumbent.
+    expect(within(band).getByTestId('landing-claim-analytics')).toHaveTextContent(/Bitly/i);
+    // Both QR representations vs the platforms that sell them.
+    expect(within(band).getByTestId('landing-claim-qr')).toHaveTextContent(/Rebrandly/);
+    expect(within(band).getByTestId('landing-claim-qr')).toHaveTextContent(/Short\.io/);
+    // Agent access vs the legacy mass shortener whose extras are paid.
+    expect(within(band).getByTestId('landing-claim-agents')).toHaveTextContent(/TinyURL/);
+    // Three-language operation.
+    expect(within(band).getByTestId('landing-claim-languages')).toHaveTextContent(/English/i);
+    expect(within(band).getByTestId('landing-claim-languages')).toHaveTextContent(/German/i);
+    expect(within(band).getByTestId('landing-claim-languages')).toHaveTextContent(/Greek/i);
   });
 
-  it('bottom CTA links to register', () => {
+  it('the agent claim carries a reach to the public connect surface', () => {
     renderLanding();
-    const cta = screen.getByTestId('landing-bottom-cta-register');
-    expect(cta).toHaveAttribute('href', '/register');
+    const reach = screen.getByTestId('landing-claim-agents-reach');
+    expect(reach).toHaveAttribute('href', '/connect');
   });
 
-  it('headline contains both prefix and highlight text', () => {
+  it('stages statement, guest act, then claims in arrival order', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          makeConfigResponse('window.__MIKROULI_CONFIG__ = { guestShortenEnabled: true };\n'),
+        ),
+    );
     renderLanding();
-    const headline = screen.getByTestId('landing-headline');
-    expect(headline).toHaveTextContent(/Shorten your links/i);
-    expect(headline).toHaveTextContent(/track every click/i);
+    await waitFor(() => expect(screen.getByTestId('guest-shorten-section')).toBeInTheDocument());
+    const ids = renderedSectionIds();
+    const statementIdx = ids.indexOf('landing-statement');
+    const actIdx = ids.indexOf('guest-shorten-section');
+    const claimsIdx = ids.indexOf('landing-claims');
+    expect(statementIdx).toBeGreaterThanOrEqual(0);
+    expect(actIdx).toBeGreaterThan(statementIdx);
+    expect(claimsIdx).toBeGreaterThan(actIdx);
   });
 
-  describe('agent section', () => {
-    it('renders the agent section between features and bottom CTA', () => {
-      renderLanding();
-      const page = screen.getByTestId('landing-page');
-      const sections = page.querySelectorAll('[data-testid]');
-      const ids = Array.from(sections).map((el) => el.getAttribute('data-testid'));
-      const featIdx = ids.indexOf('landing-features');
-      const agentIdx = ids.indexOf('agent-section');
-      const bottomIdx = ids.indexOf('landing-bottom-cta');
-      expect(agentIdx).toBeGreaterThan(-1);
-      expect(agentIdx).toBeGreaterThan(featIdx);
-      expect(agentIdx).toBeLessThan(bottomIdx);
-    });
+  it('stands complete without the guest act: statement and claims remain', () => {
+    renderLanding();
+    expect(screen.queryByTestId('guest-shorten-section')).not.toBeInTheDocument();
+    expect(screen.getByTestId('landing-statement')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-claims')).toBeInTheDocument();
+  });
 
-    it('agent section links to /connect', () => {
-      renderLanding();
-      const section = screen.getByTestId('agent-section');
-      // The CTA anchor inside the section must point to /connect
-      const connectLink = within(section).getByRole('link', { name: /connect/i });
-      expect(connectLink).toHaveAttribute('href', '/connect');
-    });
-
-    it('agent section names REST and MCP', () => {
-      renderLanding();
-      const section = screen.getByTestId('agent-section');
-      expect(section).toHaveTextContent(/REST/i);
-      expect(section).toHaveTextContent(/MCP/i);
-    });
+  it('retires the superseded sections and inline hero CTAs', () => {
+    renderLanding();
+    expect(screen.queryByTestId('landing-bottom-cta')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-feature-1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agent-section')).not.toBeInTheDocument();
+    // The register and sign-in reaches live in the shell band, not the page.
+    expect(screen.queryByTestId('landing-cta-register')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-cta-login')).not.toBeInTheDocument();
   });
 
   describe('guest shorten section', () => {
@@ -135,12 +154,40 @@ describe('LandingPage', () => {
             makeConfigResponse('window.__MIKROULI_CONFIG__ = { guestShortenEnabled: true };\n'),
           ),
       );
-      const { waitFor } = await import('@testing-library/react');
       renderLanding();
       await waitFor(() => expect(screen.getByTestId('guest-shorten-section')).toBeInTheDocument());
       expect(screen.getByTestId('shorten-url')).toBeInTheDocument();
-      // The nudge is hidden until a Guest shorten succeeds.
+      // The register nudge is hidden until a Guest shorten succeeds.
       expect(screen.queryByTestId('guest-nudge')).not.toBeInTheDocument();
+    });
+
+    it('after a successful shorten, the nudge names the account additions and reaches register', async () => {
+      const newLink = {
+        shortUrl: 'abc123',
+        originalUrl: 'http://long.com',
+        createdAt: '2026-01-01T00:00:00Z',
+        expiresAt: null,
+      };
+      vi.stubGlobal(
+        'fetch',
+        vi
+          .fn()
+          .mockResolvedValueOnce(
+            makeConfigResponse('window.__MIKROULI_CONFIG__ = { guestShortenEnabled: true };\n'),
+          )
+          .mockResolvedValueOnce({ ok: true, status: 201, json: () => Promise.resolve(newLink) }),
+      );
+      renderLanding();
+      await waitFor(() => expect(screen.getByTestId('shorten-url')).toBeInTheDocument());
+      fireEvent.change(screen.getByTestId('shorten-url'), {
+        target: { value: 'http://long.com' },
+      });
+      fireEvent.click(screen.getByTestId('shorten-submit'));
+      await waitFor(() => expect(screen.getByTestId('guest-nudge')).toBeInTheDocument());
+      expect(screen.getByTestId('guest-nudge-feature-kept-link')).toBeInTheDocument();
+      expect(screen.getByTestId('guest-nudge-feature-dashboard')).toBeInTheDocument();
+      expect(screen.getByTestId('guest-nudge-feature-api-keys')).toBeInTheDocument();
+      expect(screen.getByTestId('guest-nudge-cta')).toHaveAttribute('href', '/register');
     });
   });
 });

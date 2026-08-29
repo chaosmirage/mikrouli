@@ -16,6 +16,7 @@ import ConnectPage from './pages/ConnectPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import UsagePage from './pages/UsagePage';
+import { SPACE } from './theme';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,14 +28,17 @@ const queryClient = new QueryClient({
   },
 });
 
-const CONTAINED_LAYOUT_SX = { py: 5 };
+// Contained pages sit inside the reading measure with the page's own margin
+// rhythm — a wider viewport buys margins and calm, never longer lines.
+const CONTAINED_LAYOUT_SX = { py: SPACE.page, maxWidth: `${SPACE.measure}px`, mx: 'auto' };
 
 // Inner layout for content pages — wraps the outlet in a centred Container.
-// Landing page deliberately renders outside this layout so its hero/feature/
-// bottom-cta sections can occupy full viewport width with alternating backgrounds.
+// Landing page deliberately renders outside this layout: its composition —
+// statement, act, claims — is the one full-viewport reading, bounding its own
+// reading columns instead of the contained measure.
 function ContainedLayout() {
   return (
-    <Container maxWidth="lg" sx={CONTAINED_LAYOUT_SX} data-testid="contained-layout">
+    <Container maxWidth={false} sx={CONTAINED_LAYOUT_SX} data-testid="contained-layout">
       <Outlet />
     </Container>
   );

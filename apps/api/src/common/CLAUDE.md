@@ -3,8 +3,8 @@
 ## Purpose
 
 Shared utilities that every API module relies on: request correlation,
-structured error responses, and type definitions used across controllers,
-guards, and services.
+structured error responses, the API's rate-limit policy, and type
+definitions used across controllers, guards, and services.
 
 ## Key pieces
 
@@ -40,6 +40,17 @@ guards, and services.
   the `SeedGuestUser` migration and `UsersService.getGuestUserId()` so the
   sentinel stays stable across deploys. Add a constant here only when at
   least two unrelated modules must agree on the same value.
+- `throttler-policy.ts` (+ `throttler-policy.spec.ts`) -- single source of
+  truth for the API's rate-limit policy: the four throttler names
+  (`default`, `auth`, `redirect`, `data`), every designed budget (liberal
+  module floors plus the route-level tightenings for credential entry, the
+  redirect hot path, and anonymous creation), and `buildThrottlerOptions()`,
+  which `app.module.ts` boots the global `ThrottlerGuard` with. A deliberate
+  import-free leaf (only `@nestjs/throttler` types) so controllers can
+  import the names without cycling back through the module graph; the
+  colocated spec drives the real `ThrottlerGuard` with these options
+  against the real controllers' handler metadata and asserts allow/deny
+  plus the emitted `X-RateLimit-*` headers.
 
 ## How to extend safely
 

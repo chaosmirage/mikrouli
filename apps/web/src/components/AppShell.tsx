@@ -8,19 +8,14 @@ import Menu from '@mui/material/Menu';
 import IconButton from '@mui/material/IconButton';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Link from '@mui/material/Link';
 import MenuIcon from '@mui/icons-material/Menu';
+import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined';
+import LanguageIcon from '@mui/icons-material/Language';
 import { Outlet, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
-import ThemeModeSwitch from './ThemeModeSwitch';
-
-const LOCALE_SELECT_SX = {
-  color: 'text.secondary',
-  fontSize: '0.875rem',
-  '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-} as const;
+import SettingsPanel from './SettingsPanel';
 
 const NAV_BUTTON_SX = { color: 'text.primary' } as const;
 
@@ -37,6 +32,8 @@ const MENU_EMAIL_SX = { color: 'text.secondary', fontSize: '0.875rem' } as const
 const MENU_BUTTON_SX = { display: { xs: 'inline-flex', md: 'none' } } as const;
 
 const DESKTOP_NAV_SX = { display: { xs: 'none', md: 'flex' } } as const;
+
+const SETTINGS_REACH_SX = { color: 'text.secondary' } as const;
 
 const FOOTER_SX = {
   py: 2,
@@ -83,37 +80,6 @@ function NavMenuItem({
   return <MenuItem onClick={handleClick}>{label}</MenuItem>;
 }
 
-function LocaleSwitcher() {
-  const { i18n, t } = useTranslation('common');
-  const handleChange = useCallback(
-    (e: SelectChangeEvent) => {
-      void i18n.changeLanguage(e.target.value);
-    },
-    [i18n],
-  );
-  const localeSelectInputProps = { 'aria-label': t('language') };
-  return (
-    <Select
-      value={i18n.resolvedLanguage ?? i18n.language}
-      onChange={handleChange}
-      size="small"
-      data-testid="locale-switcher"
-      inputProps={localeSelectInputProps}
-      sx={LOCALE_SELECT_SX}
-    >
-      <MenuItem value="en" data-testid="locale-option-en">
-        English
-      </MenuItem>
-      <MenuItem value="de" data-testid="locale-option-de">
-        Deutsch
-      </MenuItem>
-      <MenuItem value="el" data-testid="locale-option-el">
-        Ελληνικά
-      </MenuItem>
-    </Select>
-  );
-}
-
 function Footer() {
   const { t } = useTranslation('common');
   return (
@@ -149,6 +115,12 @@ export default function AppShell() {
   const handleApiKeys = useCallback(() => navigate('/api-keys'), [navigate]);
   const handleUsage = useCallback(() => navigate('/usage'), [navigate]);
   const handleHome = useCallback(() => navigate('/'), [navigate]);
+
+  // The setting pair stands over whatever place the user occupies: the open
+  // flag lives here (the only reader/writer), and closing it never navigates.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
 
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
   const menuOpen = Boolean(menuAnchorEl);
@@ -249,8 +221,22 @@ export default function AppShell() {
                 </Typography>
               )}
             </Stack>
-            <ThemeModeSwitch />
-            <LocaleSwitcher />
+            <IconButton
+              data-testid="settings-mode-reach"
+              aria-label={t('themeMode')}
+              onClick={openSettings}
+              sx={SETTINGS_REACH_SX}
+            >
+              <PaletteOutlinedIcon />
+            </IconButton>
+            <IconButton
+              data-testid="settings-language-reach"
+              aria-label={t('language')}
+              onClick={openSettings}
+              sx={SETTINGS_REACH_SX}
+            >
+              <LanguageIcon />
+            </IconButton>
           </Stack>
         </Toolbar>
       </AppBar>
@@ -258,6 +244,7 @@ export default function AppShell() {
         <Outlet />
       </Box>
       <Footer />
+      <SettingsPanel open={settingsOpen} onClose={closeSettings} />
     </Box>
   );
 }

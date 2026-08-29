@@ -14,8 +14,8 @@
   "deleteLink": "Link löschen?",
   "deleteLinkBody": "{{slug}} wird unwiderruflich entfernt.",
   "shortenLabel": "Kürzen",
-  "editLink": "Ziel bearbeiten",
-  "editLinkBody": "Ändere, wohin {{slug}} weiterleitet.",
-  "newDestination": "Neues Ziel",
-  "editLabel": "Bearbeiten"
+  "editLabel": "Bearbeiten",
+  "narrowLinks": "Links eingrenzen",
+  "narrowedEmpty": "Keine Links entsprechen „{{fragment}}“.",
+  "correctedDestination": "Ziel"
 }

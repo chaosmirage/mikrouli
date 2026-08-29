@@ -1,27 +1,26 @@
-import { FormEvent, useCallback, useState } from 'react';
+import { FormEvent, ReactNode, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
-import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
-import Paper from '@mui/material/Paper';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
+import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import BlockIcon from '@mui/icons-material/Block';
-import { apiFetch, extractErrorMessage } from '../api/client';
-import type { ApiKeySummary, ApiKeyCreated } from '../api/types';
-import ConfirmDialog from '../components/ConfirmDialog';
+import type { Theme } from '@mui/material/styles';
+import { apiFetch } from '../api/client';
+import type { ApiKeyCreated, ApiKeySummary } from '../api/types';
+import CopyControl from '../components/CopyControl';
+import StandingsRow from '../components/StandingsRow';
+import StatementBand from '../components/StatementBand';
+import type { StatementBandState } from '../components/StatementBand';
+import { formatDate } from '../i18n/format';
 
 async function loadApiKeys(): Promise<ApiKeySummary[]> {
   const response = await apiFetch('/api/api-keys', 'get');
@@ -36,22 +35,69 @@ async function attemptRevokeKey(id: string): Promise<void> {
   await apiFetch('/api/api-keys/{id}', 'delete', { pathParams: { id } });
 }
 
+// Zone separation between the issuing and the standing review.
+const ZONE_SPACING = 5;
+
 const KEY_LABEL_INPUT_PROPS = { 'data-testid': 'key-label' } as const;
 const CREATE_BUTTON_SX = { whiteSpace: 'nowrap' } as const;
 const CREATE_FIELD_SX = { flex: 1 } as const;
 
-interface CreateKeyCardProps {
+// The secret reads in the theme's fixed-width register: a character-exact
+// string must be read character-exactly, because a mistyped key fails late.
+// (The optional chain keeps the value legible under a theme that predates
+// the register.)
+const SECRET_VALUE_SX = {
+  fontFamily: (theme: Theme) => theme.typography.technical?.fontFamily,
+  fontSize: '0.875rem',
+  wordBreak: 'break-all',
+} as const;
+
+const SECRET_ACTS_SX = { display: 'flex', alignItems: 'center', gap: 0.5 } as const;
+
+const REVIEW_LIST_SX = { p: 2 } as const;
+
+/**
+ * The issuing act's whole aftermath, one state at a time: idle, under way,
+ * refused with its cause, or issued with the secret received into keeping.
+ * Discriminated so impossible combinations cannot be expressed.
+ */
+type IssueOutcome =
+  | { readonly kind: 'idle' }
+  | { readonly kind: 'underway' }
+  | { readonly kind: 'refused'; readonly cause: unknown }
+  | { readonly kind: 'issued'; readonly key: ApiKeyCreated };
+
+/** The band the issuing act states in the moment: under way, or the refusal. */
+function issueBandState(outcome: IssueOutcome): StatementBandState | null {
+  if (outcome.kind === 'underway') return { kind: 'underway' };
+  if (outcome.kind === 'refused') return { kind: 'failure', cause: outcome.cause };
+  return null;
+}
+
+/** The surface's own naming and the one line naming the capability. */
+function CapabilityStatement() {
+  const { t } = useTranslation('apiKeys');
+  return (
+    <Stack spacing={1}>
+      <Typography variant="h4" component="h1">
+        {t('title')}
+      </Typography>
+      <Typography color="text.secondary">{t('intro')}</Typography>
+    </Stack>
+  );
+}
+
+interface IssueZoneProps {
   label: string;
-  loading: boolean;
-  error: string | null;
-  onChange: (v: string) => void;
+  outcome: IssueOutcome;
+  onLabelChange: (v: string) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
 }
-function CreateKeyCard({ label, loading, error, onChange, onSubmit }: CreateKeyCardProps) {
+function IssueZone({ label, outcome, onLabelChange, onSubmit }: IssueZoneProps) {
   const { t } = useTranslation('apiKeys');
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
-    [onChange],
+    (e: React.ChangeEvent<HTMLInputElement>) => onLabelChange(e.target.value),
+    [onLabelChange],
   );
   return (
     <Card data-testid="create-key-card">
@@ -70,18 +116,14 @@ function CreateKeyCard({ label, loading, error, onChange, onSubmit }: CreateKeyC
               <Button
                 type="submit"
                 variant="contained"
-                disabled={loading}
+                disabled={outcome.kind === 'underway'}
                 data-testid="key-create"
                 sx={CREATE_BUTTON_SX}
               >
                 {t('create')}
               </Button>
             </Stack>
-            {error && (
-              <Alert severity="error" data-testid="key-create-error">
-                {error}
-              </Alert>
-            )}
+            <StatementBand state={issueBandState(outcome)} />
           </Stack>
         </form>
       </CardContent>
@@ -89,108 +131,104 @@ function CreateKeyCard({ label, loading, error, onChange, onSubmit }: CreateKeyC
   );
 }
 
-interface NewKeyAlertProps {
+interface SecretShowingProps {
   apiKey: ApiKeyCreated;
   onDismiss: () => void;
-  onCopy: (text: string) => void;
 }
-function NewKeyAlert({ apiKey, onDismiss, onCopy }: NewKeyAlertProps) {
+/**
+ * The secret's one showing: the receipt stated as the aftermath of the issuing
+ * act, and the value itself standing in its own glance to be carried onward —
+ * takeable in one activation with the landing confirmed beside it.
+ */
+function SecretShowing({ apiKey, onDismiss }: SecretShowingProps) {
   const { t } = useTranslation('apiKeys');
-  const handleCopyKey = useCallback(() => onCopy(apiKey.key), [onCopy, apiKey.key]);
-  const copyBtn = (
-    <IconButton size="small" onClick={handleCopyKey} data-testid="copy-key-secret">
-      <ContentCopyIcon fontSize="inherit" />
-    </IconButton>
-  );
-  const dismissBtn = (
-    <Button size="small" onClick={onDismiss} data-testid="dismiss-key-alert">
-      {t('dismiss')}
-    </Button>
-  );
   return (
-    <Alert
-      severity="warning"
-      data-testid="key-secret-once"
-      action={
-        <>
-          {copyBtn}
-          {dismissBtn}
-        </>
-      }
-    >
-      {t('secretOnce', { key: apiKey.key })}
-    </Alert>
+    <Stack data-testid="key-secret-once" spacing={1.5}>
+      <StatementBand state={{ kind: 'landed' }} landedKey="apiKeys:secretReceipt" />
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Box sx={SECRET_VALUE_SX} data-testid="key-secret-value">
+          {apiKey.key}
+        </Box>
+        <Box sx={SECRET_ACTS_SX}>
+          <CopyControl value={apiKey.key} testId="copy-key-secret" />
+          <Button size="small" onClick={onDismiss} data-testid="dismiss-key-alert">
+            {t('dismiss')}
+          </Button>
+        </Box>
+      </Stack>
+    </Stack>
   );
 }
 
-interface KeyTableRowProps {
+interface KeyReviewRowProps {
   apiKey: ApiKeySummary;
   onRevoke: (id: string) => void;
 }
-function KeyTableRow({ apiKey, onRevoke }: KeyTableRowProps) {
+/** One issued credential as a labeled row: its standings, its retire reach. */
+function KeyReviewRow({ apiKey, onRevoke }: KeyReviewRowProps) {
   const { t } = useTranslation('apiKeys');
   const isRevoked = apiKey.revokedAt !== null;
-  const status = isRevoked ? t('revoked') : t('active');
-  const lastUsed = apiKey.lastUsedAt ? apiKey.lastUsedAt.slice(0, 10) : '—';
+  const lastUsed = apiKey.lastUsedAt ? formatDate(apiKey.lastUsedAt) : t('neverUsed');
   const handleRevoke = useCallback(() => onRevoke(apiKey.id), [onRevoke, apiKey.id]);
   return (
-    <TableRow>
-      <TableCell>{apiKey.label}</TableCell>
-      <TableCell>{apiKey.keyPrefix}…</TableCell>
-      <TableCell>{apiKey.createdAt.slice(0, 10)}</TableCell>
-      <TableCell>{lastUsed}</TableCell>
-      <TableCell>{status}</TableCell>
-      <TableCell>
+    <StandingsRow
+      rowTestId={`key-row-${apiKey.id}`}
+      identity={
+        <Typography variant="subtitle1" component="span" fontWeight={600}>
+          {apiKey.label}
+        </Typography>
+      }
+      standings={[
+        {
+          label: t('prefix'),
+          value: `${apiKey.keyPrefix}…`,
+          testId: `key-prefix-${apiKey.id}`,
+        },
+        { label: t('created'), value: formatDate(apiKey.createdAt) },
+        { label: t('lastUsed'), value: lastUsed },
+        {
+          label: t('status'),
+          value: isRevoked ? t('revoked') : t('active'),
+        },
+      ]}
+      acts={
         <IconButton
           size="small"
           onClick={handleRevoke}
           disabled={isRevoked}
+          aria-label={`${t('revoke')} ${apiKey.label}`}
           data-testid={`revoke-${apiKey.id}`}
         >
           <BlockIcon fontSize="small" />
         </IconButton>
-      </TableCell>
-    </TableRow>
+      }
+    />
   );
 }
 
-interface KeysTableProps {
+interface ReviewZoneProps {
   keys: ApiKeySummary[];
   loading: boolean;
-  fetchError: string | null;
+  fetchError: unknown;
   onRevoke: (id: string) => void;
 }
-function KeysTable({ keys, loading, fetchError, onRevoke }: KeysTableProps) {
-  const { t } = useTranslation('apiKeys');
+/** What stands: the issued credentials as review rows, or the honest states. */
+function ReviewZone({ keys, loading, fetchError, onRevoke }: ReviewZoneProps) {
   if (loading) return <CircularProgress data-testid="keys-loading" />;
-  if (fetchError) return <Alert severity="error">{fetchError}</Alert>;
-  if (keys.length === 0)
-    return <Typography data-testid="no-keys-message">{t('noKeys')}</Typography>;
+  if (fetchError !== null) return <StatementBand state={{ kind: 'failure', cause: fetchError }} />;
+  if (keys.length === 0) return <StatementBand state={{ kind: 'empty' }} emptyKey="apiKeys:noKeys" />;
   return (
-    <TableContainer component={Paper} data-testid="api-keys-table">
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>{t('label')}</TableCell>
-            <TableCell>{t('prefix')}</TableCell>
-            <TableCell>{t('created')}</TableCell>
-            <TableCell>{t('lastUsed')}</TableCell>
-            <TableCell>{t('status')}</TableCell>
-            <TableCell>{t('revoke')}</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {keys.map((k) => (
-            <KeyTableRow key={k.id} apiKey={k} onRevoke={onRevoke} />
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <Paper variant="outlined" sx={REVIEW_LIST_SX} data-testid="api-keys-table">
+      <Stack divider={<Divider flexItem />}>
+        {keys.map((k) => (
+          <KeyReviewRow key={k.id} apiKey={k} onRevoke={onRevoke} />
+        ))}
+      </Stack>
+    </Paper>
   );
 }
 
 export default function ApiKeysPage() {
-  const { t } = useTranslation('apiKeys');
   const queryClient = useQueryClient();
   const {
     data: keys = [],
@@ -201,77 +239,62 @@ export default function ApiKeysPage() {
     queryFn: loadApiKeys,
   });
   const [labelInput, setLabelInput] = useState('');
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [newKey, setNewKey] = useState<ApiKeyCreated | null>(null);
-  const [revokeCandidate, setRevokeCandidate] = useState<string | null>(null);
+  const [issueOutcome, setIssueOutcome] = useState<IssueOutcome>({ kind: 'idle' });
 
-  const handleCreate = useCallback(
+  const handleIssue = useCallback(
     async (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
-      setCreateLoading(true);
+      setIssueOutcome({ kind: 'underway' });
       try {
         const key = await attemptCreateKey(labelInput);
-        setNewKey(key);
-        setCreateError(null);
+        setIssueOutcome({ kind: 'issued', key });
         setLabelInput('');
         void queryClient.invalidateQueries({ queryKey: ['api-keys'] });
-      } catch (err) {
-        setCreateError(extractErrorMessage(err));
+      } catch (cause) {
+        setIssueOutcome({ kind: 'refused', cause });
       }
-      setCreateLoading(false);
     },
     [labelInput, queryClient],
   );
 
-  const handleRevoke = useCallback(async () => {
-    if (!revokeCandidate) return;
-    try {
-      await attemptRevokeKey(revokeCandidate);
-    } catch {
-      // Revoke failure is surfaced on next list refresh; avoid blocking the dialog close
-    }
-    setRevokeCandidate(null);
-    void queryClient.invalidateQueries({ queryKey: ['api-keys'] });
-  }, [revokeCandidate, queryClient]);
+  // Retiring is one act on the row: the credential displaces a key, not a
+  // public resolving link, so no destruction confirmation is staged. A failed
+  // retire surfaces on the next list refresh.
+  const handleRevoke = useCallback(
+    async (id: string) => {
+      try {
+        await attemptRevokeKey(id);
+      } catch {
+        // The refreshed list carries the truth; no statement is staged here.
+      }
+      void queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+    },
+    [queryClient],
+  );
 
-  const handleCopy = useCallback((text: string) => {
-    void navigator.clipboard.writeText(text);
-  }, []);
+  const handleDismissSecret = useCallback(() => setIssueOutcome({ kind: 'idle' }), []);
 
-  const handleDismissNewKey = useCallback(() => setNewKey(null), []);
-  const handleCancelRevoke = useCallback(() => setRevokeCandidate(null), []);
-
-  const fetchError = keysError ? extractErrorMessage(keysError) : null;
+  const fetchError = keysError ?? null;
+  const secretShowing: ReactNode =
+    issueOutcome.kind === 'issued' ? (
+      <SecretShowing apiKey={issueOutcome.key} onDismiss={handleDismissSecret} />
+    ) : null;
 
   return (
-    <Stack spacing={4} data-testid="api-keys-page">
-      <CreateKeyCard
+    <Stack spacing={ZONE_SPACING} data-testid="api-keys-page">
+      <CapabilityStatement />
+      <IssueZone
         label={labelInput}
-        loading={createLoading}
-        error={createError}
-        onChange={setLabelInput}
-        onSubmit={handleCreate}
+        outcome={issueOutcome}
+        onLabelChange={setLabelInput}
+        onSubmit={handleIssue}
       />
-      {newKey && (
-        <NewKeyAlert apiKey={newKey} onDismiss={handleDismissNewKey} onCopy={handleCopy} />
-      )}
-      <KeysTable
+      {secretShowing}
+      <ReviewZone
         keys={keys}
         loading={keysLoading}
         fetchError={fetchError}
-        onRevoke={setRevokeCandidate}
-      />
-      <ConfirmDialog
-        open={!!revokeCandidate}
-        title={t('revokeKey')}
-        description={t('revokeBody')}
-        confirmLabel={t('revoke')}
-        onConfirm={handleRevoke}
-        onCancel={handleCancelRevoke}
-        dialogTestId="revoke-dialog"
-        cancelTestId="revoke-cancel"
-        confirmTestId="revoke-confirm"
+        onRevoke={handleRevoke}
       />
     </Stack>
   );

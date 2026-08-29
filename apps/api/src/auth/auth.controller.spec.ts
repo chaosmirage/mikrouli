@@ -1,7 +1,12 @@
 import { ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
-import { ModuleMetadata } from '@nestjs/common';
+import { ExecutionContext, ModuleMetadata } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerException, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import {
+  AUTH_CREDENTIAL_BUDGET,
+  DATA_MODULE_BUDGET,
+  buildThrottlerOptions,
+} from '../common/throttler-policy';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
@@ -220,5 +225,80 @@ describe('AuthController', () => {
 
     filter.catch(new GithubNoVerifiedEmailError(), mockHost);
     expect(mockRes.redirect).toHaveBeenCalledWith(302, '/login?error=github-no-verified-email');
+  });
+});
+
+// Session-check endpoints (/me, /logout) are per-request JWT verifications the
+// SPA issues on every page load, so a per-IP rate limit there turns normal
+// browsing into 429s and bounces signed-in users to /login — they skip every
+// declared throttler by name. These tests drive the REAL ThrottlerGuard with
+// the module options the app boots with (built from the shared
+// common/throttler-policy leaf): @nestjs/throttler 6.x reads skip metadata per
+// throttler name, so a bare @SkipThrottle() (which only skips 'default')
+// would leave the endpoint under the remaining budgets. The guard's allow/deny
+// decision is the seam that becomes HTTP 429 — decorator presence proves
+// nothing, as the historical import cycle demonstrated.
+describe('AuthController session-check throttle skip', () => {
+  // Past EVERY declared module floor: the skip must hold under each of the
+  // four named budgets, not just the auth one.
+  const HITS_PAST_EVERY_FLOOR = DATA_MODULE_BUDGET.limit + 10;
+
+  type HandlerFn = (...args: never[]) => unknown;
+
+  function buildPolicyModule(): Promise<TestingModule> {
+    return Test.createTestingModule({
+      imports: [ThrottlerModule.forRoot(buildThrottlerOptions())],
+      controllers: [AuthController],
+      providers: [
+        authServiceProvider,
+        usersServiceProvider,
+        { provide: ThrottlerGuard, useClass: ThrottlerGuard },
+      ],
+    }).compile();
+  }
+
+  function buildHttpContext(handler: HandlerFn): ExecutionContext {
+    return {
+      getClass: () => AuthController,
+      getHandler: () => handler,
+      switchToHttp: () => ({
+        getRequest: () => ({ ip: '203.0.113.7', headers: {} }),
+        getResponse: () => ({ header: () => undefined }),
+      }),
+    } as unknown as ExecutionContext;
+  }
+
+  async function resolveGuard(): Promise<ThrottlerGuard> {
+    const moduleRef = await buildPolicyModule();
+    const guard = moduleRef.get<ThrottlerGuard>(ThrottlerGuard);
+    await guard.onModuleInit();
+    return guard;
+  }
+
+  it('GET /me stays available past every module-level throttler budget', async () => {
+    const guard = await resolveGuard();
+    const context = buildHttpContext(AuthController.prototype.me);
+    for (let hit = 0; hit <= HITS_PAST_EVERY_FLOOR; hit++) {
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+    }
+  });
+
+  it('POST /logout stays available past every module-level throttler budget', async () => {
+    const guard = await resolveGuard();
+    const context = buildHttpContext(AuthController.prototype.logout);
+    for (let hit = 0; hit <= HITS_PAST_EVERY_FLOOR; hit++) {
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+    }
+  });
+
+  it('POST /login denies exactly at hit 11/min (the skip must not leak onto the brute-force surface)', async () => {
+    const guard = await resolveGuard();
+    const context = buildHttpContext(AuthController.prototype.login);
+    // The route-level auth override must actually bind: every hit up to the
+    // budget passes, the very next one is denied inside the window.
+    for (let hit = 0; hit < AUTH_CREDENTIAL_BUDGET.limit; hit++) {
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+    }
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ThrottlerException);
   });
 });

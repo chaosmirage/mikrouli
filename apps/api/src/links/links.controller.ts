@@ -11,10 +11,17 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { BearerOrApiKeyGuard } from '../api-keys/bearer-or-api-key.guard';
 import { GuestOrAuthenticatedGuard } from '../api-keys/guest-or-authenticated.guard';
 import { LinkCacheService } from '../cache/link-cache.service';
 import type { AuthenticatedRequest } from '../common/authenticated-request';
+import {
+  AUTH_THROTTLE_NAME,
+  DEFAULT_THROTTLE_NAME,
+  GUEST_CREATE_BUDGET,
+  REDIRECT_THROTTLE_NAME,
+} from '../common/throttler-policy';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { UpdateLinkDto } from './dto/update-link.dto';
 import { Link } from './entities/link.entity';
@@ -44,6 +51,10 @@ export class LinksController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(GuestOrAuthenticatedGuard)
+  // Guest-admissible creation skips the quota check and the SPA-origin check
+  // is spoofable by any HTTP client, so this per-IP override is the ONLY abuse
+  // bound on anonymous shortening — a deliberate bound, not an accident.
+  @Throttle({ [DEFAULT_THROTTLE_NAME]: GUEST_CREATE_BUDGET })
   async create(
     @Req() req: AuthenticatedRequest,
     @Body() dto: CreateLinkDto,
@@ -57,6 +68,14 @@ export class LinksController {
     return toPublicLinkSchema(link);
   }
 
+  // Authenticated list/mutate traffic runs under the generous data budget
+  // alone: the skip sheds the three public names, whose floors would
+  // otherwise bind through the min-rule.
+  @SkipThrottle({
+    [DEFAULT_THROTTLE_NAME]: true,
+    [AUTH_THROTTLE_NAME]: true,
+    [REDIRECT_THROTTLE_NAME]: true,
+  })
   @Get()
   @UseGuards(BearerOrApiKeyGuard)
   async list(@Req() req: AuthenticatedRequest): Promise<LinksListResponse> {
@@ -64,6 +83,14 @@ export class LinksController {
     return { data: links.map(toPublicLinkSchema) };
   }
 
+  // Authenticated list/mutate traffic runs under the generous data budget
+  // alone: the skip sheds the three public names, whose floors would
+  // otherwise bind through the min-rule.
+  @SkipThrottle({
+    [DEFAULT_THROTTLE_NAME]: true,
+    [AUTH_THROTTLE_NAME]: true,
+    [REDIRECT_THROTTLE_NAME]: true,
+  })
   @Delete(':slug')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(BearerOrApiKeyGuard)
@@ -72,6 +99,14 @@ export class LinksController {
     await this.linkCache.del(slug);
   }
 
+  // Authenticated list/mutate traffic runs under the generous data budget
+  // alone: the skip sheds the three public names, whose floors would
+  // otherwise bind through the min-rule.
+  @SkipThrottle({
+    [DEFAULT_THROTTLE_NAME]: true,
+    [AUTH_THROTTLE_NAME]: true,
+    [REDIRECT_THROTTLE_NAME]: true,
+  })
   @Patch(':slug')
   @UseGuards(BearerOrApiKeyGuard)
   async update(

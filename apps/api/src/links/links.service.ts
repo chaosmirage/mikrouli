@@ -91,8 +91,9 @@ export class LinksService {
 
   // Guest variant: reuses the slug-insert-outbox chain verbatim but skips the
   // per-user quota check. Quota is meaningless on the shared Guest row (one
-  // visitor could exhaust it for everyone); the global ThrottlerGuard is the
-  // only per-IP abuse bound on Guest.
+  // visitor could exhaust it for everyone); the deliberate per-IP
+  // GUEST_CREATE_BUDGET override on POST /api/urls (links.controller.ts) is
+  // the only abuse bound on Guest.
   async createGuest(
     originalUrl: string,
     guestUserId: string,

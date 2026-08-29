@@ -11,14 +11,18 @@ import Typography from '@mui/material/Typography';
 import { apiFetch } from '../api/client';
 import type { UsageSummary } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
+import StandingsRow from '../components/StandingsRow';
+import StatementBand from '../components/StatementBand';
+import { formatDate, formatNumber } from '../i18n/format';
 
 const SUPPORT_EMAIL = 'support@mikrou.li';
 const MS_PER_YEAR = 365 * 24 * 60 * 60 * 1000;
 
-const CARD_SX = { minWidth: 260 } as const;
-const LABEL_SX = { color: 'text.secondary', fontSize: '0.875rem' } as const;
-const VALUE_SX = { fontVariantNumeric: 'tabular-nums', fontWeight: 700 } as const;
-const STACK_SX = { maxWidth: 600 } as const;
+// Zone separation between the statement and the standing review.
+const ZONE_SPACING = 5;
+
+const PAGE_SX = { maxWidth: 600 } as const;
+const CARD_SX = { minWidth: 260, flex: 1 } as const;
 const PROGRESS_SX = { height: 8, borderRadius: 1 } as const;
 
 function usedPercent(created: number, limit: number): number {
@@ -30,59 +34,56 @@ async function loadUsage(): Promise<UsageSummary> {
   return apiFetch('/api/usage', 'get');
 }
 
-function formatRetention(ms: number): string {
-  const years = ms / MS_PER_YEAR;
-  return `${Math.round(years)} years`;
+function yearsFromMs(ms: number): number {
+  return Math.round(ms / MS_PER_YEAR);
 }
 
-function formatResetDate(isoString: string): string {
-  return isoString.slice(0, 10);
-}
-
-interface QuotaRowProps {
-  label: string;
-  value: number;
-  testId: string;
-}
-function QuotaRow({ label, value, testId }: QuotaRowProps) {
+/** The surface's own naming and the one line naming the capability. */
+function CapabilityStatement() {
+  const { t } = useTranslation('usage');
   return (
-    <Stack direction="row" justifyContent="space-between" alignItems="center">
-      <Typography sx={LABEL_SX}>{label}</Typography>
-      <Typography sx={VALUE_SX} data-testid={testId}>
-        {value}
+    <Stack spacing={1}>
+      <Typography variant="h4" component="h1">
+        {t('title')}
       </Typography>
+      <Typography color="text.secondary">{t('intro')}</Typography>
     </Stack>
   );
 }
 
-interface QuotaCardProps {
+interface StandingCardProps {
   title: string;
   created: number;
   limit: number;
   remaining: number;
+  exhaustedStatement: string;
   createdTestId: string;
   remainingTestId: string;
   cardTestId: string;
 }
-function QuotaCard({
+/**
+ * One standing against its limit: the fill proportion first, then the created,
+ * limit, and remaining figures as labeled standings. An exhausted allowance is
+ * stated as resolved matter with the standing it belongs to.
+ */
+function StandingCard({
   title,
   created,
   limit,
   remaining,
+  exhaustedStatement,
   createdTestId,
   remainingTestId,
   cardTestId,
-}: QuotaCardProps) {
+}: StandingCardProps) {
   const { t } = useTranslation('usage');
   const percent = usedPercent(created, limit);
   const exhausted = remaining <= 0;
   return (
-    <Card variant="outlined" data-testid={cardTestId} sx={CARD_SX}>
+    <Card variant="outlined" sx={CARD_SX} data-testid={cardTestId}>
       <CardContent>
-        <Typography variant="h6" gutterBottom>
-          {title}
-        </Typography>
-        <Stack spacing={1}>
+        <Stack spacing={1.5}>
+          <Typography variant="h6">{title}</Typography>
           <LinearProgress
             variant="determinate"
             value={percent}
@@ -91,9 +92,22 @@ function QuotaCard({
             aria-label={t('usageProgress', { used: created, total: limit })}
             sx={PROGRESS_SX}
           />
-          <QuotaRow label={t('created')} value={created} testId={createdTestId} />
-          <QuotaRow label={t('limit')} value={limit} testId={`${cardTestId}-limit`} />
-          <QuotaRow label={t('remaining')} value={remaining} testId={remainingTestId} />
+          {exhausted && (
+            <Alert severity="warning" data-testid={`${cardTestId}-exhausted`}>
+              {exhaustedStatement}
+            </Alert>
+          )}
+          <StandingsRow
+            standings={[
+              { label: t('created'), value: formatNumber(created), testId: createdTestId },
+              { label: t('limit'), value: formatNumber(limit), testId: `${cardTestId}-limit` },
+              {
+                label: t('remaining'),
+                value: formatNumber(remaining),
+                testId: remainingTestId,
+              },
+            ]}
+          />
         </Stack>
       </CardContent>
     </Card>
@@ -111,36 +125,44 @@ function UsageView({ summary, email }: UsageViewProps) {
   const mailtoHref = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
 
   return (
-    <Stack spacing={3} data-testid="usage-page" sx={STACK_SX}>
-      <Typography variant="h4">{t('title')}</Typography>
+    <Stack spacing={ZONE_SPACING} sx={PAGE_SX} data-testid="usage-page">
+      <CapabilityStatement />
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-        <QuotaCard
+        <StandingCard
           title={t('linksQuota')}
           created={summary.linksCreated}
           limit={summary.linkLimit}
           remaining={summary.linksRemaining}
+          exhaustedStatement={t('overLimitLinks')}
           createdTestId="links-created"
           remainingTestId="links-remaining"
           cardTestId="links-quota-card"
         />
-        <QuotaCard
+        <StandingCard
           title={t('keysQuota')}
           created={summary.keysCreated}
           limit={summary.keyLimit}
           remaining={summary.keysRemaining}
+          exhaustedStatement={t('overLimitKeys')}
           createdTestId="keys-created"
           remainingTestId="keys-remaining"
           cardTestId="keys-quota-card"
         />
       </Stack>
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Typography sx={LABEL_SX}>{t('resetDate')}:</Typography>
-        <Typography data-testid="reset-date">{formatResetDate(summary.resetDate)}</Typography>
-      </Stack>
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Typography sx={LABEL_SX}>{t('retention')}:</Typography>
-        <Typography data-testid="retention-info">{formatRetention(summary.retentionMs)}</Typography>
-      </Stack>
+      <StandingsRow
+        standings={[
+          {
+            label: t('resetDate'),
+            value: formatDate(summary.resetDate),
+            testId: 'reset-date',
+          },
+          {
+            label: t('retention'),
+            value: t('retentionYears', { count: yearsFromMs(summary.retentionMs) }),
+            testId: 'retention-info',
+          },
+        ]}
+      />
       <Button
         component="a"
         href={mailtoHref}
@@ -155,7 +177,6 @@ function UsageView({ summary, email }: UsageViewProps) {
 }
 
 export default function UsagePage() {
-  const { t } = useTranslation('usage');
   const { user } = useAuth();
   const { data: summary, error, isLoading } = useQuery({
     queryKey: ['usage'],
@@ -163,13 +184,7 @@ export default function UsagePage() {
   });
 
   if (isLoading) return <CircularProgress data-testid="usage-loading" />;
-  if (error) {
-    return (
-      <Alert severity="error" data-testid="usage-error">
-        {t('overLimitLinks')}
-      </Alert>
-    );
-  }
+  if (error) return <StatementBand state={{ kind: 'failure', cause: error }} />;
   if (!summary) return null;
   return <UsageView summary={summary} email={user?.email ?? ''} />;
 }

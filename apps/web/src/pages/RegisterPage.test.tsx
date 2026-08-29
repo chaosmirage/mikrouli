@@ -16,9 +16,13 @@ const mockAuth: AuthContextValue = {
   loginWithGithub: vi.fn(),
 };
 
-function renderRegister() {
+// A router entry, optionally carrying arrival state (as the register offer's
+// accept reach does when it opens the entering).
+type RouteEntry = string | { pathname: string; state?: Record<string, unknown> };
+
+function renderRegister(entry: RouteEntry = '/register') {
   const tree = (
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[entry]}>
       <AuthContext.Provider value={mockAuth}>
         <RegisterPage />
       </AuthContext.Provider>
@@ -38,6 +42,25 @@ describe('RegisterPage', () => {
     expect(screen.getByTestId('register-email')).toBeInTheDocument();
     expect(screen.getByTestId('register-password')).toBeInTheDocument();
     expect(screen.getByTestId('register-submit')).toBeInTheDocument();
+  });
+
+  it('stages the federated path before the credentials path', () => {
+    renderRegister();
+    const federated = screen.getByTestId('register-github');
+    const addressEntering = screen.getByTestId('register-email');
+    const follows =
+      federated.compareDocumentPosition(addressEntering) & Node.DOCUMENT_POSITION_FOLLOWING;
+    expect(follows).toBeTruthy();
+  });
+
+  it('restates the kept-link stake in one line when arrival follows the accepted register offer', () => {
+    renderRegister({ pathname: '/register', state: { fromRegisterOffer: true } });
+    expect(screen.getByTestId('register-kept-link')).toBeInTheDocument();
+  });
+
+  it('shows no kept-link stake on a direct arrival', () => {
+    renderRegister();
+    expect(screen.queryByTestId('register-kept-link')).not.toBeInTheDocument();
   });
 
   it('submitting calls register with email and password', async () => {

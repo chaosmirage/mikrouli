@@ -38,9 +38,10 @@ isolation; everything here runs against the deployed shape of the app.
   the only environment where nginx's `img-src 'self' data:` CSP is enforced,
   so the final no-CSP-violation assertion is the regression net for `blob:`
   download URLs, which pass in Vitest, Storybook, and the dev server.
-- One spec per feature surface: `auth`, `api-keys`, `stats`, `usage`,
-  `guest-shorten`, `shorten`, `legal`, `theme`, `github-auth`,
-  `llm-connect`, and the cross-feature `full-journey`.
+- One spec per feature surface: `api-keys`, `auth`, `dashboard`,
+  `edit-link`, `guest-shorten`, `landing`, `legal`, `qr-code`, `shorten`,
+  `stats`, `theme`, `usage`, `github-auth`, `llm-connect`, and the
+  cross-feature `full-journey`.
 
 ## How to extend safely
 

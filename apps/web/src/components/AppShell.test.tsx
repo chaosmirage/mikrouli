@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthContext } from '../auth/AuthContext';
 import type { AuthContextValue } from '../auth/AuthContext';
@@ -107,5 +107,26 @@ describe('AppShell', () => {
     renderShell(guestAuth);
     const navActions = screen.getByTestId('nav-actions');
     expect(navActions).toHaveStyle({ flexDirection: 'row' });
+  });
+
+  it('carries the color-mode and language reaches in the shell band', () => {
+    renderShell(guestAuth);
+    expect(screen.getByTestId('settings-mode-reach')).toBeInTheDocument();
+    expect(screen.getByTestId('settings-language-reach')).toBeInTheDocument();
+  });
+
+  it('one activation of a settings reach opens the setting pair over the kept place', () => {
+    renderShell(guestAuth);
+    fireEvent.click(screen.getByTestId('settings-mode-reach'));
+    expect(screen.getByTestId('settings-panel')).toBeInTheDocument();
+    // The place beneath the veil is kept: the content and footer still stand.
+    expect(screen.getByTestId('page-content')).toBeInTheDocument();
+    expect(screen.getByTestId('footer')).toBeInTheDocument();
+  });
+
+  it('retires the superseded inline selectors from the shell band', () => {
+    renderShell(guestAuth);
+    expect(screen.queryByTestId('theme-mode-switcher')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('locale-switcher')).not.toBeInTheDocument();
   });
 });

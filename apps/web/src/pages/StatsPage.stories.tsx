@@ -46,13 +46,35 @@ export default meta;
 
 type Story = StoryObj<typeof StatsPage>;
 
-// Default state: chart series (by day, by country, by browser) and the total
-// clicks number rendered from the mock aggregate for slug "abc123". The global
+// The opened record: the leave reach and the link's identity, then the three
+// readings in order — the total numeral with its honesty qualification, the
+// one course-over-time depiction, and the two ranked breakdowns. The global
 // MSW handler for GET /api/stats/:slug covers the data fetch.
 export const Default: Story = {};
 
+// The zero-use record: the magnitude itself is the honest answer — the numeral
+// reads 0 with the same qualification, and the course and breakdowns state
+// that nothing is recorded.
+export const ZeroUse: Story = {
+  parameters: {
+    msw: {
+      handlers: [
+        http.get('/api/stats/:slug', () =>
+          HttpResponse.json({
+            slug: 'abc123',
+            totalClicks: 0,
+            byDay: [],
+            byCountry: [],
+            byBrowser: [],
+          }),
+        ),
+      ],
+    },
+  },
+};
+
 // Error state: the stats endpoint returns 500 so the page renders the error
-// alert instead of the charts.
+// statement instead of the record.
 export const Error: Story = {
   parameters: {
     msw: {

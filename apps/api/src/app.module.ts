@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule, ThrottlerGuard, ThrottlerModuleOptions } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
@@ -15,18 +15,11 @@ import { ClickHouseModule } from './clickhouse/clickhouse.module';
 import { StatsModule } from './stats/stats.module';
 import { CleanupModule } from './cleanup/cleanup.module';
 import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
+import { buildThrottlerOptions } from './common/throttler-policy';
 import { McpModule } from './mcp/mcp.module';
 import { UsageModule } from './usage/usage.module';
 
 const DEFAULT_DB_PORT = 5432;
-
-// Named throttle limits (in-memory, per-pod counters).
-// Auth endpoints use the strict limit; redirect uses the generous one;
-// everything else uses the liberal default to avoid breaking health checks.
-const AUTH_THROTTLE_NAME = 'auth';
-const REDIRECT_THROTTLE_NAME = 'redirect';
-
-export { AUTH_THROTTLE_NAME, REDIRECT_THROTTLE_NAME };
 
 function buildTypeOrmOptions(configService: ConfigService): TypeOrmModuleOptions {
   return {
@@ -44,37 +37,6 @@ function buildTypeOrmOptions(configService: ConfigService): TypeOrmModuleOptions
     logging: configService.get<string>('NODE_ENV') !== 'production',
     migrationsRun: configService.get<string>('MIGRATIONS_RUN', 'true') === 'true',
     migrationsTableName: 'typeorm_migrations',
-  };
-}
-
-function buildThrottlerOptions(): ThrottlerModuleOptions {
-  return {
-    throttlers: [
-      {
-        // Default liberal limit — keeps health checks and static content from
-        // tripping, while still bounding clearly abusive clients.
-        name: 'default',
-        ttl: 60_000,
-        limit: 300,
-      },
-      {
-        // Strict limit for auth endpoints (login / register / refresh).
-        // 30 requests per minute per IP is protective against brute force while
-        // allowing the Playwright e2e suite (which may issue up to ~20 auth calls
-        // across all tests when run sequentially) to complete without tripping
-        // the throttle.
-        name: AUTH_THROTTLE_NAME,
-        ttl: 60_000,
-        limit: 30,
-      },
-      {
-        // Generous limit for the redirect hot path — 120 per 10 s prevents
-        // abuse while keeping the fast-path available under moderate load.
-        name: REDIRECT_THROTTLE_NAME,
-        ttl: 10_000,
-        limit: 120,
-      },
-    ],
   };
 }
 
@@ -105,8 +67,9 @@ const typeOrmModule = TypeOrmModule.forRootAsync({
   ],
   providers: [
     {
-      // Apply the throttler globally; individual controllers opt into named
-      // throttles via @Throttle({ <name>: { limit, ttl } }).
+      // Apply the throttler policy (common/throttler-policy.ts) globally;
+      // controllers select or shed named budgets per route via
+      // @Throttle({ <name>: { limit, ttl } }) / @SkipThrottle({ <name>: true }).
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },

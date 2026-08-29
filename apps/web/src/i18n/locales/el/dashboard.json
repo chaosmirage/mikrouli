@@ -14,8 +14,8 @@
   "deleteLink": "Διαγραφή συνδέσμου;",
   "deleteLinkBody": "Αυτή η ενέργεια θα διαγράψει οριστικά το {{slug}}.",
   "shortenLabel": "Σύντμηση",
-  "editLink": "Επεξεργασία προορισμού",
-  "editLinkBody": "Αλλάξτε πού ανακατευθύνει το {{slug}}.",
-  "newDestination": "Νέος προορισμός",
-  "editLabel": "Επεξεργασία"
+  "editLabel": "Επεξεργασία",
+  "narrowLinks": "Φιλτράρισμα συνδέσμων",
+  "narrowedEmpty": "Κανείς σύνδεσμος δεν ταιριάζει με «{{fragment}}».",
+  "correctedDestination": "Προορισμός"
 }

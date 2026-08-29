@@ -1,8 +1,7 @@
 import { FormEvent, useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Container from '@mui/material/Container';
-import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
@@ -11,6 +10,7 @@ import Alert from '@mui/material/Alert';
 import Divider from '@mui/material/Divider';
 import { ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { resolveOauthErrorKey } from './oauth-error';
 
 interface RegisterFormErrors {
   email?: string;
@@ -21,10 +21,29 @@ const PASSWORD_MIN_LENGTH = 8;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HTTP_CONFLICT = 409;
 
-const REGISTER_PAGE_SX = { py: 6 } as const;
-const REGISTER_PAPER_SX = { p: { xs: 3, sm: 4 } } as const;
+// Column rhythm shared with the sign-in surface: one narrow centered column,
+// statement on the canvas, the shorter federated path staged first and the
+// credentials path second, block-level gaps between the column's parts and
+// element-level gaps within one path (theme spacing steps).
+const REGISTER_PAGE_SX = { py: { xs: 4, sm: 6 } } as const;
+const PATH_ELEMENT_GAP = 2;
+const PATH_BLOCK_GAP = 3;
+const STAKE_LINE_SX = { color: 'text.secondary' } as const;
 const REGISTER_EMAIL_INPUT_PROPS = { 'data-testid': 'register-email' } as const;
 const REGISTER_PASSWORD_INPUT_PROPS = { 'data-testid': 'register-password' } as const;
+
+// The register offer's accept reach opens this surface with the keeping of
+// the just-made link as the understood stake; the router carries that arrival
+// so the statement can restate the stake in one line. Direct arrivals (from
+// the shell reach) carry no state and see no stake line.
+interface RegisterArrivalState {
+  fromRegisterOffer?: boolean;
+}
+
+function readArrivalState(state: unknown): RegisterArrivalState {
+  if (state && typeof state === 'object') return state as RegisterArrivalState;
+  return {};
+}
 
 function validatePassword(password: string): string | undefined {
   const hasLength = password.length >= PASSWORD_MIN_LENGTH;
@@ -70,6 +89,13 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const { register, loginWithGithub } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  // Both derived once per render: the OAuth return slug resolves through the
+  // shared closed dictionary, and the arrival state decides the stake line.
+  const oauthErrorKey = resolveOauthErrorKey(searchParams.get('error'));
+  const fromRegisterOffer = readArrivalState(location.state).fromRegisterOffer === true;
 
   const handleSubmit = useCallback(
     async (e: FormEvent<HTMLFormElement>) => {
@@ -100,57 +126,77 @@ export default function RegisterPage() {
 
   return (
     <Container maxWidth="sm" sx={REGISTER_PAGE_SX} data-testid="register-page">
-      <Paper variant="outlined" sx={REGISTER_PAPER_SX}>
-        <form onSubmit={handleSubmit} data-testid="register-form">
-          <Stack spacing={2}>
-          <Typography variant="h4">{t('auth:register')}</Typography>
-          <TextField
-            label={t('auth:email')}
-            type="email"
-            value={email}
-            onChange={handleEmailChange}
-            inputProps={REGISTER_EMAIL_INPUT_PROPS}
-            required
-            error={!!formErrors.email}
-            helperText={formErrors.email ? t(formErrors.email) : undefined}
-          />
-          <TextField
-            label={t('auth:password')}
-            type="password"
-            value={password}
-            onChange={handlePasswordChange}
-            inputProps={REGISTER_PASSWORD_INPUT_PROPS}
-            required
-            error={!!formErrors.password}
-            helperText={formErrors.password ? t(formErrors.password) : t('auth:passwordHint')}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={loading}
-            data-testid="register-submit"
-          >
+      <Stack spacing={PATH_BLOCK_GAP}>
+        <Stack spacing={1}>
+          <Typography variant="h4" component="h1">
             {t('auth:register')}
-          </Button>
-          {errorKey && (
-            <Alert severity="error" data-testid="register-server-error">
-              {t(errorKey)}
-            </Alert>
+          </Typography>
+          {fromRegisterOffer && (
+            <Typography variant="body2" sx={STAKE_LINE_SX} data-testid="register-kept-link">
+              {t('auth:keptLinkStake')}
+            </Typography>
           )}
-          <Divider />
+        </Stack>
+        <Stack spacing={PATH_ELEMENT_GAP} component="section">
           <Button
             variant="outlined"
             onClick={loginWithGithub}
+            fullWidth
             data-testid="register-github"
           >
             {t('auth:continueWithGithub')}
           </Button>
-          <Button variant="text" onClick={handleGoLogin} data-testid="register-to-login">
-            {t('auth:hasAccount')}
-          </Button>
+          {oauthErrorKey && (
+            <Alert severity="error" data-testid="register-oauth-error">
+              {t(oauthErrorKey)}
+            </Alert>
+          )}
+        </Stack>
+        <Divider />
+        <form onSubmit={handleSubmit} data-testid="register-form">
+          <Stack spacing={PATH_ELEMENT_GAP}>
+            <TextField
+              label={t('auth:email')}
+              type="email"
+              value={email}
+              onChange={handleEmailChange}
+              inputProps={REGISTER_EMAIL_INPUT_PROPS}
+              required
+              error={!!formErrors.email}
+              helperText={formErrors.email ? t(formErrors.email) : undefined}
+            />
+            <TextField
+              label={t('auth:password')}
+              type="password"
+              value={password}
+              onChange={handlePasswordChange}
+              inputProps={REGISTER_PASSWORD_INPUT_PROPS}
+              required
+              error={!!formErrors.password}
+              helperText={
+                formErrors.password ? t(formErrors.password) : t('auth:passwordHint')
+              }
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading}
+              fullWidth
+              data-testid="register-submit"
+            >
+              {t('auth:register')}
+            </Button>
+            {errorKey && (
+              <Alert severity="error" data-testid="register-server-error">
+                {t(errorKey)}
+              </Alert>
+            )}
           </Stack>
         </form>
-      </Paper>
+        <Button variant="text" onClick={handleGoLogin} data-testid="register-to-login">
+          {t('auth:hasAccount')}
+        </Button>
+      </Stack>
     </Container>
   );
 }

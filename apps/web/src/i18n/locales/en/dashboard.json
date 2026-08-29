@@ -14,8 +14,8 @@
   "deleteLink": "Delete link?",
   "deleteLinkBody": "This will permanently delete {{slug}}.",
   "shortenLabel": "Shorten",
-  "editLink": "Edit destination",
-  "editLinkBody": "Change where {{slug}} redirects to.",
-  "newDestination": "New destination",
-  "editLabel": "Edit"
+  "editLabel": "Edit",
+  "narrowLinks": "Narrow links",
+  "narrowedEmpty": "No links match \"{{fragment}}\".",
+  "correctedDestination": "Destination"
 }

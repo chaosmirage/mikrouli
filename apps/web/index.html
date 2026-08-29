@@ -35,8 +35,10 @@
         var root = document.documentElement;
         root.setAttribute('data-mui-color-scheme', effective);
         // Body background set via a CSS variable so CssBaseline's later rules
-        // don't have to race: the var is consumed inline below.
-        var bg = effective === 'dark' ? '#121212' : '#f6f5f4';
+        // don't have to race: the var is consumed inline below. Both literals
+        // are the theme factory's canvas token per mode — they must not
+        // diverge from it.
+        var bg = effective === 'dark' ? '#000000' : '#f8fafc';
         root.style.setProperty('--mikrouli-initial-bg', bg);
         var metaTheme = document.querySelector('meta[name="theme-color"]');
         if (metaTheme) {
@@ -53,7 +55,9 @@
       })();
     </script>
     <style>
-      body { background-color: var(--mikrouli-initial-bg, #f6f5f4); }
+      body {
+        background-color: var(--mikrouli-initial-bg, #f8fafc);
+      }
     </style>
 
     <!-- Primary meta -->

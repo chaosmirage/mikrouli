@@ -1,11 +1,12 @@
 {
   "title": "Statistics for {{slug}}",
+  "backToDashboard": "Back to dashboard",
   "totalClicks": "Total clicks",
+  "recordedRedirects": "Recorded redirects",
   "byDay": "Clicks over time",
   "topCountries": "Top countries",
   "topBrowsers": "Top browsers",
   "noData": "No clicks recorded yet",
-  "name": "Name",
-  "date": "Date",
+  "unknown": "Unknown",
   "clicks": "Clicks"
 }

@@ -1,26 +1,57 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import ShortenCard from './ShortenCard';
-import { theme } from '../theme';
+import { createAppTheme } from '../theme';
 
-// Drives the shared ShortenCard at the user-closest seam: fill the URL,
-// submit, observe the rendered short link + the onShortened callback. The
-// card owns its own input/loading/error state; the host passes only the
-// initial namespace and an optional callback.
+// Drives the shorten act and its result moment at the user-closest seam: enter
+// a long address, confirm once, observe the confirmation + takeable short
+// address + QR exports, and the onShortened callback contract the hosts rely
+// on for the register nudge.
 
 function makeResponse(data: unknown) {
   return { ok: true, status: 200, json: () => Promise.resolve(data) };
 }
 
-function renderCard(props?: { onShortened?: (l: { shortUrl: string }) => void }) {
+const NEW_LINK = {
+  shortUrl: 'GYa6kx',
+  originalUrl: 'http://long.com',
+  createdAt: '2024-01-01T00:00:00Z',
+  expiresAt: null,
+};
+
+// jsdom ships no Async Clipboard API; the copy taking needs a working one.
+function installWorkingClipboard(): void {
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText: () => Promise.resolve() },
+  });
+}
+
+function renderCard(props?: {
+  namespace?: 'dashboard' | 'landing';
+  onShortened?: (l: typeof NEW_LINK) => void;
+}) {
   render(
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={createAppTheme('light')}>
       <MemoryRouter>
-        <ShortenCard namespace="dashboard" {...props} />
+        <ShortenCard
+          namespace={props?.namespace ?? 'dashboard'}
+          onShortened={props?.onShortened}
+        />
       </MemoryRouter>
     </ThemeProvider>,
+  );
+}
+
+async function submitLongUrl() {
+  fireEvent.change(screen.getByTestId('shorten-url'), {
+    target: { value: 'http://long.com' },
+  });
+  fireEvent.click(screen.getByTestId('shorten-submit'));
+  await waitFor(() =>
+    expect(screen.getByTestId('result-confirmation')).toBeInTheDocument(),
   );
 }
 
@@ -28,32 +59,97 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [] })));
 });
 
+afterEach(() => {
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: undefined,
+  });
+});
+
 describe('ShortenCard', () => {
-  it('renders the input and submit button', () => {
+  it('renders the entering and the confirm control', () => {
     renderCard();
     expect(screen.getByTestId('shorten-url')).toBeInTheDocument();
     expect(screen.getByTestId('shorten-submit')).toBeInTheDocument();
   });
 
-  it('after submit shows the new link alert and fires onShortened', async () => {
+  it('resolves the guest act labels from the landing namespace', () => {
+    renderCard({ namespace: 'landing' });
+    expect(screen.getByTestId('shorten-url')).toHaveAttribute(
+      'value',
+      '',
+    );
+    expect(screen.getByTestId('shorten-submit')).toHaveTextContent('Shorten');
+  });
+
+  it('after submit confirms the link exists and fires onShortened with the link', async () => {
     const onShortened = vi.fn();
-    const newLink = {
-      shortUrl: 'http://s.io/abc',
-      originalUrl: 'http://long.com',
-      createdAt: '2024-01-01T00:00:00Z',
-      expiresAt: null,
-    };
-    const mockFetch = vi.fn().mockResolvedValueOnce(makeResponse(newLink));
-    vi.stubGlobal('fetch', mockFetch);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(makeResponse(NEW_LINK)),
+    );
 
     renderCard({ onShortened });
-    fireEvent.change(screen.getByTestId('shorten-url'), {
-      target: { value: 'http://long.com' },
-    });
-    fireEvent.click(screen.getByTestId('shorten-submit'));
+    await submitLongUrl();
 
-    await waitFor(() => expect(screen.getByTestId('new-link-alert')).toBeInTheDocument());
-    expect(onShortened).toHaveBeenCalledWith(newLink);
+    // The preserved address the e2e shorten flow has always driven: the whole
+    // result moment stays reachable as `new-link-alert`, with the finer
+    // confirmation/link addresses on its children.
+    expect(screen.getByTestId('new-link-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('result-confirmation')).toBeInTheDocument();
+    expect(onShortened).toHaveBeenCalledWith(NEW_LINK);
+  });
+
+  it('shows the short address as readable takeable text beside the copy control', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(makeResponse(NEW_LINK)),
+    );
+
+    renderCard();
+    await submitLongUrl();
+
+    const address = screen.getByTestId('result-link');
+    expect(address.textContent).toMatch(/GYa6kx/);
+    // A bare slug resolves against the current origin.
+    expect(address.textContent).toContain(`${window.location.origin}/GYa6kx`);
+    expect(screen.getByTestId('copy-link')).toBeInTheDocument();
+  });
+
+  it('shows the copy-landed confirmation in the same glance after one activation', async () => {
+    installWorkingClipboard();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(makeResponse(NEW_LINK)),
+    );
+
+    renderCard();
+    await submitLongUrl();
+
+    fireEvent.click(screen.getByTestId('copy-link'));
+
+    // The confirmation arrives once the clipboard write resolves.
+    expect(await screen.findByText('Copied')).toBeInTheDocument();
+    // The moment persists: address, code, and both exports stay reachable.
+    expect(screen.getByTestId('result-link')).toBeInTheDocument();
+    expect(screen.getByTestId('qr-code')).toBeInTheDocument();
+    expect(screen.getByTestId('qr-download')).toBeInTheDocument();
+    expect(screen.getByTestId('qr-download-svg')).toBeInTheDocument();
+  });
+
+  it('keeps both QR export formats beside the code after a successful shorten', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(makeResponse(NEW_LINK)),
+    );
+
+    renderCard();
+    await submitLongUrl();
+
+    const qrCode = screen.getByTestId('qr-code');
+    expect(qrCode.querySelector('svg')).toBeInTheDocument();
+    expect(screen.getByTestId('qr-download')).toBeInTheDocument();
+    expect(screen.getByTestId('qr-download-svg')).toBeInTheDocument();
   });
 
   it('renders the API error message on failure', async () => {
@@ -79,96 +175,15 @@ describe('ShortenCard', () => {
     await waitFor(() => expect(screen.getByTestId('shorten-error')).toBeInTheDocument());
   });
 
-  it('renders QrCode component after successful shorten with resolved full URL', async () => {
-    const newLink = {
-      shortUrl: 'GYa6kx',
-      originalUrl: 'http://long.com',
-      createdAt: '2024-01-01T00:00:00Z',
-      expiresAt: null,
-    };
-    const mockFetch = vi.fn().mockResolvedValueOnce(makeResponse(newLink));
-    vi.stubGlobal('fetch', mockFetch);
+  it('renders no register offer on the signed-in host', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(makeResponse(NEW_LINK)),
+    );
 
     renderCard();
-    fireEvent.change(screen.getByTestId('shorten-url'), {
-      target: { value: 'http://long.com' },
-    });
-    fireEvent.click(screen.getByTestId('shorten-submit'));
+    await submitLongUrl();
 
-    await waitFor(() => {
-      // After successful shorten, QrCode is rendered
-      const qrCode = screen.getByTestId('qr-code');
-      expect(qrCode).toBeInTheDocument();
-
-      // QrCode renders an SVG element
-      const svg = qrCode.querySelector('svg');
-      expect(svg).toBeInTheDocument();
-
-      // Download controls are present alongside the QR code
-      const downloadButton = screen.getByTestId('qr-download');
-      expect(downloadButton).toBeInTheDocument();
-
-      const downloadSvgButton = screen.getByTestId('qr-download-svg');
-      expect(downloadSvgButton).toBeInTheDocument();
-    });
-  });
-
-  it('QrCode and copy button target the same resolved full URL', async () => {
-    const newLink = {
-      shortUrl: 'GYa6kx',
-      originalUrl: 'http://long.com',
-      createdAt: '2024-01-01T00:00:00Z',
-      expiresAt: null,
-    };
-    const mockFetch = vi.fn().mockResolvedValueOnce(makeResponse(newLink));
-    vi.stubGlobal('fetch', mockFetch);
-
-    renderCard();
-    fireEvent.change(screen.getByTestId('shorten-url'), {
-      target: { value: 'http://long.com' },
-    });
-    fireEvent.click(screen.getByTestId('shorten-submit'));
-
-    await waitFor(() => {
-      // Both the alert text and QR code reference the resolved full URL
-      const newLinkAlert = screen.getByTestId('new-link-alert');
-      expect(newLinkAlert).toBeInTheDocument();
-
-      // QR code is rendered (both in the result and as a separate component)
-      const qrCode = screen.getByTestId('qr-code');
-      expect(qrCode).toBeInTheDocument();
-
-      // The alert text should contain the resolved URL (window.location.origin/GYa6kx)
-      // and the QR code encodes the same resolved URL
-      const alertText = newLinkAlert.textContent;
-      expect(alertText).toBeTruthy();
-      expect(alertText).toMatch(/GYa6kx/);
-    });
-  });
-
-  it('no regression: existing shorten form elements remain after QR integration', async () => {
-    const newLink = {
-      shortUrl: 'GYa6kx',
-      originalUrl: 'http://long.com',
-      createdAt: '2024-01-01T00:00:00Z',
-      expiresAt: null,
-    };
-    const mockFetch = vi.fn().mockResolvedValueOnce(makeResponse(newLink));
-    vi.stubGlobal('fetch', mockFetch);
-
-    renderCard();
-    fireEvent.change(screen.getByTestId('shorten-url'), {
-      target: { value: 'http://long.com' },
-    });
-    fireEvent.click(screen.getByTestId('shorten-submit'));
-
-    await waitFor(() => {
-      // Verify existing elements are still present (no regression)
-      expect(screen.getByTestId('new-link-alert')).toBeInTheDocument();
-      expect(screen.getByTestId('copy-link')).toBeInTheDocument();
-
-      // QR code is added alongside, not replacing existing elements
-      expect(screen.getByTestId('qr-code')).toBeInTheDocument();
-    });
+    expect(screen.queryByTestId('guest-nudge')).not.toBeInTheDocument();
   });
 });

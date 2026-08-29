@@ -1,30 +1,31 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useReducer, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
-import Paper from '@mui/material/Paper';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
+import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import MuiLink from '@mui/material/Link';
+import Paper from '@mui/material/Paper';
+import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
+import type { Theme } from '@mui/material/styles';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { apiFetch, extractErrorMessage } from '../api/client';
+import { resolveFullShortUrl } from '../api/short-url';
 import type { PublicLink } from '../api/types';
 import ConfirmDialog from '../components/ConfirmDialog';
-import EditLinkDialog from '../components/EditLinkDialog';
+import CopyControl from '../components/CopyControl';
 import ShortenCard from '../components/ShortenCard';
+import StandingsRow from '../components/StandingsRow';
+import { formatDate } from '../i18n/format';
 
 async function loadUserLinks(): Promise<PublicLink[]> {
   const response = await apiFetch('/api/urls', 'get');
@@ -39,102 +40,226 @@ async function attemptUpdate(slug: string, url: string): Promise<void> {
   await apiFetch('/api/urls/{slug}', 'patch', { pathParams: { slug }, body: { url } });
 }
 
-interface EditCandidate {
-  slug: string;
-  currentUrl: string;
-}
-
-const COL_WIDTH_SHORT_URL = 220;
-const COL_WIDTH_DATE = 120;
-const COL_WIDTH_ACTIONS = 152;
-const ELLIPSIS_CELL_SX = {
-  maxWidth: 0,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap' as const,
-};
-
-const TABLE_LAYOUT_SX = { tableLayout: 'fixed', width: '100%' } as const;
-const NOWRAP_CELL_SX = { whiteSpace: 'nowrap' } as const;
-const COL_WIDTH_DATE_SX = { width: COL_WIDTH_DATE, whiteSpace: 'nowrap' } as const;
-const COL_WIDTH_SHORT_URL_SX = { width: COL_WIDTH_SHORT_URL } as const;
-const COL_WIDTH_ACTIONS_SX = { width: COL_WIDTH_ACTIONS, textAlign: 'right' } as const;
-
 function extractSlug(shortUrl: string): string {
   const parts = shortUrl.split('/');
   return parts[parts.length - 1] ?? shortUrl;
 }
 
-// API stores `shortUrl` as a bare slug ("GYa6kx") — the public URL is
-// produced by composing it with the current origin. Pre-resolved URLs
-// (test fixtures, future API change) are passed through unchanged.
-function resolveFullShortUrl(raw: string): string {
-  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw.trim();
-  if (typeof window === 'undefined') return raw;
-  const origin = window.location.origin;
-  if (!origin || origin === 'null') return raw;
-  return `${origin}/${raw}`;
+// The narrowing is a pure derivation over the cached list: a remembered
+// fragment (part of the slug or part of the destination) keeps only the
+// links that carry it, case-insensitively. The list resource itself is
+// never touched.
+function narrowLinks(links: PublicLink[], fragment: string): PublicLink[] {
+  const needle = fragment.trim().toLowerCase();
+  if (!needle) return links;
+  return links.filter(
+    (link) =>
+      extractSlug(link.shortUrl).toLowerCase().includes(needle) ||
+      link.originalUrl.toLowerCase().includes(needle),
+  );
 }
 
-function copyToClipboard(text: string): void {
-  if (!navigator.clipboard) return;
-  void navigator.clipboard.writeText(text);
+// --- The in-row correction -------------------------------------------------
+
+// One row corrects at a time; the phases are exclusive, so the state is a
+// small discriminated shape reduced by one pure function.
+interface CorrectionState {
+  slug: string;
+  phase: 'editing' | 'saving';
+  error: string | null;
 }
 
-function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  return iso.slice(0, 10);
+type CorrectionAction =
+  | { type: 'open'; slug: string }
+  | { type: 'saving' }
+  | { type: 'refused'; message: string }
+  | { type: 'close' };
+
+function correctionReducer(
+  state: CorrectionState | null,
+  action: CorrectionAction,
+): CorrectionState | null {
+  switch (action.type) {
+    case 'open':
+      return { slug: action.slug, phase: 'editing', error: null };
+    case 'saving':
+      return state ? { ...state, phase: 'saving' } : state;
+    case 'refused':
+      return state ? { ...state, phase: 'editing', error: action.message } : state;
+    case 'close':
+      return null;
+  }
 }
 
-interface LinkTableRowProps {
+interface DestinationCorrectionProps {
+  slug: string;
+  currentUrl: string;
+  saving: boolean;
+  error: string | null;
+  onConfirm: (url: string) => void;
+  onCancel: () => void;
+}
+
+// The destination cell while correcting: the entering opens on the
+// destination as it stands, confirm and cancel stay inside the row, and a
+// refused destination is stated in place so the owner can correct and
+// confirm again — never silently lost.
+function DestinationCorrection({
+  slug,
+  currentUrl,
+  saving,
+  error,
+  onConfirm,
+  onCancel,
+}: DestinationCorrectionProps) {
+  const { t } = useTranslation('dashboard');
+  const { t: tCommon } = useTranslation('common');
+  const [draft, setDraft] = useState(currentUrl);
+  const inputProps = useMemo(() => ({ 'data-testid': `edit-url-input-${slug}` }), [slug]);
+
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => setDraft(event.target.value),
+    [],
+  );
+  const handleConfirm = useCallback(() => onConfirm(draft), [onConfirm, draft]);
+
+  return (
+    <Stack sx={CORRECTION_SX} useFlexGap>
+      <TextField
+        size="small"
+        label={t('correctedDestination')}
+        value={draft}
+        onChange={handleChange}
+        error={!!error}
+        inputProps={inputProps}
+        sx={CORRECTION_FIELD_SX}
+        disabled={saving}
+      />
+      {error ? (
+        <Typography
+          variant="body2"
+          sx={CORRECTION_ERROR_SX}
+          role="alert"
+          data-testid={`edit-error-${slug}`}
+        >
+          {error}
+        </Typography>
+      ) : null}
+      <Stack direction="row" spacing={1}>
+        <Button
+          size="small"
+          onClick={onCancel}
+          disabled={saving}
+          data-testid={`edit-cancel-${slug}`}
+        >
+          {tCommon('cancel')}
+        </Button>
+        <Button
+          size="small"
+          variant="contained"
+          onClick={handleConfirm}
+          disabled={saving}
+          data-testid={`edit-confirm-${slug}`}
+        >
+          {tCommon('save')}
+        </Button>
+      </Stack>
+    </Stack>
+  );
+}
+
+// --- The set rows ----------------------------------------------------------
+
+interface LinkSetRowProps {
   link: PublicLink;
-  onCopy: (text: string) => void;
-  onDelete: (slug: string) => void;
-  onEdit: (slug: string, originalUrl: string) => void;
+  correction: CorrectionState | null;
+  onOpenCorrection: (slug: string) => void;
+  onConfirmCorrection: (slug: string, url: string) => void;
+  onCancelCorrection: () => void;
   onStats: (slug: string) => void;
+  onRetire: (slug: string) => void;
 }
-function LinkTableRow({ link, onCopy, onDelete, onEdit, onStats }: LinkTableRowProps) {
+
+function LinkSetRow({
+  link,
+  correction,
+  onOpenCorrection,
+  onConfirmCorrection,
+  onCancelCorrection,
+  onStats,
+  onRetire,
+}: LinkSetRowProps) {
   const slug = extractSlug(link.shortUrl);
   const fullUrl = resolveFullShortUrl(link.shortUrl);
   const { t } = useTranslation('common');
   const { t: tDashboard } = useTranslation('dashboard');
-  const handleCopy = useCallback(() => onCopy(fullUrl), [onCopy, fullUrl]);
+
   const handleStats = useCallback(() => onStats(slug), [onStats, slug]);
-  const handleDelete = useCallback(() => onDelete(slug), [onDelete, slug]);
-  const handleEdit = useCallback(
-    () => onEdit(slug, link.originalUrl),
-    [onEdit, slug, link.originalUrl],
+  const handleRetire = useCallback(() => onRetire(slug), [onRetire, slug]);
+  const handleCorrect = useCallback(() => onOpenCorrection(slug), [onOpenCorrection, slug]);
+  const handleConfirmCorrection = useCallback(
+    (url: string) => onConfirmCorrection(slug, url),
+    [onConfirmCorrection, slug],
   );
+
+  const activeCorrection = correction?.slug === slug ? correction : null;
+  const destinationValue =
+    activeCorrection === null ? (
+      <Typography component="span" sx={ELLIPSIS_SX} title={link.originalUrl}>
+        {link.originalUrl}
+      </Typography>
+    ) : (
+      <DestinationCorrection
+        key={slug}
+        slug={slug}
+        currentUrl={link.originalUrl}
+        saving={activeCorrection.phase === 'saving'}
+        error={activeCorrection.error}
+        onConfirm={handleConfirmCorrection}
+        onCancel={onCancelCorrection}
+      />
+    );
+
   return (
-    <TableRow data-testid={`link-row-${slug}`} hover>
-      <TableCell sx={ELLIPSIS_CELL_SX} title={fullUrl}>
-        <MuiLink href={fullUrl} target="_blank" rel="noopener noreferrer" underline="hover">
+    <StandingsRow
+      rowTestId={`link-row-${slug}`}
+      identity={
+        <MuiLink
+          href={fullUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          underline="hover"
+          sx={TECHNICAL_LINK_SX}
+          title={fullUrl}
+        >
           {fullUrl}
         </MuiLink>
-      </TableCell>
-      <TableCell sx={ELLIPSIS_CELL_SX} title={link.originalUrl}>
-        {link.originalUrl}
-      </TableCell>
-      <TableCell sx={NOWRAP_CELL_SX}>{formatDate(link.createdAt)}</TableCell>
-      <TableCell sx={NOWRAP_CELL_SX}>{formatDate(link.expiresAt)}</TableCell>
-      <TableCell sx={NOWRAP_CELL_SX}>
-        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-          <Tooltip title={t('copy')}>
-            <IconButton
-              size="small"
-              onClick={handleCopy}
-              data-testid={`copy-${slug}`}
-              aria-label={t('copy')}
-            >
-              <ContentCopyIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={t('statsLabel', { ns: 'dashboard' })}>
+      }
+      standings={[
+        { label: tDashboard('originalUrl'), value: destinationValue },
+        {
+          label: tDashboard('createdAt'),
+          value: formatDate(link.createdAt),
+          testId: `created-${slug}`,
+        },
+        {
+          label: tDashboard('expiresAt'),
+          value: formatDate(link.expiresAt),
+          testId: `expires-${slug}`,
+        },
+      ]}
+      acts={
+        <>
+          {/* The row's take: one CopyControl per row, so each take's landed
+              confirmation stands inside its own row under a per-row address
+              derived from the slug. */}
+          <CopyControl value={fullUrl} testId={`copy-${slug}`} />
+          <Tooltip title={tDashboard('statsLabel')}>
             <IconButton
               size="small"
               onClick={handleStats}
               data-testid={`stats-${slug}`}
-              aria-label={t('statsLabel', { ns: 'dashboard' })}
+              aria-label={tDashboard('statsLabel')}
             >
               <BarChartIcon fontSize="small" />
             </IconButton>
@@ -142,7 +267,7 @@ function LinkTableRow({ link, onCopy, onDelete, onEdit, onStats }: LinkTableRowP
           <Tooltip title={tDashboard('editLabel')}>
             <IconButton
               size="small"
-              onClick={handleEdit}
+              onClick={handleCorrect}
               data-testid={`edit-${slug}`}
               aria-label={tDashboard('editLabel')}
             >
@@ -152,38 +277,57 @@ function LinkTableRow({ link, onCopy, onDelete, onEdit, onStats }: LinkTableRowP
           <Tooltip title={t('delete')}>
             <IconButton
               size="small"
-              onClick={handleDelete}
+              onClick={handleRetire}
               data-testid={`delete-${slug}`}
               aria-label={t('delete')}
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-        </Stack>
-      </TableCell>
-    </TableRow>
+        </>
+      }
+    />
   );
 }
 
-interface LinksTableProps {
+// --- The set ---------------------------------------------------------------
+
+interface LinksSetProps {
   links: PublicLink[];
+  fragment: string;
+  onFragmentChange: (fragment: string) => void;
   loading: boolean;
   fetchError: string | null;
-  onCopy: (text: string) => void;
-  onDelete: (slug: string) => void;
-  onEdit: (slug: string, originalUrl: string) => void;
+  correction: CorrectionState | null;
+  onOpenCorrection: (slug: string) => void;
+  onConfirmCorrection: (slug: string, url: string) => void;
+  onCancelCorrection: () => void;
   onStats: (slug: string) => void;
+  onRetire: (slug: string) => void;
 }
-function LinksTable({
+
+function LinksSet({
   links,
+  fragment,
+  onFragmentChange,
   loading,
   fetchError,
-  onCopy,
-  onDelete,
-  onEdit,
+  correction,
+  onOpenCorrection,
+  onConfirmCorrection,
+  onCancelCorrection,
   onStats,
-}: LinksTableProps) {
+  onRetire,
+}: LinksSetProps) {
   const { t } = useTranslation('dashboard');
+  const narrowed = useMemo(() => narrowLinks(links, fragment), [links, fragment]);
+  const isNarrowing = fragment.trim().length > 0;
+  // Live narrowing: each entered fragment narrows immediately, no submit.
+  const handleFragmentChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => onFragmentChange(event.target.value),
+    [onFragmentChange],
+  );
+
   if (loading) return <CircularProgress data-testid="dashboard-loading" />;
   if (fetchError)
     return (
@@ -193,34 +337,53 @@ function LinksTable({
     );
   if (links.length === 0)
     return <Typography data-testid="no-links-message">{t('noLinks')}</Typography>;
+
   return (
-    <TableContainer component={Paper} variant="outlined" data-testid="dashboard-links-table">
-      <Table size="small" sx={TABLE_LAYOUT_SX}>
-        <TableHead>
-          <TableRow>
-            <TableCell sx={COL_WIDTH_SHORT_URL_SX}>{t('shortUrl')}</TableCell>
-            <TableCell>{t('originalUrl')}</TableCell>
-            <TableCell sx={COL_WIDTH_DATE_SX}>{t('createdAt')}</TableCell>
-            <TableCell sx={COL_WIDTH_DATE_SX}>{t('expiresAt')}</TableCell>
-            <TableCell sx={COL_WIDTH_ACTIONS_SX}>{t('actions')}</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {links.map((link) => (
-            <LinkTableRow
+    <Paper variant="outlined" data-testid="dashboard-links-set">
+      <Box sx={SET_HEAD_SX}>
+        <TextField
+          size="small"
+          fullWidth
+          label={t('narrowLinks')}
+          value={fragment}
+          onChange={handleFragmentChange}
+          inputProps={NARROW_INPUT_PROPS}
+        />
+      </Box>
+      <Divider />
+      {narrowed.length === 0 ? (
+        <Box sx={SET_BODY_SX}>
+          <Alert severity="info" data-testid="narrowed-empty">
+            {t('narrowedEmpty', { fragment: fragment.trim() })}
+          </Alert>
+        </Box>
+      ) : (
+        <Stack
+          key={fragment.toLowerCase()}
+          sx={isNarrowing ? narrowedSetSx : ROWS_SX}
+          divider={<Divider component="div" />}
+          spacing={1.5}
+          useFlexGap
+        >
+          {narrowed.map((link) => (
+            <LinkSetRow
               key={link.shortUrl}
               link={link}
-              onCopy={onCopy}
-              onDelete={onDelete}
-              onEdit={onEdit}
+              correction={correction}
+              onOpenCorrection={onOpenCorrection}
+              onConfirmCorrection={onConfirmCorrection}
+              onCancelCorrection={onCancelCorrection}
               onStats={onStats}
+              onRetire={onRetire}
             />
           ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+        </Stack>
+      )}
+    </Paper>
   );
 }
+
+// --- The page --------------------------------------------------------------
 
 export default function DashboardPage() {
   const { t } = useTranslation('dashboard');
@@ -234,62 +397,54 @@ export default function DashboardPage() {
     queryFn: loadUserLinks,
   });
   const [pageError, setPageError] = useState<string | null>(null);
-  const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null);
-  const [editCandidate, setEditCandidate] = useState<EditCandidate | null>(null);
-  const [editSubmitting, setEditSubmitting] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
+  const [fragment, setFragment] = useState('');
+  const [retireCandidate, setRetireCandidate] = useState<string | null>(null);
+  const [correction, dispatchCorrection] = useReducer(correctionReducer, null);
   const navigate = useNavigate();
 
   // The shared ShortenCard owns its input/loading/error/result state. The
   // dashboard just refreshes its links list when a shorten succeeds so the
-  // new row appears in the table below.
+  // new row appears in the set below.
   const handleShortened = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['links'] });
   }, [queryClient]);
 
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!deleteCandidate) return;
+  const handleRetireConfirm = useCallback(async () => {
+    if (!retireCandidate) return;
     try {
-      await attemptDelete(deleteCandidate);
-      setDeleteCandidate(null);
+      await attemptDelete(retireCandidate);
+      setRetireCandidate(null);
       void queryClient.invalidateQueries({ queryKey: ['links'] });
     } catch (err) {
-      setDeleteCandidate(null);
+      setRetireCandidate(null);
       setPageError(extractErrorMessage(err));
     }
-  }, [deleteCandidate, queryClient]);
+  }, [retireCandidate, queryClient]);
 
-  const handleCopy = useCallback((text: string) => copyToClipboard(text), []);
   const handleStats = useCallback((slug: string) => navigate(`/stats/${slug}`), [navigate]);
-  const handleCancelDelete = useCallback(() => setDeleteCandidate(null), []);
+  const handleCancelRetire = useCallback(() => setRetireCandidate(null), []);
 
-  const handleOpenEdit = useCallback((slug: string, currentUrl: string) => {
-    setEditError(null);
-    setEditCandidate({ slug, currentUrl });
+  const handleOpenCorrection = useCallback((slug: string) => {
+    dispatchCorrection({ type: 'open', slug });
   }, []);
-  const handleCancelEdit = useCallback(() => {
-    setEditCandidate(null);
-    setEditError(null);
+  const handleCancelCorrection = useCallback(() => {
+    dispatchCorrection({ type: 'close' });
   }, []);
-  // On a rejected destination (SSRF/validation), the dialog stays open with
-  // the problem-details message so the owner can correct and resubmit,
-  // matching the "previous destination kept" DoD guarantee.
-  const handleEditConfirm = useCallback(
-    async (url: string) => {
-      if (!editCandidate) return;
-      setEditSubmitting(true);
+  // A refused destination keeps the correction open with the resolved
+  // problem-details message, so the owner can correct and confirm again
+  // while the previous destination still stands.
+  const handleConfirmCorrection = useCallback(
+    async (slug: string, url: string) => {
+      dispatchCorrection({ type: 'saving' });
       try {
-        await attemptUpdate(editCandidate.slug, url);
-        setEditCandidate(null);
-        setEditError(null);
+        await attemptUpdate(slug, url);
+        dispatchCorrection({ type: 'close' });
         void queryClient.invalidateQueries({ queryKey: ['links'] });
       } catch (err) {
-        setEditError(extractErrorMessage(err));
-      } finally {
-        setEditSubmitting(false);
+        dispatchCorrection({ type: 'refused', message: extractErrorMessage(err) });
       }
     },
-    [editCandidate, queryClient],
+    [queryClient],
   );
 
   const fetchError = linksError ? extractErrorMessage(linksError) : pageError;
@@ -297,36 +452,81 @@ export default function DashboardPage() {
   return (
     <Stack spacing={4} data-testid="dashboard-page">
       <ShortenCard namespace="dashboard" onShortened={handleShortened} />
-      <LinksTable
+      <LinksSet
         links={links}
+        fragment={fragment}
+        onFragmentChange={setFragment}
         loading={linksLoading}
         fetchError={fetchError}
-        onCopy={handleCopy}
-        onDelete={setDeleteCandidate}
-        onEdit={handleOpenEdit}
+        correction={correction}
+        onOpenCorrection={handleOpenCorrection}
+        onConfirmCorrection={handleConfirmCorrection}
+        onCancelCorrection={handleCancelCorrection}
         onStats={handleStats}
+        onRetire={setRetireCandidate}
       />
       <ConfirmDialog
-        open={!!deleteCandidate}
+        open={!!retireCandidate}
         title={t('deleteLink')}
-        description={t('deleteLinkBody', { slug: deleteCandidate ?? '' })}
+        description={t('deleteLinkBody', { slug: retireCandidate ?? '' })}
         confirmLabel={t('delete', { ns: 'common' })}
-        onConfirm={handleDeleteConfirm}
-        onCancel={handleCancelDelete}
+        onConfirm={handleRetireConfirm}
+        onCancel={handleCancelRetire}
         dialogTestId="delete-dialog"
         titleTestId="delete-dialog-title"
         cancelTestId="delete-cancel"
         confirmTestId="delete-confirm"
       />
-      <EditLinkDialog
-        open={!!editCandidate}
-        slug={editCandidate?.slug ?? ''}
-        currentUrl={editCandidate?.currentUrl ?? ''}
-        onConfirm={handleEditConfirm}
-        onCancel={handleCancelEdit}
-        loading={editSubmitting}
-        error={editError ?? undefined}
-      />
     </Stack>
   );
 }
+
+// --- Style constants (hoisted; one identity for every render) --------------
+
+// Tokens are consumed through the theme: the ink ladder and the technical
+// register live in the theme factory, and the narrowing motion carries the
+// transitions config's narrow duration.
+
+const NARROW_ANIMATION_NAME = 'mikrouli-set-narrow';
+
+// The narrowing's own motion: each further fragment re-mounts the rows so
+// the shrinking set itself reads as the progress. The reduced-motion
+// preference is owned by the theme's single centralized collapse
+// (MuiCssBaseline in src/theme.ts), which turns this animation instant too.
+const narrowedSetSx = (theme: Theme) => ({
+  animation: `${NARROW_ANIMATION_NAME} ${theme.transitions.duration.narrow ?? 150}ms ${
+    theme.transitions.easing.easeOut
+  } both`,
+  [`@keyframes ${NARROW_ANIMATION_NAME}`]: {
+    from: { opacity: 0.35 },
+    to: { opacity: 1 },
+  },
+});
+
+const ROWS_SX = { pt: 1.5 } as const;
+
+const SET_HEAD_SX = { p: 2, pb: 1.5 } as const;
+const SET_BODY_SX = { p: 2 } as const;
+
+const CORRECTION_SX = { gap: 1, minWidth: { xs: '100%', sm: 320 } } as const;
+const CORRECTION_FIELD_SX = { minWidth: 0 } as const;
+// A refused destination is stated in place with the entering it refused —
+// severity by ink step, never a second hue.
+const CORRECTION_ERROR_SX = { color: 'error.main' } as const;
+
+const ELLIPSIS_SX = {
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  maxWidth: 360,
+} as const;
+
+// The short link reads in the fixed-width register so the character-exact
+// string is read character-exactly. (The optional chain keeps the link
+// legible under a theme that predates the register.)
+const TECHNICAL_LINK_SX = {
+  fontFamily: (theme: Theme) => theme.typography.technical?.fontFamily,
+  wordBreak: 'break-all',
+} as const;
+
+const NARROW_INPUT_PROPS = { 'data-testid': 'narrow-links' } as const;

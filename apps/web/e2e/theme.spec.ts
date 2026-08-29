@@ -1,11 +1,23 @@
 import { test, expect } from '@playwright/test';
 
-// Theme behavior is independent of authentication. The landing page renders
-// for guests and surfaces the same app shell (with the theme switcher) used by
-// authenticated users, so the spec drives the landing page only and avoids the
-// shared-session dance in fixtures.ts.
+// Color mode and language are the setting pair; both live in one veiled panel
+// reached from the shell band. The panel is independent of authentication (the
+// landing renders the same shell for guests), so this spec drives the landing
+// page only and avoids the shared-session dance in fixtures.ts.
+
+// Every test here must actually reach the landing: the chromium project
+// injects the shared session into each context, and GuestRoute bounces an
+// authenticated visitor from '/' to '/dashboard' before the landing ever
+// renders. The explicit empty storageState opts this file's scopes out of
+// the shared session, so the tests observe the landing as a guest sees it.
+test.use({ storageState: { cookies: [], origins: [] } });
 
 const LANDING_PATH = '/';
+
+// The German rendering of the footer's terms reach: the statement every
+// rendered surface obeys after a language selection, observed through a stable
+// address rather than a text selector.
+const TERMS_REACH_GERMAN = 'Nutzungsbedingungen';
 
 // Read the body's computed background and split it into [r, g, b] channels.
 // Returns null when the value is not an rgb(...) triple.
@@ -43,11 +55,22 @@ async function expectSurfaceLight(page: import('@playwright/test').Page) {
     .toBeGreaterThanOrEqual(200);
 }
 
-async function openSwitcherAndSelect(
-  page: import('@playwright/test').Page,
-  option: 'theme-mode-option-light' | 'theme-mode-option-dark' | 'theme-mode-option-follow-system',
-) {
-  await page.getByTestId('theme-mode-switcher').click();
+// The place beneath the panel is kept structurally: no route change occurs, and
+// the standing content stays in the DOM under the veil.
+async function expectPlaceKept(page: import('@playwright/test').Page) {
+  expect(page.url().endsWith(LANDING_PATH)).toBe(true);
+  await expect(page.getByTestId('page-content')).toBeVisible();
+  await expect(page.getByTestId('landing-statement')).toBeVisible();
+}
+
+type ModeOption =
+  | 'settings-mode-option-light'
+  | 'settings-mode-option-dark'
+  | 'settings-mode-option-follow-system';
+
+async function openPanelAndSelectMode(page: import('@playwright/test').Page, option: ModeOption) {
+  await page.getByTestId('settings-mode-reach').click();
+  await expect(page.getByTestId('settings-panel')).toBeVisible();
   await page.getByTestId(option).click();
 }
 
@@ -80,21 +103,29 @@ test.describe('first paint when OS prefers light', () => {
 });
 
 // ----------------------------------------------------------------------
-// Toggle behavior (immediate, no reload)
+// The setting pair: mode selection, immediate surface change, place kept
 // ----------------------------------------------------------------------
 
-test.describe('manual toggle changes the surface synchronously', () => {
+test.describe('manual mode selection changes the surface synchronously', () => {
   test.use({ colorScheme: 'light' });
 
-  test('switching to dark then to light re-renders the surface', async ({ page }) => {
+  test('selecting dark then light re-renders the surface without navigating', async ({
+    page,
+  }) => {
     await page.addInitScript(() => window.localStorage.clear());
     await page.goto(LANDING_PATH);
 
-    await openSwitcherAndSelect(page, 'theme-mode-option-dark');
+    await openPanelAndSelectMode(page, 'settings-mode-option-dark');
     await expectSurfaceDark(page);
+    await expectPlaceKept(page);
 
-    await openSwitcherAndSelect(page, 'theme-mode-option-light');
+    // The panel is modal: lift it before the shell reach can open it again.
+    await page.getByTestId('settings-close').click();
+    await expect(page.getByTestId('settings-panel')).not.toBeVisible();
+
+    await openPanelAndSelectMode(page, 'settings-mode-option-light');
     await expectSurfaceLight(page);
+    await expectPlaceKept(page);
   });
 });
 
@@ -120,7 +151,7 @@ test.describe('explicit choice persists across reload', () => {
     // script and the React provider's lazy initializer.
     await page.goto(LANDING_PATH);
 
-    await openSwitcherAndSelect(page, 'theme-mode-option-dark');
+    await openPanelAndSelectMode(page, 'settings-mode-option-dark');
     await expectSurfaceDark(page);
 
     // Verify the canonical localStorage key got the raw enum string.
@@ -155,5 +186,47 @@ test.describe('follow-system tracks a live OS change', () => {
     // Back to light, still no reload.
     await page.emulateMedia({ colorScheme: 'light' });
     await expectSurfaceLight(page);
+  });
+});
+
+// ----------------------------------------------------------------------
+// The setting pair: language selection obeys every rendered statement
+// ----------------------------------------------------------------------
+
+test.describe('language selection in the settings panel', () => {
+  test('selecting German marks the choice and re-renders the shell statements in place', async ({
+    page,
+  }) => {
+    await page.goto(LANDING_PATH);
+
+    await page.getByTestId('settings-language-reach').click();
+    await expect(page.getByTestId('settings-panel')).toBeVisible();
+    await page.getByTestId('settings-language-option-de').click();
+
+    // The current choice is marked in the pair; the superseded choice is not.
+    await expect(page.getByTestId('settings-language-option-de')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.getByTestId('settings-language-option-en')).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+
+    // Every rendered statement obeys the selection: the footer's terms reach
+    // reads in German, and the place beneath the panel never changed.
+    await expect(page.getByTestId('footer-terms')).toHaveText(TERMS_REACH_GERMAN);
+    await expectPlaceKept(page);
+  });
+
+  test('the closing lifts the pair while the place beneath stands', async ({ page }) => {
+    await page.goto(LANDING_PATH);
+
+    await page.getByTestId('settings-mode-reach').click();
+    await expect(page.getByTestId('settings-panel')).toBeVisible();
+
+    await page.getByTestId('settings-close').click();
+    await expect(page.getByTestId('settings-panel')).not.toBeVisible();
+    await expectPlaceKept(page);
   });
 });

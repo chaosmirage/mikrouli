@@ -1,5 +1,6 @@
 import { test, expect, randomEmail, registerAndLogin, apiCall } from './fixtures';
 
+const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:8888';
 const WRONG_PASSWORD = 'wrongpassword123';
 const ACCESS_COOKIE_NAME = 'mikrouli_access';
 const REFRESH_COOKIE_NAME = 'mikrouli_refresh';
@@ -30,11 +31,14 @@ test('login sets HttpOnly session cookies (not script-readable)', async ({ page,
   expect(accessCookie).toBeDefined();
   expect(refreshCookie).toBeDefined();
   // HttpOnly prevents script access; verify /me works (cookie sent automatically).
-  const resp = await page.request.fetch('http://localhost:8888/api/auth/me');
+  const resp = await page.request.fetch(`${BASE_URL}/api/auth/me`);
   expect(resp.ok()).toBe(true);
 });
 
-test('logout clears session cookies and subsequent me returns 401', async ({ page, unauthRequest }) => {
+test('logout clears session cookies and subsequent me returns 401', async ({
+  page,
+  unauthRequest,
+}) => {
   // Clear shared session cookies so registerAndLogin can navigate to /register
   // without GuestRoute bouncing the page straight to /dashboard.
   await page.context().clearCookies();

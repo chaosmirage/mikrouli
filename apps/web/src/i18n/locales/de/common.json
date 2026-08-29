@@ -6,6 +6,8 @@
   "delete": "Löschen",
   "copy": "Kopieren",
   "copied": "Kopiert",
+  "copyFailed": "Kopieren ist in diesem Browser nicht verfügbar",
+  "resultCreated": "Dein Kurzlink ist bereit",
   "downloadPng": "PNG herunterladen",
   "downloadSvg": "SVG herunterladen",
   "logout": "Abmelden",
@@ -23,5 +25,9 @@
   "themeMode": "Design",
   "themeLight": "Hell",
   "themeDark": "Dunkel",
-  "themeSystem": "System folgen"
+  "themeSystem": "System folgen",
+  "settings": "Einstellungen",
+  "closeSettings": "Fertig",
+  "statementUnderway": "Wird bearbeitet…",
+  "statementEmpty": "Noch nichts hier"
 }

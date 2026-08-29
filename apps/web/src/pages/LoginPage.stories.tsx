@@ -1,7 +1,22 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { http, HttpResponse } from 'msw';
+import type { ReactNode } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import LoginPage from './LoginPage';
 import { withGuestPage } from '../../.storybook/decorators';
+
+// A router entry so a story can open the page with the URL it needs (the
+// federated failure arrives as ?error=... on the real location).
+type RouteEntry = string | { pathname: string; search?: string };
+
+function withRouterAt(entry: RouteEntry) {
+  return function RouterAt(Story: () => ReactNode): React.JSX.Element {
+    return (
+      <MemoryRouter initialEntries={[entry]}>
+        <Story />
+      </MemoryRouter>
+    );
+  };
+}
 
 const meta: Meta<typeof LoginPage> = {
   title: 'Pages/LoginPage',
@@ -14,23 +29,18 @@ export default meta;
 
 type Story = StoryObj<typeof LoginPage>;
 
-// Default state: empty form with email/password fields, GitHub OAuth button,
-// and a link to register. The page has its own Container maxWidth="sm".
+// Default state: the entering column with the federated path staged first and
+// the credentials path (email, password, one confirm) below it. The page
+// manages its own narrow centered column (Container maxWidth="sm").
 export const Default: Story = {};
 
-// OAuth error state: the URL carries ?error=github-no-verified-email, so the
-// page renders the resolved OAuth error alert above the form fields.
+// Federated failure state: the URL carries ?error=github-no-verified-email,
+// so the resolved OAuth failure statement stands with the federated path.
 export const WithOAuthError: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        http.post('/api/auth/login', () =>
-          HttpResponse.json(
-            { id: 'usr_001', email: 'demo@mikrou.li', createdAt: '2026-01-15T10:30:00.000Z' },
-            { status: 200 },
-          ),
-        ),
-      ],
-    },
-  },
+  decorators: [withRouterAt('/login?error=github-no-verified-email')],
+};
+
+// The same surface with the generic federated failure (unknown error slug).
+export const WithOAuthFallback: Story = {
+  decorators: [withRouterAt('/login?error=unknown-slug')],
 };

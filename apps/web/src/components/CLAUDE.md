@@ -1,9 +1,9 @@
 # components
 
 Shared React components used across the web app: reusable UI building
-blocks (QrCode, ThemeModeSwitch, ConfirmDialog, EditLinkDialog) and
-feature-level forms (ShortenCard, AppShell) that are composed into
-page-level views.
+blocks (QrCode, CopyControl, StandingsRow, StatementBand, SettingsPanel,
+ConfirmDialog) and feature-level forms (ShortenCard, AppShell) that are
+composed into page-level views.
 
 ## Purpose
 
@@ -16,10 +16,14 @@ owns the shorten POST); all other data arrives via props.
 ## Key pieces
 
 - `ShortenCard.tsx` -- Self-contained shorten form. Owns URL input,
-  loading, error, and `newLink` state. On success, renders `NewLinkResult`
-  (short URL copy button + QrCode) and fires the optional `onShortened`
-  callback. Actor-agnostic: the API resolves Guest vs registered by the
-  presence of a credential; this component just POSTs to `/api/urls`.
+  loading, error, and `newLink` state. On success, renders `ResultMoment`,
+  the result-moment blocks under the preserved `new-link-alert` root: the
+  `result-confirmation` success statement, the takeable short address
+  (`result-link`) with a `CopyControl` take and its landed confirmation,
+  and a `QrCode` block with both export formats (PNG + SVG). Fires the
+  optional `onShortened` callback. Actor-agnostic: the API resolves Guest
+  vs registered by the presence of a credential; this component just POSTs
+  to `/api/urls`.
 - `QrCode.tsx` -- Presentational component wrapping `qrcode.react`
   (`QRCodeSVG`). Accepts a full public URL (`value`) and an optional pixel
   `size` (default 160). Renders the SVG and two export controls: Download
@@ -30,15 +34,40 @@ owns the shorten POST); all other data arrives via props.
   wrapper, `qr-download` on the PNG button, `qr-download-svg` on the SVG
   button.
 - `AppShell.tsx` -- Persistent navigation chrome (drawer, top bar).
-- `ThemeModeSwitch.tsx` -- Icon button that cycles through light / dark /
-  follow-system modes via `useThemeMode` from `src/theme-mode-context.tsx`.
+- `SettingsPanel.tsx` -- Dialog panel staging the homogeneous setting pair
+  (color mode light/dark/follow-system + language en/de/el), opened from the
+  shell band's two reaches. Selections write straight through the standing
+  stores: `useThemeMode().setMode` and `i18n.changeLanguage`. Storage keys
+  (`mikrouli.themeMode`, `mikrouli.locale`) and their closed-enum validation
+  are unchanged; the panel adds no new storage. Test ids `settings-panel`,
+  `settings-mode-option-*`, `settings-language-option-*`, `settings-close`;
+  the shell reaches are `settings-mode-reach` / `settings-language-reach`.
 - `ConfirmDialog.tsx` -- Generic confirmation modal; also has a Storybook
   story (`ConfirmDialog.stories.tsx`).
-- `EditLinkDialog.tsx` -- Modal dialog for editing a link's destination
-  URL. Receives the current link (slug + originalUrl), renders a
-  pre-filled TextField for the new URL, and calls `onConfirm(newUrl)` on
-  submit. Displays inline server-error feedback. Composition mirrors
-  ConfirmDialog's modal pattern. Has a colocated test and Storybook story.
+- `CopyControl.tsx` -- The taking control: one activation of the icon
+  button puts the exact `value` onto the clipboard through
+  `useCopyToClipboard`, and the landed (or failed) confirmation stands
+  beside it in the same glance as a `role="status"` statement -- never a
+  silent write. Derives `<testId>-landed` / `<testId>-failed` addresses
+  from its `testId` prop (default `copy-link`); localized via the `common`
+  namespace. Consumed wherever a takeable string appears: ShortenCard and
+  the Connect, ApiKeys, and Dashboard pages.
+- `StandingsRow.tsx` -- The shared row shape for every surface that
+  compares standings: an optional `identity` node (wraps under the
+  standings at narrow widths), `standings` (label + value pairs, values in
+  tabular numerals so like-positioned values compare across rows), and
+  optional right-aligned `acts`. Purely presentational; a value renders as
+  `component="div"` because it may be block matter (the dashboard's in-row
+  correction form). Consumed by five pages (Dashboard, Stats, Usage,
+  ApiKeys, Connect).
+- `StatementBand.tsx` -- The aftermath vehicle for one asynchronous act:
+  takes a `StatementBandState | null` discriminated union (`underway`,
+  `landed`, `empty`, `failure` with unknown `cause`) and states it as one
+  MUI Alert with the matching severity. Failures resolve through the shared
+  problem-details extraction (`extractErrorMessage`), never the raw thrown
+  value; per-surface `underwayKey`/`landedKey`/`emptyKey` overrides default
+  to shared `common` keys. Test id `statement-band`. Consumed by the Usage
+  and ApiKeys pages.
 
 ## How to extend safely
 

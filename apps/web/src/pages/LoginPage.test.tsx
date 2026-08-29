@@ -39,6 +39,15 @@ describe('LoginPage', () => {
     expect(screen.getByTestId('login-submit')).toBeInTheDocument();
   });
 
+  it('stages the federated path before the credentials path', () => {
+    renderLogin();
+    const federated = screen.getByTestId('login-github');
+    const addressEntering = screen.getByTestId('login-email');
+    const follows =
+      federated.compareDocumentPosition(addressEntering) & Node.DOCUMENT_POSITION_FOLLOWING;
+    expect(follows).toBeTruthy();
+  });
+
   it('submitting calls login with email and password', async () => {
     renderLogin();
     fireEvent.change(screen.getByTestId('login-email'), { target: { value: 'user@test.com' } });

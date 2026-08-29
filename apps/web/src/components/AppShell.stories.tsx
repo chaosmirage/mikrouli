@@ -3,7 +3,7 @@ import AppShell from './AppShell';
 import { withFullProviders } from '../../.storybook/decorators';
 
 // AppShell uses useAuth (AuthProvider needs a QueryClient above it), renders
-// ThemeModeSwitch (which calls useThemeMode), and uses useNavigate.
+// SettingsPanel (which calls useThemeMode), and uses useNavigate.
 // withFullProviders provides the complete chain: ThemeModeProvider > ThemedInner
 // (ThemeProvider) > Router > QueryClient > Auth, matching the real provider tree.
 const meta: Meta<typeof AppShell> = {

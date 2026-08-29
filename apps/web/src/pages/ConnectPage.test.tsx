@@ -1,6 +1,7 @@
 /**
- * Verifies that ConnectPage renders all three required sections:
- * the header/intro, the REST path section, and the MCP section.
+ * Verifies the connect page's three zones: the connection statement, the
+ * credential's authorization terms (header + key format), and the machine
+ * terms (endpoints and the takeable example calls).
  */
 
 import { describe, it, expect } from 'vitest';
@@ -8,11 +9,11 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import ConnectPage from './ConnectPage';
-import { theme } from '../theme';
+import { createAppTheme } from '../theme';
 
 function renderConnect() {
   render(
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={createAppTheme('light')}>
       <MemoryRouter>
         <ConnectPage />
       </MemoryRouter>
@@ -26,26 +27,55 @@ describe('ConnectPage', () => {
     expect(screen.getByTestId('connect-page')).toBeInTheDocument();
   });
 
-  it('renders the REST section', () => {
+  it('renders the authorization terms zone', () => {
     renderConnect();
-    expect(screen.getByTestId('connect-rest-section')).toBeInTheDocument();
+    expect(screen.getByTestId('connect-apikey-section')).toBeInTheDocument();
   });
 
-  it('renders the MCP section', () => {
+  it('authorization terms carry the header the credential rides on', () => {
     renderConnect();
+    const section = screen.getByTestId('connect-apikey-section');
+    expect(section.textContent).toMatch(/x-api-key: mk_<your-key>/i);
+  });
+
+  it('authorization terms carry the key-format standing', () => {
+    renderConnect();
+    const section = screen.getByTestId('connect-apikey-section');
+    expect(section.textContent).toContain('mk_<your-key>');
+    expect(section.textContent).toMatch(/key format/i);
+  });
+
+  it('renders the machine terms zones', () => {
+    renderConnect();
+    expect(screen.getByTestId('connect-rest-section')).toBeInTheDocument();
     expect(screen.getByTestId('connect-mcp-section')).toBeInTheDocument();
   });
 
-  it('REST section mentions x-api-key', () => {
+  it('machine terms name the REST endpoint', () => {
     renderConnect();
     const section = screen.getByTestId('connect-rest-section');
-    expect(section.textContent).toMatch(/x-api-key/i);
+    expect(section.textContent).toMatch(/POST \/api\/urls/);
   });
 
-  it('MCP section mentions /api/mcp', () => {
+  it('machine terms name the MCP endpoint', () => {
     renderConnect();
     const section = screen.getByTestId('connect-mcp-section');
-    expect(section.textContent).toMatch(/\/api\/mcp/i);
+    expect(section.textContent).toMatch(/\/api\/mcp/);
+  });
+
+  it('renders the direct example call as its own takeable block', () => {
+    renderConnect();
+    const direct = screen.getByTestId('connect-example-direct');
+    expect(direct.textContent).toContain('curl -s -X POST https://mikrou.li/api/urls');
+    expect(direct.textContent).toContain('x-api-key');
+  });
+
+  it('renders the harness-add command as its own takeable block', () => {
+    renderConnect();
+    const harness = screen.getByTestId('connect-example-harness');
+    expect(harness.textContent).toContain('claude mcp add');
+    expect(harness.textContent).toContain('https://mikrou.li/api/mcp');
+    expect(harness.textContent).toContain('--header');
   });
 
   it('page contains a link to llms.txt', () => {
@@ -55,21 +85,8 @@ describe('ConnectPage', () => {
     expect(llmsLink).toBeDefined();
   });
 
-  it('MCP section contains the claude mcp add command', () => {
+  it('renders a prominent get-API-key zone before the machine terms', () => {
     renderConnect();
-    const section = screen.getByTestId('connect-mcp-section');
-    expect(section.textContent).toContain('claude mcp add');
-  });
-
-  it('MCP section contains the mikrou.li/api/mcp URL in the claude command', () => {
-    renderConnect();
-    const section = screen.getByTestId('connect-mcp-section');
-    expect(section.textContent).toContain('https://mikrou.li/api/mcp');
-  });
-
-  it('renders a prominent get-API-key step before the REST and MCP sections', () => {
-    renderConnect();
-    // An API key prerequisite section must be present
     expect(screen.getByTestId('connect-apikey-section')).toBeInTheDocument();
   });
 });

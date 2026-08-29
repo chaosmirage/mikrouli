@@ -1,9 +1,10 @@
 {
   "title": "API-Schlüssel",
+  "intro": "API-Schlüssel ausstellen und widerrufen, die Maschinenzugriff auf dein Konto autorisieren.",
   "label": "Bezeichnung",
   "prefix": "Präfix",
   "create": "Schlüssel erstellen",
-  "secretOnce": "Kopiere dieses Geheimnis JETZT — es wird nie wieder angezeigt: {{key}}",
+  "secretReceipt": "Schlüssel erstellt. Das Secret wird unten einmalig angezeigt — kopiere es jetzt; es wird nicht wieder angezeigt.",
   "revoke": "Widerrufen",
   "active": "Aktiv",
   "revoked": "Widerrufen",
@@ -11,8 +12,6 @@
   "neverUsed": "Nie verwendet",
   "status": "Status",
   "created": "Erstellt",
-  "revokeKey": "API-Schlüssel widerrufen?",
-  "revokeBody": "Der Schlüssel wird unwiderruflich widerrufen.",
   "noKeys": "Noch keine API-Schlüssel",
   "dismiss": "Schließen"
 }
