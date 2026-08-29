@@ -58,7 +58,9 @@ describe('UsagePage', () => {
     renderUsagePage();
     await waitFor(() => expect(screen.getByTestId('usage-page')).toBeInTheDocument());
     expect(screen.getByRole('heading', { level: 1, name: 'Usage' })).toBeInTheDocument();
-    expect(screen.getByText(/monthly standing against its link and key limits/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/monthly standing against its link and key limits/i),
+    ).toBeInTheDocument();
   });
 
   it('renders the usage page with link quota information', async () => {
@@ -130,6 +132,28 @@ describe('UsagePage', () => {
     expect(screen.getByTestId('reset-date')).toHaveTextContent('Jul 1, 2026');
   });
 
+  it('keeps both quota rows on one shared bounded track template so their standings compare', async () => {
+    renderUsagePage();
+    await waitFor(() => expect(screen.getByTestId('links-quota-card-row')).toBeInTheDocument());
+
+    // The two quota cards' rows adopt the SAME row style: their
+    // created/limit/remaining standings stand on one shared template, so
+    // like-positioned figures compare at the same x in both cards.
+    const linksRow = screen.getByTestId('links-quota-card-row');
+    const keysRow = screen.getByTestId('keys-quota-card-row');
+    expect(linksRow.className).toBe(keysRow.className);
+
+    // The shared template: every track bounded (fr with a zero floor), so a
+    // long label folds inside its own track instead of pushing another
+    // standing — and the subgrid adoption that carries the template into
+    // each row.
+    const styles = Array.from(document.querySelectorAll('style'))
+      .map((sheet) => sheet.textContent ?? '')
+      .join('');
+    expect(styles).toContain('minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)');
+    expect(styles).toContain('grid-template-columns:subgrid');
+  });
+
   it('renders the retention period in the active locale', async () => {
     await act(async () => {
       await i18next.changeLanguage('de');
@@ -158,9 +182,7 @@ describe('UsagePage', () => {
   });
 
   it('states the failure as the resolved problem-details message', async () => {
-    vi.spyOn(client, 'apiFetch').mockRejectedValue(
-      new ApiError(500, 'usage load failed'),
-    );
+    vi.spyOn(client, 'apiFetch').mockRejectedValue(new ApiError(500, 'usage load failed'));
     renderUsagePage();
     await waitFor(() => expect(screen.getByText('usage load failed')).toBeInTheDocument());
     // The exhausted-standing wording is reserved for an exhausted allowance,

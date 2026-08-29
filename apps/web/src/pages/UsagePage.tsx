@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -24,6 +25,23 @@ const ZONE_SPACING = 5;
 const PAGE_SX = { maxWidth: 600 } as const;
 const CARD_SX = { minWidth: 260, flex: 1 } as const;
 const PROGRESS_SX = { height: 8, borderRadius: 1 } as const;
+
+// The quota rows' ONE shared template, carried by both quota cards: every
+// track is bounded (fr over a zero floor), so a long label folds inside its
+// own track instead of pushing another standing. Both cards adopt the same
+// template over equal widths, so the created/limit/remaining figures of the
+// links and the keys compare at the same x.
+const QUOTA_ROW_COLUMNS = 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)';
+
+// One quota card's row set: from md up the standings adopt the shared
+// tracks; below md they keep the content-sized wrap, the readable shape
+// when the card folds.
+const QUOTA_ROW_SET_SX = {
+  display: { xs: 'flex', md: 'grid' },
+  flexDirection: 'column',
+  columnGap: { md: 3 },
+  gridTemplateColumns: { md: QUOTA_ROW_COLUMNS },
+} as const;
 
 function usedPercent(created: number, limit: number): number {
   if (limit <= 0) return 100;
@@ -97,17 +115,21 @@ function StandingCard({
               {exhaustedStatement}
             </Alert>
           )}
-          <StandingsRow
-            standings={[
-              { label: t('created'), value: formatNumber(created), testId: createdTestId },
-              { label: t('limit'), value: formatNumber(limit), testId: `${cardTestId}-limit` },
-              {
-                label: t('remaining'),
-                value: formatNumber(remaining),
-                testId: remainingTestId,
-              },
-            ]}
-          />
+          <Box sx={QUOTA_ROW_SET_SX}>
+            <StandingsRow
+              aligned
+              rowTestId={`${cardTestId}-row`}
+              standings={[
+                { label: t('created'), value: formatNumber(created), testId: createdTestId },
+                { label: t('limit'), value: formatNumber(limit), testId: `${cardTestId}-limit` },
+                {
+                  label: t('remaining'),
+                  value: formatNumber(remaining),
+                  testId: remainingTestId,
+                },
+              ]}
+            />
+          </Box>
         </Stack>
       </CardContent>
     </Card>
@@ -178,7 +200,11 @@ function UsageView({ summary, email }: UsageViewProps) {
 
 export default function UsagePage() {
   const { user } = useAuth();
-  const { data: summary, error, isLoading } = useQuery({
+  const {
+    data: summary,
+    error,
+    isLoading,
+  } = useQuery({
     queryKey: ['usage'],
     queryFn: loadUsage,
   });

@@ -76,9 +76,7 @@ describe('CopyControl', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
 
-    expect(
-      screen.getByText('Copying is not available in this browser'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Copying is not available in this browser')).toBeInTheDocument();
   });
 
   it('carries a per-instance harness address for the control and its confirmation', async () => {
@@ -88,5 +86,60 @@ describe('CopyControl', () => {
     fireEvent.click(screen.getByTestId('copy-link-def456'));
 
     expect(await screen.findByTestId('copy-link-def456-landed')).toBeInTheDocument();
+  });
+
+  it('reserves the confirmation place: one constant slot across idle and landed, nothing mounts on the take', async () => {
+    installClipboard('works');
+    renderControl({ testId: 'copy-link-abc' });
+
+    // Before the take the confirmation's slot already stands in the row,
+    // hidden: the space it will land into is owned from the first paint, so
+    // the row's box — and everything beside and below it — is already sized
+    // for the landing.
+    const reserved = screen.getByTestId('copy-link-abc-confirmation');
+    expect(reserved).toHaveTextContent('Copied');
+    expect(reserved).toHaveStyle({ visibility: 'hidden' });
+    expect(screen.queryByTestId('copy-link-abc-landed')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('copy-link-abc'));
+
+    // The take lands into the reserved place: the SAME node turns visible —
+    // no element mounts or unmounts in the row, and a visibility change
+    // cannot reflow layout, so the confirmation's container keeps its
+    // height (and its width) across idle and landed.
+    const landed = await screen.findByTestId('copy-link-abc-landed');
+    expect(landed).toBe(reserved);
+    expect(landed).toBeVisible();
+  });
+
+  it('reserves the confirmation at the weight it lands in: identical typography, so the slot never widens on the take', async () => {
+    installClipboard('works');
+    renderControl({ testId: 'copy-link-abc' });
+
+    // The metrics that size the statement's box, measured on the reserved
+    // slot before the take.
+    const reserved = screen.getByTestId('copy-link-abc-confirmation');
+    const reservedStyle = getComputedStyle(reserved);
+    const reservedWeight = reservedStyle.fontWeight;
+    const reservedSize = reservedStyle.fontSize;
+    const reservedFamily = reservedStyle.fontFamily;
+
+    fireEvent.click(screen.getByTestId('copy-link-abc'));
+
+    // The same node lands with the SAME computed typography — the bold
+    // reading is already inside the reserved width, so the flip cannot
+    // grow (or shrink) the slot's contribution to the row: identical text,
+    // identical metrics, bit-identical width.
+    const landed = await screen.findByTestId('copy-link-abc-landed');
+    const landedStyle = getComputedStyle(landed);
+    expect(landed).toBe(reserved);
+    expect(landedStyle.fontWeight).toBe(reservedWeight);
+    expect(landedStyle.fontSize).toBe(reservedSize);
+    expect(landedStyle.fontFamily).toBe(reservedFamily);
+    // And the shared weight is the confirmed reading's own quiet emphasis
+    // (bold), not the idle body weight the reservation would otherwise
+    // under-size by.
+    expect(reservedWeight).toBe('600');
+    expect(landedStyle.fontWeight).toBe('600');
   });
 });
