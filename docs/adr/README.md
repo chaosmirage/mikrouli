@@ -30,3 +30,4 @@ accordingly and a new record describes the replacement decision.
 | [0017](0017-dark-light-theme-with-anti-flash-cascade.md) | Dark/Light Theme with Anti-Flash Cascade | Accepted |
 | [0018](0018-web-theme-token-system.md) | Web Theme Token System | Accepted |
 | [0019](0019-centralized-api-throttler-policy.md) | Centralized API Throttler Policy | Accepted |
+| [0020](0020-actor-aware-throttle-budgets.md) | Actor-Aware Throttle Budgets | Accepted |
