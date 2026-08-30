@@ -17,65 +17,74 @@ import LinkIcon from '@mui/icons-material/Link';
 import ShortenCard from '../components/ShortenCard';
 import { useAuth } from '../auth/AuthContext';
 import { useGuestShortenEnabled } from '../hooks/useGuestShortenEnabled';
-import { SPACE } from '../theme';
 
 // The landing is the one full-viewport composition: it stands outside the
-// contained width and bounds its own reading columns instead. Spacing below
-// follows the five-step space ladder over the theme's base unit (inline = 1,
-// element = 2, block = 3, zone = 5); the named tokens land with the theme
-// factory, so these multipliers are the nearest existing values.
+// contained width and composes on the thirds — the display statement at the
+// upper third-line intersection, the act inside the same glance, the claims
+// band in the next downward glance. Spacing follows the five-step space ladder
+// over the theme's base unit (inline = 1, element = 2, block = 3, zone = 5).
 
-// The reading measure bounding the first sight's scan span comes from the
-// theme factory's SPACE token, the one measure the whole app reads.
-
-const PAGE_SX = {
-  pt: { xs: 6, md: 10 },
-  pb: { xs: 6, md: 8 },
-  bgcolor: 'background.default',
+// The composition's left margin: the content column opens 120px into the
+// viewport at desktop widths (the full-viewport landing's own margin rhythm).
+const CONTENT_GUTTER_SX = {
+  px: { xs: 3, md: 15 },
+  minHeight: 'calc(100vh - 64px)',
+  display: 'flex',
+  flexDirection: 'column',
 } as const;
 
-const STATEMENT_COLUMN_SX = {
-  maxWidth: `${SPACE.measure}px`,
-  mx: 'auto',
-  width: '100%',
-  px: 2,
-  textAlign: 'center',
-} as const;
-
+// The display statement: the first-sight statement at the display step,
+// weight-led and tightened, in the strongest ink directly on the canvas.
 const STATEMENT_TITLE_SX = {
   color: 'text.primary',
   fontWeight: 800,
-  letterSpacing: '-0.025em',
-  lineHeight: 1.1,
-  fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4rem' },
+  letterSpacing: '-0.03em',
+  lineHeight: 1.05,
+  fontSize: { xs: '2.5rem', sm: '3.5rem', md: '6rem' },
 } as const;
 
-const STATEMENT_SUPPORT_SX = { color: 'text.secondary', lineHeight: 1.6 } as const;
+const STATEMENT_SUPPORT_SX = {
+  color: 'text.secondary',
+  lineHeight: 1.6,
+  maxWidth: 640,
+  mt: 2,
+} as const;
 
-const ACT_SECTION_SX = { mt: 3, px: 2 } as const;
+// The one-act row: the entering and the confirm side by side, bounded by the
+// reading measure so statement and act share one glance.
+const ACT_SECTION_SX = { mt: 5, maxWidth: 640 } as const;
 
-const ACT_COLUMN_SX = { maxWidth: `${SPACE.measure}px`, mx: 'auto', width: '100%' } as const;
+const ACT_ROW_SX = {
+  flexDirection: { xs: 'column', sm: 'row' },
+  gap: 2,
+  alignItems: { sm: 'center' },
+} as const;
+
+const FAILURE_POSITION_SX = { mt: 1.5, color: 'text.disabled' } as const;
 
 // The claims band stands in the next downward glance, a full zone below the
-// act, so the act is never scanned past.
-const CLAIMS_SECTION_SX = { mt: 5, px: 2 } as const;
+// act, so the act is never scanned past. One band, four entries, at
+// space.element between entries.
+const CLAIMS_SECTION_SX = { mt: 9 } as const;
 
-const CLAIMS_LIST_SX = {
-  maxWidth: `${SPACE.measure}px`,
-  mx: 'auto',
-  width: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 2,
+const CLAIMS_GRID_SX = {
+  display: 'grid',
+  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+  columnGap: 5,
+  rowGap: 4,
 } as const;
 
 // Comparable claims look comparable: every entry is the identical shape — one
-// claim line, one comparate line — differing only in content.
-const CLAIM_TITLE_SX = { color: 'text.secondary', fontWeight: 600 } as const;
-const CLAIM_COMPARATE_SX = { color: 'text.secondary' } as const;
-const CLAIM_REACH_SX = { color: 'text.primary', fontWeight: 600, fontSize: '0.875rem' } as const;
+// claim line, one comparate line, an optional reach — differing only in
+// content.
+const CLAIM_TITLE_SX = { color: 'text.primary', fontWeight: 600 } as const;
+const CLAIM_COMPARATE_SX = { color: 'text.disabled', mt: 0.5 } as const;
+const CLAIM_REACH_SX = { color: 'primary.main', fontWeight: 600, fontSize: '0.875rem', mt: 1 } as const;
 
-const NUDGE_SX = { mt: 2, p: { xs: 2, sm: 3 } } as const;
+const FOOTER_SX = { mt: 'auto', pt: 14, pb: 5 } as const;
+
+
+const NUDGE_SX = { mt: 3, p: { xs: 2, sm: 3 }, maxWidth: 640 } as const;
 const NUDGE_TITLE_SX = { mb: 1, fontWeight: 600 } as const;
 const NUDGE_ICON_SX = { minWidth: 36 } as const;
 const NUDGE_CTA_SX = { mt: 2 } as const;
@@ -115,30 +124,28 @@ const CLAIMS: readonly ClaimEntry[] = [
   },
 ];
 
-function ClaimRow({ claim }: { claim: ClaimEntry }) {
+function ClaimEntryBlock({ claim }: { claim: ClaimEntry }) {
   const { t } = useTranslation('landing');
   return (
-    <ListItem disableGutters data-testid={`landing-claim-${claim.id}`}>
-      <Stack spacing={0.5}>
-        <Typography variant="body1" sx={CLAIM_TITLE_SX}>
-          {t(claim.titleKey)}
-        </Typography>
-        <Typography variant="body2" sx={CLAIM_COMPARATE_SX}>
-          {t(claim.comparateKey)}
-        </Typography>
-        {claim.reach && (
-          <Link
-            component={RouterLink}
-            to={claim.reach.to}
-            underline="always"
-            data-testid={`landing-claim-${claim.id}-reach`}
-            sx={CLAIM_REACH_SX}
-          >
-            {t(claim.reach.labelKey)}
-          </Link>
-        )}
-      </Stack>
-    </ListItem>
+    <Stack data-testid={`landing-claim-${claim.id}`}>
+      <Typography variant="body1" sx={CLAIM_TITLE_SX}>
+        {t(claim.titleKey)}
+      </Typography>
+      <Typography variant="body2" sx={CLAIM_COMPARATE_SX}>
+        {t(claim.comparateKey)}
+      </Typography>
+      {claim.reach && (
+        <Link
+          component={RouterLink}
+          to={claim.reach.to}
+          underline="hover"
+          data-testid={`landing-claim-${claim.id}-reach`}
+          sx={CLAIM_REACH_SX}
+        >
+          {t(claim.reach.labelKey)}
+        </Link>
+      )}
+    </Stack>
   );
 }
 
@@ -148,27 +155,26 @@ function FirstSightStatement() {
   const { t } = useTranslation('landing');
   return (
     <Box component="section" data-testid="landing-statement">
-      <Stack spacing={2} sx={STATEMENT_COLUMN_SX}>
-        <Typography variant="h2" component="h1" sx={STATEMENT_TITLE_SX}>
-          {t('statementTitle')}
-        </Typography>
-        <Typography variant="body1" sx={STATEMENT_SUPPORT_SX}>
-          {t('statementSupport')}
-        </Typography>
-      </Stack>
+      <Typography variant="h1" component="h1" sx={STATEMENT_TITLE_SX}>
+        {t('statementTitle')}
+      </Typography>
+      <Typography variant="body1" sx={STATEMENT_SUPPORT_SX}>
+        {t('statementSupport')}
+      </Typography>
     </Box>
   );
 }
 
-// The free-capability claims band: one reading in the glance below the act.
+// The free-capability claims band: one band of four comparable entries in the
+// glance below the act.
 function ClaimsBand() {
   return (
     <Box component="section" data-testid="landing-claims" sx={CLAIMS_SECTION_SX}>
-      <List disablePadding sx={CLAIMS_LIST_SX}>
+      <Box sx={CLAIMS_GRID_SX}>
         {CLAIMS.map((claim) => (
-          <ClaimRow key={claim.id} claim={claim} />
+          <ClaimEntryBlock key={claim.id} claim={claim} />
         ))}
-      </List>
+      </Box>
     </Box>
   );
 }
@@ -195,56 +201,101 @@ function GuestShortenSection() {
 
   return (
     <Box component="section" data-testid="guest-shorten-section" sx={ACT_SECTION_SX}>
-      <Box sx={ACT_COLUMN_SX}>
-        <ShortenCard namespace="landing" onShortened={handleShortened} />
-        {nudgeVisible && (
-          <Paper variant="outlined" sx={NUDGE_SX} data-testid="guest-nudge">
-            <Typography variant="h6" component="h2" sx={NUDGE_TITLE_SX}>
-              {t('guestNudgeTitle')}
-            </Typography>
-            <List dense disablePadding>
-              <ListItem disableGutters data-testid="guest-nudge-feature-kept-link">
-                <ListItemIcon sx={NUDGE_ICON_SX}>
-                  <LinkIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary={t('guestNudgeFeatureKeptLink')} />
-              </ListItem>
-              <ListItem disableGutters data-testid="guest-nudge-feature-dashboard">
-                <ListItemIcon sx={NUDGE_ICON_SX}>
-                  <DashboardIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary={t('guestNudgeFeatureDashboard')} />
-              </ListItem>
-              <ListItem disableGutters data-testid="guest-nudge-feature-api-keys">
-                <ListItemIcon sx={NUDGE_ICON_SX}>
-                  <KeyIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary={t('guestNudgeFeatureApiKeys')} />
-              </ListItem>
-            </List>
-            <Button
-              component={RouterLink}
-              to="/register"
-              variant="contained"
-              color="primary"
-              data-testid="guest-nudge-cta"
-              sx={NUDGE_CTA_SX}
-            >
-              {t('guestNudgeCta')}
-            </Button>
-          </Paper>
-        )}
+      <Box sx={ACT_ROW_SX}>
+        <ShortenCard namespace="landing" onShortened={handleShortened} bare />
       </Box>
+      <Typography variant="caption" sx={FAILURE_POSITION_SX}>
+        {t('failurePosition')}
+      </Typography>
+      {nudgeVisible && (
+        <Paper variant="outlined" sx={NUDGE_SX} data-testid="guest-nudge">
+          <Typography variant="h6" component="h2" sx={NUDGE_TITLE_SX}>
+            {t('guestNudgeTitle')}
+          </Typography>
+          <List dense disablePadding>
+            <ListItem disableGutters data-testid="guest-nudge-feature-kept-link">
+              <ListItemIcon sx={NUDGE_ICON_SX}>
+                <LinkIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary={t('guestNudgeFeatureKeptLink')} />
+            </ListItem>
+            <ListItem disableGutters data-testid="guest-nudge-feature-dashboard">
+              <ListItemIcon sx={NUDGE_ICON_SX}>
+                <DashboardIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary={t('guestNudgeFeatureDashboard')} />
+            </ListItem>
+            <ListItem disableGutters data-testid="guest-nudge-feature-api-keys">
+              <ListItemIcon sx={NUDGE_ICON_SX}>
+                <KeyIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary={t('guestNudgeFeatureApiKeys')} />
+            </ListItem>
+          </List>
+          <Button
+            component={RouterLink}
+            to="/register"
+            variant="contained"
+            color="primary"
+            data-testid="guest-nudge-cta"
+            sx={NUDGE_CTA_SX}
+          >
+            {t('guestNudgeCta')}
+          </Button>
+        </Paper>
+      )}
+    </Box>
+  );
+}
+
+// The footer's legal reaches stand at the landing's foot like on every shell
+// surface (the shell carries them on protected routes; the full-viewport
+// landing carries its own pair).
+function LandingFooter() {
+  const { t } = useTranslation('landing');
+  return (
+    <Box component="footer" sx={FOOTER_SX}>
+      <Stack direction="row" spacing={2}>
+        <Link
+          component={RouterLink}
+          to="/terms"
+          underline="hover"
+          color="text.secondary"
+          data-testid="footer-terms"
+        >
+          {t('footerTerms')}
+        </Link>
+        <Link
+          component={RouterLink}
+          to="/privacy"
+          underline="hover"
+          color="text.secondary"
+          data-testid="footer-privacy"
+        >
+          {t('footerPrivacy')}
+        </Link>
+      </Stack>
     </Box>
   );
 }
 
 export default function LandingPage() {
   return (
-    <Box component="main" data-testid="landing-page" sx={PAGE_SX}>
-      <FirstSightStatement />
-      <GuestShortenSection />
-      <ClaimsBand />
+    <Box component="main" data-testid="landing-page" sx={CONTENT_GUTTER_SX}>
+      <Box sx={PAGE_PT_SX}>
+        <FirstSightStatement />
+        <GuestShortenSection />
+        <ClaimsBand />
+        <LandingFooter />
+      </Box>
     </Box>
   );
 }
+
+const PAGE_PT_SX = {
+  pt: { xs: 6, md: 14 },
+  bgcolor: 'background.default',
+  flex: '1 1 auto',
+  display: 'flex',
+  flexDirection: 'column',
+} as const;

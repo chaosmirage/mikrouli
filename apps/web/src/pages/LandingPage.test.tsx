@@ -65,19 +65,15 @@ describe('LandingPage', () => {
     renderLanding();
     const statement = screen.getByTestId('landing-statement');
     const heading = within(statement).getByRole('heading', { level: 1 });
-    expect(heading).toHaveTextContent(/Shorten your links/i);
-    expect(heading).toHaveTextContent(/track every click/i);
-    expect(statement).toHaveTextContent(/free, no account needed/i);
+    expect(heading).toHaveTextContent(/Shorten anything/i);
+    expect(statement).toHaveTextContent(/no account needed/i);
   });
 
-  it('renders the claims band as one list of four comparable entries', () => {
+  it('renders the claims band as one grid of four comparable entries', () => {
     renderLanding();
     const band = screen.getByTestId('landing-claims');
-    const entries = within(band).getAllByRole('listitem');
+    const entries = band.querySelectorAll('[data-testid^="landing-claim-"]:not([data-testid$="-reach"])');
     expect(entries).toHaveLength(4);
-    // Every entry is rendered identically and carries its own claim address.
-    const addressed = band.querySelectorAll('li[data-testid^="landing-claim-"]');
-    expect(addressed).toHaveLength(4);
   });
 
   it('each claim names its compared analog', () => {
@@ -86,14 +82,13 @@ describe('LandingPage', () => {
     // Free analytics depth vs the tier-gated incumbent.
     expect(within(band).getByTestId('landing-claim-analytics')).toHaveTextContent(/Bitly/i);
     // Both QR representations vs the platforms that sell them.
-    expect(within(band).getByTestId('landing-claim-qr')).toHaveTextContent(/Rebrandly/);
-    expect(within(band).getByTestId('landing-claim-qr')).toHaveTextContent(/Short\.io/);
-    // Agent access vs the legacy mass shortener whose extras are paid.
-    expect(within(band).getByTestId('landing-claim-agents')).toHaveTextContent(/TinyURL/);
+    expect(within(band).getByTestId('landing-claim-qr')).toHaveTextContent(/sell QR codes/i);
+    // Agent access vs the paywalled, script-only API access.
+    expect(within(band).getByTestId('landing-claim-agents')).toHaveTextContent(/API access/i);
     // Three-language operation.
     expect(within(band).getByTestId('landing-claim-languages')).toHaveTextContent(/English/i);
-    expect(within(band).getByTestId('landing-claim-languages')).toHaveTextContent(/German/i);
-    expect(within(band).getByTestId('landing-claim-languages')).toHaveTextContent(/Greek/i);
+    expect(within(band).getByTestId('landing-claim-languages')).toHaveTextContent(/Deutsch/i);
+    expect(within(band).getByTestId('landing-claim-languages')).toHaveTextContent(/Ελληνικά/i);
   });
 
   it('the agent claim carries a reach to the public connect surface', () => {

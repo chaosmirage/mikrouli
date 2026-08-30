@@ -46,6 +46,10 @@ interface ShortenCardProps {
   // existing dashboard.* keys; the landing namespace gets its own guestShorten*
   // keys. Pass-through keeps the component locale-agnostic.
   namespace: 'dashboard' | 'landing';
+  // bare: render the entering row without the card chrome — the landing's
+  // one-act row stands directly on the canvas (design S1-B2); the dashboard
+  // keeps the card surface.
+  bare?: boolean;
   // Fired after a successful shorten with the PublicLink returned by the API.
   // Hosts use it to stage the register nudge after the value on the guest
   // landing; the dashboard host passes it for its own list refresh.
@@ -90,7 +94,7 @@ function ResultMoment({ link }: { link: PublicLink }) {
 // state. Reused by DashboardPage and LandingPage. The component is
 // actor-agnostic — the API decides admission (Guest vs registered) based on
 // whether the request carries a credential; this UI just POSTs to /api/urls.
-export default function ShortenCard({ namespace, onShortened }: ShortenCardProps) {
+export default function ShortenCard({ namespace, onShortened, bare = false }: ShortenCardProps) {
   const { t } = useTranslation(namespace);
   const [urlInput, setUrlInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -123,9 +127,7 @@ export default function ShortenCard({ namespace, onShortened }: ShortenCardProps
     [urlInput, onShortened],
   );
 
-  return (
-    <Card data-testid="dashboard-shorten-card">
-      <CardContent>
+  const form = (
         <form onSubmit={handleSubmit} data-testid="shorten-form">
           <Stack spacing={1.5}>
             <Stack
@@ -159,7 +161,12 @@ export default function ShortenCard({ namespace, onShortened }: ShortenCardProps
             {newLink && <ResultMoment link={newLink} />}
           </Stack>
         </form>
-      </CardContent>
+  );
+  return bare ? (
+    form
+  ) : (
+    <Card data-testid="dashboard-shorten-card">
+      <CardContent>{form}</CardContent>
     </Card>
   );
 }

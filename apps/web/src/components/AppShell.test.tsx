@@ -31,9 +31,9 @@ const themeValue: ThemeModeContextValue = {
   setMode: vi.fn(),
 };
 
-function renderShell(authValue: AuthContextValue) {
+function renderShell(authValue: AuthContextValue, initialPath = '/') {
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[initialPath]}>
       <AuthContext.Provider value={authValue}>
         <ThemeModeContext.Provider value={themeValue}>
           <AppShell />
@@ -75,18 +75,13 @@ describe('AppShell', () => {
     expect(screen.getByTestId('nav-register')).toBeInTheDocument();
   });
 
-  it('renders the global footer with all three links when not authenticated', () => {
+  it('suppresses the global footer on the landing: it carries its own legal pair', () => {
     renderShell(guestAuth);
-    expect(screen.getByTestId('footer')).toBeInTheDocument();
-    expect(screen.getByTestId('footer-terms')).toBeInTheDocument();
-    expect(screen.getByTestId('footer-privacy')).toBeInTheDocument();
-    const contact = screen.getByTestId('footer-contact');
-    expect(contact).toBeInTheDocument();
-    expect(contact).toHaveAttribute('href', 'mailto:support@mikrou.li');
+    expect(screen.queryByTestId('footer')).not.toBeInTheDocument();
   });
 
   it('renders the global footer with all three links when authenticated', () => {
-    renderShell(authedAuth);
+    renderShell(authedAuth, '/connect');
     expect(screen.getByTestId('footer')).toBeInTheDocument();
     expect(screen.getByTestId('footer-terms')).toBeInTheDocument();
     expect(screen.getByTestId('footer-privacy')).toBeInTheDocument();
@@ -95,8 +90,8 @@ describe('AppShell', () => {
     expect(contact).toHaveAttribute('href', 'mailto:support@mikrou.li');
   });
 
-  it('renders footer on all pages', () => {
-    renderShell(guestAuth);
+  it('renders footer on inner pages', () => {
+    renderShell(guestAuth, '/connect');
     expect(screen.getByTestId('footer')).toBeInTheDocument();
     expect(screen.getByTestId('footer-terms')).toBeInTheDocument();
     expect(screen.getByTestId('footer-privacy')).toBeInTheDocument();
@@ -116,7 +111,7 @@ describe('AppShell', () => {
   });
 
   it('one activation of a settings reach opens the setting pair over the kept place', () => {
-    renderShell(guestAuth);
+    renderShell(authedAuth, '/connect');
     fireEvent.click(screen.getByTestId('settings-mode-reach'));
     expect(screen.getByTestId('settings-panel')).toBeInTheDocument();
     // The place beneath the veil is kept: the content and footer still stand.
