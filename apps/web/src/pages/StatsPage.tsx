@@ -42,6 +42,14 @@ const CHART_BOX_SX = {
 const LIST_RESET_SX = { listStyle: 'none', m: 0, p: 0 } as const;
 const LIST_ITEM_SX = { display: 'list-item' } as const;
 const EMPTY_READING_SX = { color: 'text.secondary' } as const;
+// The record's short address reads in the theme's fixed-width technical
+// register: a character-exact string must be read character-exactly, because
+// a mistyped address fails late. Size and ink stay the heading's own step.
+// (The optional chain keeps the address legible under a theme that predates
+// the register.)
+const SHORT_ADDRESS_SX = {
+  fontFamily: (theme: Theme) => theme.typography.technical?.fontFamily,
+} as const;
 
 // The chart reads its typography from the theme so the axis standings follow
 // the same register and ink as the page's meta text.
@@ -210,7 +218,7 @@ function StatsView({ slug, stats }: StatsViewProps) {
         >
           {t('backToDashboard')}
         </Button>
-        <Typography variant="h4" data-testid="stats-slug">
+        <Typography variant="h4" data-testid="stats-slug" sx={SHORT_ADDRESS_SX}>
           {slug}
         </Typography>
         <Typography variant="body2" sx={STATS_BODY2_SX}>

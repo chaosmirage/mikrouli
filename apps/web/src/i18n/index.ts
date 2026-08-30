@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
 import enCommon from './locales/en/common.json';
+import enNotFound from './locales/en/notFound.json';
 import enAuth from './locales/en/auth.json';
 import enDashboard from './locales/en/dashboard.json';
 import enStats from './locales/en/stats.json';
@@ -23,8 +24,10 @@ import deLanding from './locales/de/landing.json';
 import deConnect from './locales/de/connect.json';
 import deUsage from './locales/de/usage.json';
 import deLegal from './locales/de/legal.json';
+import deNotFound from './locales/de/notFound.json';
 
 import elCommon from './locales/el/common.json';
+import elNotFound from './locales/el/notFound.json';
 import elAuth from './locales/el/auth.json';
 import elDashboard from './locales/el/dashboard.json';
 import elStats from './locales/el/stats.json';
@@ -37,7 +40,7 @@ import elLegal from './locales/el/legal.json';
 
 const LOCALE_STORAGE_KEY = 'mikrouli.locale';
 const SUPPORTED_LANGS = ['en', 'de', 'el'] as const;
-const NAMESPACES = ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors', 'landing', 'connect', 'usage', 'legal'] as const;
+const NAMESPACES = ['common', 'auth', 'dashboard', 'stats', 'apiKeys', 'errors', 'landing', 'connect', 'usage', 'legal', 'notFound'] as const;
 
 const EN_RESOURCES = {
   common: enCommon,
@@ -50,6 +53,7 @@ const EN_RESOURCES = {
   connect: enConnect,
   usage: enUsage,
   legal: enLegal,
+  notFound: enNotFound,
 };
 const DE_RESOURCES = {
   common: deCommon,
@@ -62,6 +66,7 @@ const DE_RESOURCES = {
   connect: deConnect,
   usage: deUsage,
   legal: deLegal,
+  notFound: deNotFound,
 };
 const EL_RESOURCES = {
   common: elCommon,
@@ -74,6 +79,7 @@ const EL_RESOURCES = {
   connect: elConnect,
   usage: elUsage,
   legal: elLegal,
+  notFound: elNotFound,
 };
 
 function buildResources() {

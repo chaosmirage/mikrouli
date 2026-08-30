@@ -102,6 +102,18 @@ strings appear in page files.
   `TermsPage.tsx`: `useTranslation('legal')`, `data-testid="privacy-page"`
   and per-section testids, asserted by `PrivacyPage.test.tsx`. Also routed
   directly outside `GuestRoute` and linked from the footer.
+- `NotFoundPage.tsx` -- the terminal catch-all (`*` in `App.tsx`, routed
+  outside the guest/protected groups so it renders for every visitor): an
+  address no route answers still gets the shell with the resolved
+  not-found statement inside it, so navigation survives and the document
+  is never blank. One title naming what is wrong plus one supporting line
+  naming the visited address, centred and bounded by the reading measure
+  (`data-testid="not-found-statement"` inside `not-found-page`); the
+  visited address (`not-found-address`) reads in the theme's fixed-width
+  technical register and breaks anywhere, so a mistyped character is seen
+  and a long address stays inside the measure. Exactly one accent act --
+  the contained return to `/` (`not-found-back`) -- carries the surface's
+  colour. Uses the `notFound` i18n namespace.
 - `LoginPage.tsx`, `RegisterPage.tsx` -- authentication forms.
 - `oauth-error.ts` -- `resolveOauthErrorKey(slug)`. The closed dictionary
   for federated-return error slugs: a known slug (`github-no-verified-email`,

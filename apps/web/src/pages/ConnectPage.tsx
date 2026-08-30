@@ -115,7 +115,9 @@ function ConnectionStatement() {
         {t('pageDescription')}
       </Typography>
       <Box>
-        <Link href="/llms.txt" underline="hover" variant="body2">
+        {/* The reach states itself in ink: this surface gives and never asks
+            in accent, so the underline carries the affordance alone. */}
+        <Link href="/llms.txt" color="text.primary" variant="body2">
           {t('llmsFileLink')}
         </Link>
       </Box>

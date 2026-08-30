@@ -81,9 +81,14 @@ plus the visual-mode context that drives light/dark switching.
 - `instrumentation.ts` runs as a side effect when first imported; `main.tsx`
   imports it before mounting React so the provider is registered before any
   fetch calls are made.
-- All raw hex color literals in the web app MUST live in `theme.ts` only.
-  Call `createAppTheme(mode)` from any provider, decorator, or story; never
-  inline hex values in `*.tsx`.
+- All raw hex color literals in the web app MUST live in `theme.ts` only;
+  `theme-tokens.test.ts` audits every source file plus `index.html` for
+  hex, `rgb`, and `hsl` literals and fails anywhere outside the two
+  sanctioned homes: the theme module itself, and the pre-React cascade in
+  `index.html`, which may restate exactly the two canvas tokens (one per
+  color mode) because it runs before the bundle and cannot read the
+  factory. Call `createAppTheme(mode)` from any provider, decorator, or
+  story; never inline hex values in `*.tsx`.
 - When overriding a MUI component, read colors from palette tokens
   (`t.palette.background.default`, `t.palette.text.primary`,
   `t.palette.divider`, etc.) inside `componentsFor(t)`. This is the mechanism

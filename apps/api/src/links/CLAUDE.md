@@ -20,9 +20,12 @@ creation used by the landing-page anonymous shorten form.
   the quota-skip path. Rate limits are selected per route from
   `common/throttler-policy.ts`: `POST /` pins the per-IP
   `GUEST_CREATE_BUDGET` override (the deliberate bound on anonymous
-  creation), while `GET /`, `DELETE /:slug`, and `PATCH /:slug` shed the
-  three public throttle names via `@SkipThrottle` so authenticated traffic
-  runs under the generous `data` budget alone. Responses are mapped through `toPublicLinkSchema`
+  creation) and sheds the three public throttle names for credentialed
+  requests via `@SkipThrottleWhenCredentialed`, so a registered user's
+  creations run under the generous `data` budget while the guest bound
+  still governs the anonymous visitor; `GET /`, `DELETE /:slug`, and
+  `PATCH /:slug` shed the same names unconditionally via `@SkipThrottle`.
+  Responses are mapped through `toPublicLinkSchema`
   before being returned; errors flow to `ProblemDetailsFilter` as RFC 9457
   problem-details. `PATCH /:slug` (`update`) is behind `BearerOrApiKeyGuard`
   like list/remove; it calls `LinksService.updateDestination`, then

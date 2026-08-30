@@ -16,6 +16,7 @@ import ConnectPage from './pages/ConnectPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import UsagePage from './pages/UsagePage';
+import NotFoundPage from './pages/NotFoundPage';
 import { SPACE } from './theme';
 
 const queryClient = new QueryClient({
@@ -85,6 +86,11 @@ export default function App() {
       <Route path="/connect" element={<ConnectPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
+      {/* The terminal catch: an address no route answers still gets the shell
+          with the resolved not-found statement inside it, so navigation
+          survives and the document is never blank. It stays outside the
+          guest/protected groups so it renders for every visitor. */}
+      <Route path="*" element={<NotFoundPage />} />
     </>
   );
   const outerRoute = (

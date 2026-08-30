@@ -8,17 +8,30 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
+import type { PaletteMode } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import ConnectPage from './ConnectPage';
 import { createAppTheme } from '../theme';
 
-function renderConnect() {
+/** Resolves a theme hex token to the rgb() form getComputedStyle reports. */
+function rgbColor(hex: string): string {
+  const value = hex.replace('#', '');
+  const red = parseInt(value.slice(0, 2), 16);
+  const green = parseInt(value.slice(2, 4), 16);
+  const blue = parseInt(value.slice(4, 6), 16);
+  return `rgb(${red}, ${green}, ${blue})`;
+}
+
+function renderConnect(mode: PaletteMode = 'light'): Theme {
+  const theme = createAppTheme(mode);
   render(
-    <ThemeProvider theme={createAppTheme('light')}>
+    <ThemeProvider theme={theme}>
       <MemoryRouter>
         <ConnectPage />
       </MemoryRouter>
     </ThemeProvider>,
   );
+  return theme;
 }
 
 describe('ConnectPage', () => {
@@ -84,6 +97,23 @@ describe('ConnectPage', () => {
     const llmsLink = links.find((l) => l.getAttribute('href')?.includes('llms.txt'));
     expect(llmsLink).toBeDefined();
   });
+
+  it.each(['light', 'dark'] as const)(
+    'states the llms.txt reach in ink with no accent hue in %s mode',
+    (mode) => {
+      const theme = renderConnect(mode);
+      const reach = screen
+        .getAllByRole('link')
+        .find((l) => l.getAttribute('href') === '/llms.txt');
+      expect(reach).toBeDefined();
+      // The reach keeps its address and states itself in the strongest ink
+      // step: the machine-terms surface gives, it never asks in accent.
+      expect(reach).toHaveAttribute('href', '/llms.txt');
+      expect(getComputedStyle(reach as HTMLElement).color).toBe(
+        rgbColor(theme.palette.text.primary),
+      );
+    },
+  );
 
   it('renders a prominent get-API-key zone before the machine terms', () => {
     renderConnect();

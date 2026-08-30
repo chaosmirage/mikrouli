@@ -13,8 +13,13 @@ session invalidation.
   `/auth/refresh`, `/auth/logout`, `GET /auth/me`, `GET /auth/github`,
   `GET /auth/github/callback`. Login and register are throttled via the
   `AUTH_THROTTLE_NAME` bucket (10 req / 60 s). The two GitHub routes share
-  the same throttle bucket. On a successful OAuth callback, session cookies
-  are set and the browser is redirected to `/dashboard`.
+  the same throttle bucket. Refresh runs under its own
+  `AUTH_REFRESH_BUDGET` (60 req / 60 s) instead of the credential-entry
+  bound: rotation presents a server-issued cookie rather than a guessable
+  password, so a burst of sign-ins from one address must not take away
+  every session's ability to stay signed in. On a successful OAuth
+  callback, session cookies are set and the browser is redirected to
+  `/dashboard`.
 - `auth.service.ts` -- credential validation, token pair issuance, refresh
   rotation, and revocation. `loginWithGithub` delegates account resolution to
   `usersService.findOrCreateFromProvider`, then reuses `issueTokens` as the

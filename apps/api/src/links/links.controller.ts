@@ -16,6 +16,7 @@ import { BearerOrApiKeyGuard } from '../api-keys/bearer-or-api-key.guard';
 import { GuestOrAuthenticatedGuard } from '../api-keys/guest-or-authenticated.guard';
 import { LinkCacheService } from '../cache/link-cache.service';
 import type { AuthenticatedRequest } from '../common/authenticated-request';
+import { SkipThrottleWhenCredentialed } from '../common/credentialed-request-throttler.guard';
 import {
   AUTH_THROTTLE_NAME,
   DEFAULT_THROTTLE_NAME,
@@ -55,6 +56,14 @@ export class LinksController {
   // is spoofable by any HTTP client, so this per-IP override is the ONLY abuse
   // bound on anonymous shortening — a deliberate bound, not an accident.
   @Throttle({ [DEFAULT_THROTTLE_NAME]: GUEST_CREATE_BUDGET })
+  // That bound exists for the anonymous visitor alone: a credentialed request
+  // is not a guest, so it sheds the three public names and runs under the
+  // generous data budget exactly like the list/mutate routes below.
+  @SkipThrottleWhenCredentialed({
+    [DEFAULT_THROTTLE_NAME]: true,
+    [AUTH_THROTTLE_NAME]: true,
+    [REDIRECT_THROTTLE_NAME]: true,
+  })
   async create(
     @Req() req: AuthenticatedRequest,
     @Body() dto: CreateLinkDto,

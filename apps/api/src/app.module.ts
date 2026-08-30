@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
@@ -15,6 +15,7 @@ import { ClickHouseModule } from './clickhouse/clickhouse.module';
 import { StatsModule } from './stats/stats.module';
 import { CleanupModule } from './cleanup/cleanup.module';
 import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
+import { CredentialedRequestThrottlerGuard } from './common/credentialed-request-throttler.guard';
 import { buildThrottlerOptions } from './common/throttler-policy';
 import { McpModule } from './mcp/mcp.module';
 import { UsageModule } from './usage/usage.module';
@@ -69,9 +70,11 @@ const typeOrmModule = TypeOrmModule.forRootAsync({
     {
       // Apply the throttler policy (common/throttler-policy.ts) globally;
       // controllers select or shed named budgets per route via
-      // @Throttle({ <name>: { limit, ttl } }) / @SkipThrottle({ <name>: true }).
+      // @Throttle({ <name>: { limit, ttl } }) / @SkipThrottle({ <name>: true }),
+      // and shed guest-only names for credentialed requests via
+      // @SkipThrottleWhenCredentialed({ <name>: true }).
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: CredentialedRequestThrottlerGuard,
     },
   ],
 })

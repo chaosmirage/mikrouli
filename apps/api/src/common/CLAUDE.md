@@ -43,14 +43,26 @@ definitions used across controllers, guards, and services.
 - `throttler-policy.ts` (+ `throttler-policy.spec.ts`) -- single source of
   truth for the API's rate-limit policy: the four throttler names
   (`default`, `auth`, `redirect`, `data`), every designed budget (liberal
-  module floors plus the route-level tightenings for credential entry, the
-  redirect hot path, and anonymous creation), and `buildThrottlerOptions()`,
-  which `app.module.ts` boots the global `ThrottlerGuard` with. A deliberate
-  import-free leaf (only `@nestjs/throttler` types) so controllers can
-  import the names without cycling back through the module graph; the
-  colocated spec drives the real `ThrottlerGuard` with these options
-  against the real controllers' handler metadata and asserts allow/deny
-  plus the emitted `X-RateLimit-*` headers.
+  module floors plus the route-level tightenings for credential entry,
+  session rotation, the redirect hot path, and anonymous creation), and
+  `buildThrottlerOptions()`, which `app.module.ts` boots the global
+  `ThrottlerGuard` with. A deliberate import-free leaf (only
+  `@nestjs/throttler` types) so controllers can import the names without
+  cycling back through the module graph; the colocated spec drives the real
+  guard with these options against the real controllers' handler metadata
+  and asserts allow/deny plus the emitted `X-RateLimit-*` headers.
+- `credential-presence.ts` -- the single answer to "does this request carry
+  any credential the API recognises" (Bearer token, API key, session access
+  cookie). Guest admission (`GuestOrAuthenticatedGuard`) and the throttler
+  guard both branch on actor type before authentication runs, so they must
+  reach the same verdict from the raw request; both call this predicate.
+- `credentialed-request-throttler.guard.ts` (+ colocated spec in
+  `throttler-policy.spec.ts`) -- the `ThrottlerGuard` subclass the app boots
+  globally. It realises `@SkipThrottleWhenCredentialed({ name: true })`: a
+  route declares a named budget that must not be counted against or enforced
+  on credentialed requests (the guest-admission bound on `POST /api/urls`).
+  Skipped names consume no counter slot, so registered traffic cannot
+  exhaust the guest bound for anyone else.
 
 ## How to extend safely
 

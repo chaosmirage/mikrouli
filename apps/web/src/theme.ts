@@ -484,6 +484,15 @@ function componentsFor(t: Theme): ThemeOptions['components'] {
   const TABLE_HEAD_ROOT = { '& .MuiTableCell-head': TABLE_HEAD_CELL };
   const TABLE_CELL_ROOT = { borderBottom: `1px solid ${hairline}` };
   const ALERT_ROOT = { borderRadius: CONTROL_RADIUS };
+  // Every aftermath statement stands in ONE look: the paper ground, a
+  // hairline edge, and the primary ink. The kind of aftermath is said by the
+  // register of the words and by the small status icon alone — the severity
+  // hue never buys a second color field behind the words, in either mode.
+  const ALERT_STANDARD = {
+    backgroundColor: raised,
+    border: `1px solid ${hairline}`,
+    color: inkPrimary,
+  };
   const CHIP_ROOT = { borderRadius: PILL_RADIUS };
 
   return {
@@ -524,7 +533,7 @@ function componentsFor(t: Theme): ThemeOptions['components'] {
     MuiTextField: { defaultProps: { variant: 'outlined', size: 'small' } },
     MuiTableHead: { styleOverrides: { root: TABLE_HEAD_ROOT } },
     MuiTableCell: { styleOverrides: { root: TABLE_CELL_ROOT } },
-    MuiAlert: { styleOverrides: { root: ALERT_ROOT } },
+    MuiAlert: { styleOverrides: { root: ALERT_ROOT, standard: ALERT_STANDARD } },
     MuiChip: { styleOverrides: { root: CHIP_ROOT } },
   };
 }

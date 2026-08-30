@@ -1,19 +1,28 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { useState, useCallback } from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { ThemeProvider } from '@mui/material/styles';
 import i18next from 'i18next';
 import { ThemeModeProvider } from '../theme-mode-context';
+import { createAppTheme } from '../theme';
 import SettingsPanel from './SettingsPanel';
 
 const THEME_STORAGE_KEY = 'mikrouli.themeMode';
 
+// The pair renders under the product's own theme, so a marking read through a
+// palette token can be observed exactly as the running app resolves it.
+const LIGHT_THEME = createAppTheme('light');
+const DARK_THEME = createAppTheme('dark');
+
 const noop = () => undefined;
 
-function renderPanel(open = true, onClose: () => void = noop) {
+function renderPanel(open = true, onClose: () => void = noop, theme = LIGHT_THEME) {
   return render(
-    <ThemeModeProvider>
-      <SettingsPanel open={open} onClose={onClose} />
-    </ThemeModeProvider>,
+    <ThemeProvider theme={theme}>
+      <ThemeModeProvider>
+        <SettingsPanel open={open} onClose={onClose} />
+      </ThemeModeProvider>
+    </ThemeProvider>,
   );
 }
 
@@ -67,6 +76,44 @@ describe('SettingsPanel', () => {
       'aria-pressed',
       'false',
     );
+  });
+
+  it('marks the current choice of both selections with the solid accent fill and inverse text', () => {
+    renderPanel();
+
+    // The current standing carries the accent's confirmed-state reading: a
+    // solid accent fill carrying inverse text, read from the palette tokens.
+    expect(screen.getByTestId('settings-mode-option-follow-system')).toHaveStyle({
+      backgroundColor: LIGHT_THEME.palette.primary.main,
+      color: LIGHT_THEME.palette.primary.contrastText,
+    });
+    expect(screen.getByTestId('settings-language-option-en')).toHaveStyle({
+      backgroundColor: LIGHT_THEME.palette.primary.main,
+      color: LIGHT_THEME.palette.primary.contrastText,
+    });
+
+    // The superseded standings carry no accent fill: the mark names exactly
+    // the current choice, never the whole row.
+    expect(screen.getByTestId('settings-mode-option-dark')).not.toHaveStyle({
+      backgroundColor: LIGHT_THEME.palette.primary.main,
+    });
+    expect(screen.getByTestId('settings-language-option-de')).not.toHaveStyle({
+      backgroundColor: LIGHT_THEME.palette.primary.main,
+    });
+  });
+
+  it('marks the current choice in the dark mode reading of the same accent', () => {
+    // The confirmed-state reading is a relation the system states in both
+    // modes: the same marking, resolved through the dark mode's tokens.
+    renderPanel(true, noop, DARK_THEME);
+    expect(screen.getByTestId('settings-mode-option-follow-system')).toHaveStyle({
+      backgroundColor: DARK_THEME.palette.primary.main,
+      color: DARK_THEME.palette.primary.contrastText,
+    });
+    expect(screen.getByTestId('settings-language-option-en')).toHaveStyle({
+      backgroundColor: DARK_THEME.palette.primary.main,
+      color: DARK_THEME.palette.primary.contrastText,
+    });
   });
 
   it('a mode selection is written through the standing mode store', () => {

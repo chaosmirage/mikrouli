@@ -77,6 +77,19 @@ describe('StatsPage', () => {
     expect(leave).toHaveTextContent('Back to dashboard');
   });
 
+  it('reads the short address in the fixed-width technical register', async () => {
+    await renderStatsView();
+    const shortAddress = screen.getByTestId('stats-slug');
+    // A character-exact address must be read character-exactly: the mono
+    // stack, never the sans body family the surrounding prose uses.
+    expect(getComputedStyle(shortAddress).fontFamily).toBe(
+      LIGHT_THEME.typography.technical.fontFamily,
+    );
+    expect(getComputedStyle(shortAddress).fontFamily).not.toBe(
+      LIGHT_THEME.typography.body.fontFamily,
+    );
+  });
+
   it('renders the total as one numeral with its honesty qualification', async () => {
     await renderStatsView();
     expect(screen.getByTestId('stats-total')).toHaveTextContent('42');

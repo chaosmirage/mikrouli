@@ -10,6 +10,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import type { SxProps, Theme } from '@mui/material/styles';
 import { useThemeMode } from '../theme-mode-context';
 import type { ThemeMode } from '../theme-mode-context';
 
@@ -52,6 +53,18 @@ const languageOptionTestId = (value: LanguageCode) => `settings-language-option-
 const GROUP_HEADING_SX = { color: 'text.secondary' } as const;
 
 const GROUP_BUTTONS_SX = { pt: 1 } as const;
+
+// The current-choice marking: the accent's confirmed-state reading — a solid
+// accent fill carrying inverse text. The fill is held identically under the
+// pointer and on touch devices, so the standing never loses its mark to a
+// hover tint mid-reach.
+const CURRENT_CHOICE_SX: SxProps<Theme> = {
+  '&.Mui-selected, &.Mui-selected:hover': {
+    backgroundColor: 'primary.main',
+    color: 'primary.contrastText',
+    '@media (hover: none)': { backgroundColor: 'primary.main' },
+  },
+};
 
 // --- The homogeneous selection group ----------------------------------------
 
@@ -102,7 +115,12 @@ function SettingChoiceGroup<V extends string>({
         sx={GROUP_BUTTONS_SX}
       >
         {choices.map((choice) => (
-          <ToggleButton key={choice.value} value={choice.value} data-testid={testIdFor(choice.value)}>
+          <ToggleButton
+            key={choice.value}
+            value={choice.value}
+            data-testid={testIdFor(choice.value)}
+            sx={CURRENT_CHOICE_SX}
+          >
             {choice.label}
           </ToggleButton>
         ))}

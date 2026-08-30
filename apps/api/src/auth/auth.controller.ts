@@ -21,6 +21,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { RequestUser } from './jwt.strategy';
 import {
   AUTH_CREDENTIAL_BUDGET,
+  AUTH_REFRESH_BUDGET,
   AUTH_THROTTLE_NAME,
   DATA_THROTTLE_NAME,
   DEFAULT_THROTTLE_NAME,
@@ -95,7 +96,11 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(200)
-  @Throttle({ [AUTH_THROTTLE_NAME]: AUTH_CREDENTIAL_BUDGET })
+  // Rotation presents a server-issued cookie, not a guessable password, so it
+  // keeps its own budget instead of sharing the credential-entry bound —
+  // otherwise a burst of sign-ins from one address would lock every session's
+  // ability to stay signed in.
+  @Throttle({ [AUTH_THROTTLE_NAME]: AUTH_REFRESH_BUDGET })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,

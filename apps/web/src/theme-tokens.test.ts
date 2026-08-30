@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { PaletteMode } from '@mui/material/styles';
 import * as themeModule from './theme';
 import {
@@ -184,9 +186,9 @@ describe('theme token surface relations', () => {
 
   it('dark mode: raised sits clearly above canvas (>= 1.2:1) so rows and cards read', () => {
     const t = createAppTheme('dark');
-    expect(contrastRatio(t.palette.surface.raised, t.palette.surface.canvas)).toBeGreaterThanOrEqual(
-      1.2,
-    );
+    expect(
+      contrastRatio(t.palette.surface.raised, t.palette.surface.canvas),
+    ).toBeGreaterThanOrEqual(1.2);
   });
 
   it.each(BOTH_MODES)('%s mode: veil is a translucent canvas scrim', (mode) => {
@@ -351,5 +353,109 @@ describe('overrides block reads the resolved tokens for both modes', () => {
     const t = createAppTheme(mode);
     const outlined = styleOverridesOf(t, 'MuiPaper').outlined as Record<string, unknown>;
     expect(outlined.borderColor).toBe(t.palette.line.hairline);
+  });
+});
+
+// --- Raw color literal containment -------------------------------------------
+//
+// The theme module is the single owner of color: every hex, rgb, and hsl
+// literal the app ships must be defined there, with one narrow exception --
+// the pre-React cascade in index.html may restate exactly the two canvas
+// tokens (one per color mode) so the first paint cannot diverge from the
+// resolved theme. The audit reads source files as plain text, this file
+// included, so every sanctioned value is derived from the theme factory
+// instead of restated as a color literal.
+
+const HEX_COLOR_LITERAL = /#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/g;
+// A color function opening on a numeric component is a raw literal; one
+// opening on a template slot is derived from a token and therefore passes.
+const NUMERIC_COLOR_FUNCTION = /(?:rgba?|hsla?)\(\s*\d/g;
+
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
+const SRC_ROOT = path.resolve(__dirname, '.');
+const INDEX_HTML_PATH = path.resolve(__dirname, '..', 'index.html');
+const THEME_MODULE = 'apps/web/src/theme.ts';
+const INDEX_HTML = 'apps/web/index.html';
+
+/** One raw color literal found outside its sanctioned home. */
+interface ColorLiteralFinding {
+  file: string;
+  literal: string;
+}
+
+/** The canvas token of each color mode: the only literals index.html may own. */
+function canvasHexPair(): string[] {
+  return BOTH_MODES.map((mode) => createAppTheme(mode).palette.surface.canvas);
+}
+
+function toRepoPath(absolutePath: string): string {
+  return path.relative(REPO_ROOT, absolutePath).split(path.sep).join('/');
+}
+
+/** Every TypeScript source under src, where the shipped UI color decisions live. */
+function listColorSourceFilesIn(dir: string): string[] {
+  const files: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const absolute = path.join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...listColorSourceFilesIn(absolute));
+    else if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name)) files.push(absolute);
+  }
+  return files;
+}
+
+function findRawColorLiterals(source: string): string[] {
+  const hexes = source.match(HEX_COLOR_LITERAL) ?? [];
+  const colorFunctions = source.match(NUMERIC_COLOR_FUNCTION) ?? [];
+  return [...hexes, ...colorFunctions];
+}
+
+function isSanctionedColorLiteral(
+  file: string,
+  literal: string,
+  canvasPair: ReadonlySet<string>,
+): boolean {
+  if (file === THEME_MODULE) return true;
+  if (file === INDEX_HTML) return canvasPair.has(literal.toLowerCase());
+  return false;
+}
+
+function auditRawColorLiterals(): ColorLiteralFinding[] {
+  const canvasPair = new Set(canvasHexPair().map((hex) => hex.toLowerCase()));
+  const files = [...listColorSourceFilesIn(SRC_ROOT), INDEX_HTML_PATH].sort();
+  const findings: ColorLiteralFinding[] = [];
+  for (const file of files) {
+    const repoPath = toRepoPath(file);
+    const source = fs.readFileSync(file, 'utf8');
+    for (const literal of findRawColorLiterals(source)) {
+      if (!isSanctionedColorLiteral(repoPath, literal, canvasPair)) {
+        findings.push({ file: repoPath, literal });
+      }
+    }
+  }
+  return findings;
+}
+
+function uniqueSortedHexes(source: string): string[] {
+  const hexes = (source.match(HEX_COLOR_LITERAL) ?? []).map((hex) => hex.toLowerCase());
+  return [...new Set(hexes)].sort();
+}
+
+describe('raw color literal containment', () => {
+  it('keeps every hex, rgb, and hsl literal inside the theme module or the index.html canvas pair', () => {
+    const reported = auditRawColorLiterals().map(
+      (finding) => `${finding.file}: ${finding.literal}`,
+    );
+    expect(reported).toEqual([]);
+  });
+});
+
+describe('first-paint cascade stays on the theme canvas tokens', () => {
+  it('index.html carries exactly the two canvas hexes, one per color mode', () => {
+    const html = fs.readFileSync(INDEX_HTML_PATH, 'utf8');
+    const cascadeHexes = uniqueSortedHexes(html);
+    const canvasHexes = canvasHexPair()
+      .map((hex) => hex.toLowerCase())
+      .sort();
+    expect(cascadeHexes).toEqual(canvasHexes);
   });
 });

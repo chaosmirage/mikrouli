@@ -1,9 +1,13 @@
 import { ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerException, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AuthController } from '../auth/auth.controller';
 import { LinksController } from '../links/links.controller';
 import { RedirectController } from '../redirect/redirect.controller';
+import { CredentialedRequestThrottlerGuard } from './credentialed-request-throttler.guard';
 import {
+  AUTH_CREDENTIAL_BUDGET,
+  AUTH_REFRESH_BUDGET,
   DEFAULT_MODULE_BUDGET,
   DATA_MODULE_BUDGET,
   GUEST_CREATE_BUDGET,
@@ -28,6 +32,11 @@ describe('Throttler policy', () => {
   function buildHttpContext(
     controller: ControllerCtor,
     handler: HandlerFn,
+    request: {
+      ip?: string;
+      headers?: Record<string, string>;
+      cookies?: Record<string, string>;
+    } = {},
   ): {
     context: ExecutionContext;
     headers: Map<string, unknown>;
@@ -37,7 +46,12 @@ describe('Throttler policy', () => {
       getClass: () => controller,
       getHandler: () => handler,
       switchToHttp: () => ({
-        getRequest: () => ({ ip: '203.0.113.7', headers: {} }),
+        getRequest: () => ({
+          ip: '203.0.113.7',
+          headers: {},
+          cookies: {},
+          ...request,
+        }),
         getResponse: () => ({
           header: (name: string, value: unknown) => {
             headers.set(name, value);
@@ -48,10 +62,11 @@ describe('Throttler policy', () => {
     return { context, headers };
   }
 
+  /** Resolves the guard the app boots, driven with the booted policy options. */
   async function resolveGuard(): Promise<ThrottlerGuard> {
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [ThrottlerModule.forRoot(buildThrottlerOptions())],
-      providers: [{ provide: ThrottlerGuard, useClass: ThrottlerGuard }],
+      providers: [{ provide: ThrottlerGuard, useClass: CredentialedRequestThrottlerGuard }],
     }).compile();
     const guard = moduleRef.get<ThrottlerGuard>(ThrottlerGuard);
     await guard.onModuleInit();
@@ -129,5 +144,76 @@ describe('Throttler policy', () => {
     // The override must actually replace the module floor: the bare default
     // header carries the tightened 30, never the liberal floor's 300.
     expect(headers.get('X-RateLimit-Limit')).toBe(GUEST_CREATE_BUDGET.limit);
+  });
+
+  // Each credential form the API accepts must shed the guest-admission bound:
+  // the session cookie is how the SPA authenticates, the other two cover API
+  // clients. All three drive the same route, so each gets its own address.
+  const CREDENTIALED_REQUESTS: Array<[string, Record<string, string>, Record<string, string>]> = [
+    ['a session cookie', {}, { mikrouli_access: 'session.jwt' }],
+    ['a Bearer token', { authorization: 'Bearer access.jwt' }, {}],
+    ['an API key', { 'x-api-key': 'mk_live_key' }, {}],
+  ];
+
+  for (const [credentialForm, headers, cookies] of CREDENTIALED_REQUESTS) {
+    it(`POST /api/urls with ${credentialForm} runs on the data budget, not the guest bound`, async () => {
+      const guard = await resolveGuard();
+      const { context, headers: emitted } = buildHttpContext(
+        LinksController,
+        LinksController.prototype.create,
+        { ip: '198.51.100.4', headers, cookies },
+      );
+
+      const deniedAt = await firstDeniedHit(guard, context);
+
+      // A credentialed request is not a guest: it must stay available past the
+      // guest bound (the 30/min tax that denied registered-user traffic) and
+      // still be bounded — by the data budget, exactly like the route's other
+      // authenticated operations.
+      expect(deniedAt).toBeGreaterThan(GUEST_CREATE_BUDGET.limit);
+      expect(deniedAt).toBe(DATA_MODULE_BUDGET.limit + 1);
+      // The public names were shed, not merely loosened: no counter header for
+      // default/auth/redirect is emitted, only the data one.
+      expect(emitted.has('X-RateLimit-Limit')).toBe(false);
+      expect(emitted.has('X-RateLimit-Limit-auth')).toBe(false);
+      expect(emitted.has('X-RateLimit-Limit-redirect')).toBe(false);
+      expect(emitted.get('X-RateLimit-Limit-data')).toBe(DATA_MODULE_BUDGET.limit);
+    });
+  }
+
+  it('POST /api/auth/refresh denies at its own rotation budget, not the credential-entry bound', async () => {
+    const guard = await resolveGuard();
+    const { context } = buildHttpContext(AuthController, AuthController.prototype.refresh);
+
+    const deniedAt = await firstDeniedHit(guard, context);
+
+    // Session rotation presents a server-issued cookie, not a guessable
+    // password, so it does not share the brute-force bound: it allows its own
+    // budget's worth of rotations per minute and denies the next one.
+    expect(deniedAt).toBe(AUTH_REFRESH_BUDGET.limit + 1);
+  });
+
+  it('exhausting the credential-entry budget on login leaves session rotation available', async () => {
+    const guard = await resolveGuard();
+    const { context: loginContext } = buildHttpContext(
+      AuthController,
+      AuthController.prototype.login,
+    );
+
+    // Burn the whole credential-entry window: every hit up to the budget
+    // passes, the next is denied inside it.
+    for (let hit = 0; hit < AUTH_CREDENTIAL_BUDGET.limit; hit++) {
+      await expect(guard.canActivate(loginContext)).resolves.toBe(true);
+    }
+    await expect(guard.canActivate(loginContext)).rejects.toBeInstanceOf(ThrottlerException);
+
+    // The two surfaces hold independent counters: a locked-out login window
+    // must not take rotation down with it, or every session behind one
+    // address loses its ability to stay signed in.
+    const { context: refreshContext } = buildHttpContext(
+      AuthController,
+      AuthController.prototype.refresh,
+    );
+    await expect(guard.canActivate(refreshContext)).resolves.toBe(true);
   });
 });
