@@ -40,18 +40,18 @@ export default function ConfirmDialog({
       <DialogContent>
         <Typography>{description}</Typography>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onCancel} data-testid={cancelTestId}>
-          {t('cancel')}
-        </Button>
+      <DialogActions sx={{ justifyContent: 'flex-start', px: 3, pb: 2 }}>
         <Button
           onClick={onConfirm}
-          color="error"
+          color="secondary"
           variant="contained"
           disabled={loading}
           data-testid={confirmTestId}
         >
           {confirmLabel}
+        </Button>
+        <Button onClick={onCancel} data-testid={cancelTestId} sx={{ color: 'ink.secondary' }}>
+          {t('cancel')}
         </Button>
       </DialogActions>
     </Dialog>

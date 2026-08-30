@@ -54,3 +54,14 @@ export const ClipboardUnavailable: Story = {
     value: 'https://mikrou.li/GYa6kx',
   },
 };
+
+// The named take: where a surface states the act as a word, the word stands in
+// the accent ink at the meta scale instead of the glyph — the act itself is the
+// one saturated element on a calm surface.
+export const NamedByWord: Story = {
+  args: {
+    value: 'curl -X POST https://mikrou.li/api/mcp',
+    testId: 'copy-mcp-call',
+    label: 'copy',
+  },
+};

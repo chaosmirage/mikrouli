@@ -30,10 +30,14 @@ afterEach(() => {
   });
 });
 
-function renderControl(props?: { value?: string; testId?: string }) {
-  render(
+function renderControl(props?: { value?: string; testId?: string; label?: string }) {
+  return render(
     <ThemeProvider theme={createAppTheme('light')}>
-      <CopyControl value={props?.value ?? 'https://mikrou.li/GYa6kx'} testId={props?.testId} />
+      <CopyControl
+        value={props?.value ?? 'https://mikrou.li/GYa6kx'}
+        testId={props?.testId}
+        label={props?.label}
+      />
     </ThemeProvider>,
   );
 }
@@ -121,5 +125,39 @@ describe('CopyControl', () => {
     const refused = screen.getByTestId('copy-link-abc-failed');
     expect(getComputedStyle(refused).position).toBe('absolute');
     expect(getComputedStyle(refused).pointerEvents).toBe('none');
+  });
+
+  // The named take: where a surface states the act as a word, the word is the
+  // control -- no icon glyph beside it, and the word itself carries the accent.
+  it('states the act as the given word instead of the icon glyph', () => {
+    installClipboard('works');
+    const { container } = renderControl({ label: 'copy', testId: 'copy-example' });
+
+    const take = screen.getByRole('button', { name: 'copy' });
+    expect(take).toBeInTheDocument();
+    expect(container.querySelector('svg')).toBeNull();
+  });
+
+  it('carries the named take in the accent ink', () => {
+    installClipboard('works');
+    renderControl({ label: 'copy', testId: 'copy-example' });
+
+    const take = screen.getByRole('button', { name: 'copy' });
+    const accent = createAppTheme('light').palette.accent.solid;
+    const value = accent.replace('#', '');
+    const red = parseInt(value.slice(0, 2), 16);
+    const green = parseInt(value.slice(2, 4), 16);
+    const blue = parseInt(value.slice(4, 6), 16);
+    expect(getComputedStyle(take).color).toBe(`rgb(${red}, ${green}, ${blue})`);
+  });
+
+  it('one activation of the named take still lands exactly the value', async () => {
+    const taken = installClipboard('works');
+    renderControl({ label: 'copy', testId: 'copy-example', value: 'https://mikrou.li/abc123' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'copy' }));
+
+    expect(taken).toEqual(['https://mikrou.li/abc123']);
+    expect(await screen.findByTestId('copy-example-landed')).toBeInTheDocument();
   });
 });

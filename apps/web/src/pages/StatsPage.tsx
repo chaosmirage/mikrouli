@@ -11,44 +11,86 @@ import Stack from '@mui/material/Stack';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useTheme, Theme } from '@mui/material/styles';
 import { BarChart } from '@mui/x-charts/BarChart';
-import StandingsRow from '../components/StandingsRow';
 import { ApiError, apiFetch } from '../api/client';
 import { formatDate, formatNumber } from '../i18n/format';
-import type { StatsAggregate, ClickByPeriod } from '../api/types';
+import type { StatsAggregate, ClickByPeriod, PublicLink } from '../api/types';
 
 const HTTP_NOT_FOUND = 404;
 const HTTP_FORBIDDEN = 403;
-const CHART_HEIGHT = 240;
+// The course reads as one calm band of ink: tall enough to carry its trend,
+// never a billboard beside the certain total.
+const CHART_HEIGHT = 120;
+// The proportion meter's full scale: the honest share of the certain total,
+// so a breakdown's bar reads against the same whole in both columns.
+const METER_SCALE = 300;
 
 // Zone separation between the record's readings: magnitude, trend, comparison.
-const ZONE_SPACING = 5;
+const ZONE_SPACING = 6;
 
-const CHART_MARGIN = { top: 16, right: 16, bottom: 24, left: 40 } as const;
+const CHART_MARGIN = { top: 8, right: 8, bottom: 24, left: 8 } as const;
 
 // Module-level style constants (static, evaluated once). Numerals align in
 // tabular figures wherever standings are compared.
 const STATS_VIEW_SX = { pt: 2 } as const;
-const STATS_BODY2_SX = { color: 'text.secondary' } as const;
-const ZONE_TITLE_SX = { color: 'text.secondary' } as const;
-const TOTAL_LABEL_SX = { color: 'text.secondary', letterSpacing: '0.06em' } as const;
-const TOTAL_NUMBER_SX = { fontVariantNumeric: 'tabular-nums', color: 'text.primary' } as const;
-const TOTAL_QUALIFICATION_SX = { color: 'text.disabled' } as const;
+// The record's one display numeral: the certain total at the display weight,
+// the largest reading on the surface, zero at the same scale.
+const TOTAL_NUMBER_SX = {
+  fontSize: '4.5rem',
+  color: 'text.primary',
+  fontVariantNumeric: 'tabular-nums',
+} as const;
+const TOTAL_QUALIFICATION_SX = { color: 'text.disabled', fontSize: '0.75rem' } as const;
 const CHART_BOX_SX = {
   width: '100%',
   height: CHART_HEIGHT,
   // Inherited by the chart's SVG text so axis numerals stand in tabular figures.
   fontVariantNumeric: 'tabular-nums',
 } as const;
-const LIST_RESET_SX = { listStyle: 'none', m: 0, p: 0 } as const;
-const LIST_ITEM_SX = { display: 'list-item' } as const;
 const EMPTY_READING_SX = { color: 'text.secondary' } as const;
 // The record's short address reads in the theme's fixed-width technical
 // register: a character-exact string must be read character-exactly, because
-// a mistyped address fails late. Size and ink stay the heading's own step.
+// a mistyped address fails late. Size stays the identity's own step.
 // (The optional chain keeps the address legible under a theme that predates
 // the register.)
 const SHORT_ADDRESS_SX = {
   fontFamily: (theme: Theme) => theme.typography.technical?.fontFamily,
+  fontSize: '1.25rem',
+  color: 'text.primary',
+} as const;
+
+// The record's identity names where the short address resolves: the
+// destination stands as meta under the address, folding anywhere a spaceless
+// URL needs to rather than overflowing the column.
+const DESTINATION_SX = {
+  color: 'text.disabled',
+  fontSize: '0.75rem',
+  overflowWrap: 'anywhere',
+} as const;
+
+// The breakdowns stand as two named columns: each column's head names the
+// comparison it carries, and the columns read side by side wherever the
+// measure allows.
+const BREAKDOWNS_SX = {
+  display: 'grid',
+  gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+  columnGap: { md: 15 },
+  rowGap: 4,
+} as const;
+const BREAKDOWN_HEAD_SX = { color: 'text.secondary' } as const;
+const BREAKDOWN_NAME_SX = { color: 'text.primary' } as const;
+const BREAKDOWN_SHARE_SX = {
+  color: 'text.disabled',
+  fontSize: '0.75rem',
+  fontVariantNumeric: 'tabular-nums',
+} as const;
+// The share's own meter: a thin proportion bar in the neutral track ink —
+// never an accent hue on a reading.
+const METER_SX = {
+  height: 6,
+  borderRadius: 3,
+  backgroundColor: 'secondary.light',
+  maxWidth: METER_SCALE,
+  mt: 0.5,
 } as const;
 
 // The chart reads its typography from the theme so the axis standings follow
@@ -56,7 +98,7 @@ const SHORT_ADDRESS_SX = {
 function chartAxisSlotProps(theme: Theme) {
   return {
     axisTickLabel: {
-      fontSize: theme.typography.caption.fontSize,
+      fontSize: '0.75rem',
       fontFamily: theme.typography.fontFamily,
       fill: theme.palette.text.secondary,
     },
@@ -73,6 +115,26 @@ async function loadStats(slug: string): Promise<StatsAggregate> {
   return apiFetch('/api/stats/{slug}', 'get', { pathParams: { slug } });
 }
 
+// The record's identity names the destination, which the stats resource does
+// not carry: it is read from the owner's set (the dashboard's own `links`
+// cache entry, so a dashboard -> record journey serves it with no extra call).
+// The record stands complete without it when the set is not in reach.
+async function loadOwnedLinks(): Promise<PublicLink[]> {
+  const response = await apiFetch('/api/urls', 'get');
+  return response.data ?? [];
+}
+
+function slugOf(shortUrl: string): string {
+  const parts = shortUrl.split('/');
+  return parts[parts.length - 1] ?? shortUrl;
+}
+
+// The record's own host: the short address's origin as it resolves wherever
+// the client stands, so the address reads as the host the owner shares.
+function shortHost(): string {
+  return typeof window === 'undefined' ? '' : window.location.host;
+}
+
 /** Rank the arriving breakdown by recorded clicks so rows read as standings;
  * a name the arriving data does not say stands as exactly "Unknown". */
 function rankStandings(
@@ -84,80 +146,83 @@ function rankStandings(
     .sort((a, b) => b.clicks - a.clicks);
 }
 
+/** The row's honest share of the certain total, as the whole percent the
+ * record states it at. */
+function shareOfTotal(clicks: number, total: number): number {
+  if (total <= 0) return 0;
+  return Math.round((clicks / total) * 100);
+}
+
 interface TotalReadingProps {
   total: number;
-  label: string;
   qualification: string;
 }
-function TotalReading({ total, label, qualification }: TotalReadingProps) {
+function TotalReading({ total, qualification }: TotalReadingProps) {
   return (
     <Stack spacing={0.5} data-testid="stats-total-zone">
-      <Typography variant="overline" sx={TOTAL_LABEL_SX}>
-        {label}
-      </Typography>
       {/* One numeral, honest about what it counts; zero use reads here too. */}
-      <Typography variant="h2" data-testid="stats-total" sx={TOTAL_NUMBER_SX}>
+      <Typography variant="display" data-testid="stats-total" sx={TOTAL_NUMBER_SX}>
         {formatNumber(total)}
       </Typography>
-      <Typography variant="caption" sx={TOTAL_QUALIFICATION_SX}>
-        {qualification}
-      </Typography>
+      <Typography sx={TOTAL_QUALIFICATION_SX}>{qualification}</Typography>
     </Stack>
   );
 }
 
 interface CourseOverTimeProps {
   rows: ClickByPeriod[];
-  title: string;
   emptyLabel: string;
-  clicksLabel: string;
   color: string;
   axisSlotProps: ReturnType<typeof chartAxisSlotProps>;
 }
-function CourseOverTime({
-  rows,
-  title,
-  emptyLabel,
-  clicksLabel,
-  color,
-  axisSlotProps,
-}: CourseOverTimeProps) {
-  const labels = rows.map((r) => formatDate(r.period));
-  const clicks = rows.map((r) => r.clicks);
-  return (
-    <Stack spacing={1} data-testid="stats-clicks-chart">
-      <Typography variant="subtitle2" sx={ZONE_TITLE_SX}>
-        {title}
-      </Typography>
-      {rows.length === 0 ? (
+// The course across time: one calm band of ink-secondary bars on a recessive
+// axis — no accent hue, no grid, no y readings; the trend carries itself.
+function CourseOverTime({ rows, emptyLabel, color, axisSlotProps }: CourseOverTimeProps) {
+  const labels = useMemo(() => rows.map((r) => formatDate(r.period)), [rows]);
+  const clicks = useMemo(() => rows.map((r) => r.clicks), [rows]);
+  // The axis names only the course's two ends; the days between are carried
+  // by the band's own shape.
+  const tickInterval = useMemo(
+    () => (labels.length > 0 ? [labels[0], labels[labels.length - 1]] : []),
+    [labels],
+  );
+  if (rows.length === 0) {
+    return (
+      <Box data-testid="stats-clicks-chart">
         <Typography variant="body2" sx={EMPTY_READING_SX}>
           {emptyLabel}
         </Typography>
-      ) : (
-        <Box sx={CHART_BOX_SX}>
-          <BarChart
-            xAxis={[{ scaleType: 'band', data: labels }]}
-            series={[{ data: clicks, label: clicksLabel, color }]}
-            height={CHART_HEIGHT}
-            margin={CHART_MARGIN}
-            slotProps={axisSlotProps}
-          />
-        </Box>
-      )}
-    </Stack>
+      </Box>
+    );
+  }
+  return (
+    <Box sx={CHART_BOX_SX} data-testid="stats-clicks-chart">
+      <BarChart
+        xAxis={[{ scaleType: 'band', data: labels, tickInterval }]}
+        series={[{ data: clicks, color }]}
+        leftAxis={null}
+        height={CHART_HEIGHT}
+        margin={CHART_MARGIN}
+        slotProps={axisSlotProps}
+      />
+    </Box>
   );
 }
 
-interface RankedStandingsProps {
+interface RankedBreakdownProps {
   title: string;
   testId: string;
   rows: Array<{ name: string; clicks: number }>;
+  total: number;
   emptyLabel: string;
 }
-function RankedStandings({ title, testId, rows, emptyLabel }: RankedStandingsProps) {
+// One comparable breakdown: a head naming the comparison, then ranked rows —
+// each row its name, its honest share of the certain total, and a thin
+// proportion bar in the neutral track ink.
+function RankedBreakdown({ title, testId, rows, total, emptyLabel }: RankedBreakdownProps) {
   return (
-    <Stack spacing={1} data-testid={testId}>
-      <Typography variant="subtitle2" sx={ZONE_TITLE_SX}>
+    <Stack spacing={2} data-testid={testId}>
+      <Typography variant="overline" sx={BREAKDOWN_HEAD_SX}>
         {title}
       </Typography>
       {rows.length === 0 ? (
@@ -165,13 +230,19 @@ function RankedStandings({ title, testId, rows, emptyLabel }: RankedStandingsPro
           {emptyLabel}
         </Typography>
       ) : (
-        <Stack component="ul" sx={LIST_RESET_SX}>
-          {rows.map((row) => (
-            <Box component="li" key={row.name} sx={LIST_ITEM_SX}>
-              <StandingsRow standings={[{ label: row.name, value: formatNumber(row.clicks) }]} />
-            </Box>
-          ))}
-        </Stack>
+        rows.map((row) => (
+          <Box key={row.name} data-testid={`${testId}-row`}>
+            <Stack direction="row" justifyContent="space-between" alignItems="baseline">
+              <Typography variant="body2" sx={BREAKDOWN_NAME_SX}>
+                {row.name}
+              </Typography>
+              <Typography sx={BREAKDOWN_SHARE_SX}>
+                {formatNumber(shareOfTotal(row.clicks, total))}%
+              </Typography>
+            </Stack>
+            <Box sx={{ ...METER_SX, width: `${shareOfTotal(row.clicks, total)}%` }} aria-hidden />
+          </Box>
+        ))
       )}
     </Stack>
   );
@@ -180,8 +251,9 @@ function RankedStandings({ title, testId, rows, emptyLabel }: RankedStandingsPro
 interface StatsViewProps {
   slug: string;
   stats: StatsAggregate;
+  destination: string | null;
 }
-function StatsView({ slug, stats }: StatsViewProps) {
+function StatsView({ slug, stats, destination }: StatsViewProps) {
   const { t } = useTranslation('stats');
   const theme = useTheme();
   // The record states; it does not ask. Series and standings read as ink, not
@@ -213,43 +285,49 @@ function StatsView({ slug, stats }: StatsViewProps) {
           to="/dashboard"
           size="small"
           startIcon={<ArrowBackIcon />}
-          sx={{ alignSelf: 'flex-start' }}
+          sx={{ alignSelf: 'flex-start', color: 'ink.muted' }}
           data-testid="stats-leave"
         >
           {t('backToDashboard')}
         </Button>
-        <Typography variant="h4" data-testid="stats-slug" sx={SHORT_ADDRESS_SX}>
-          {slug}
+        {/* The record's technical address: host and slug in the fixed-width
+            register, with the slug's own harness address carried by the slug
+            span alone so it reads character-exactly wherever it is taken. */}
+        <Typography variant="h4">
+          {shortHost()}/
+          <Box component="span" sx={SHORT_ADDRESS_SX} data-testid="stats-slug">
+            {slug}
+          </Box>
         </Typography>
-        <Typography variant="body2" sx={STATS_BODY2_SX}>
-          {t('title', { slug })}
-        </Typography>
+        {destination !== null ? (
+          <Typography sx={DESTINATION_SX} data-testid="stats-destination">
+            → {destination}
+          </Typography>
+        ) : null}
       </Stack>
-      <TotalReading
-        total={stats.totalClicks}
-        label={t('totalClicks', { count: stats.totalClicks })}
-        qualification={t('recordedRedirects')}
-      />
+      <TotalReading total={stats.totalClicks} qualification={t('recordedRedirects')} />
       <CourseOverTime
         rows={stats.byDay}
-        title={t('byDay')}
         emptyLabel={t('noData')}
-        clicksLabel={t('clicks')}
         color={inkColor}
         axisSlotProps={axisSlotProps}
       />
-      <RankedStandings
-        title={t('topCountries')}
-        testId="stats-countries-rows"
-        rows={countryRows}
-        emptyLabel={t('noData')}
-      />
-      <RankedStandings
-        title={t('topBrowsers')}
-        testId="stats-browsers-rows"
-        rows={browserRows}
-        emptyLabel={t('noData')}
-      />
+      <Box sx={BREAKDOWNS_SX}>
+        <RankedBreakdown
+          title={t('topCountries')}
+          testId="stats-countries-rows"
+          rows={countryRows}
+          total={stats.totalClicks}
+          emptyLabel={t('noData')}
+        />
+        <RankedBreakdown
+          title={t('topBrowsers')}
+          testId="stats-browsers-rows"
+          rows={browserRows}
+          total={stats.totalClicks}
+          emptyLabel={t('noData')}
+        />
+      </Box>
     </Stack>
   );
 }
@@ -266,6 +344,16 @@ export default function StatsPage() {
     queryKey: ['stats', slug],
     queryFn: () => loadStats(slug),
   });
+  // The destination is read from the owner's set; a record whose set is out of
+  // reach still stands complete, so this query never gates the page.
+  const { data: ownedLinks = [] } = useQuery({
+    queryKey: ['links'],
+    queryFn: loadOwnedLinks,
+  });
+  const destination = useMemo(
+    () => ownedLinks.find((link) => slugOf(link.shortUrl) === slug)?.originalUrl ?? null,
+    [ownedLinks, slug],
+  );
 
   if (isLoading) return <CircularProgress data-testid="stats-loading" />;
   if (error) {
@@ -277,5 +365,5 @@ export default function StatsPage() {
     );
   }
   if (!stats) return <Alert severity="warning">{t('noData')}</Alert>;
-  return <StatsView slug={slug} stats={stats} />;
+  return <StatsView slug={slug} stats={stats} destination={destination} />;
 }

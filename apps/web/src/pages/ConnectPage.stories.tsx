@@ -13,9 +13,7 @@ export default meta;
 
 type Story = StoryObj<typeof ConnectPage>;
 
-// Renders the full connect page inside the reading measure: the connection
-// statement, the credential's authorization terms (obtaining, header, key
-// format), and the machine terms with the takeable example calls — the direct
-// REST call and the harness-add command. The page has its own Container
-// maxWidth="sm" so no container decorator is composed.
+// Renders the full connect surface inside the content zone: the connection
+// statement, the credential's terms and the machine's terms as labeled rows
+// in the technical register, and the one takeable example call.
 export const Default: Story = {};

@@ -1,13 +1,13 @@
 import { FormEvent, useCallback, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
-import Divider from '@mui/material/Divider';
 import { ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { resolveOauthErrorKey } from './oauth-error';
@@ -21,16 +21,40 @@ const PASSWORD_MIN_LENGTH = 8;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HTTP_CONFLICT = 409;
 
-// Column rhythm shared with the sign-in surface: one narrow centered column,
-// statement on the canvas, the shorter federated path staged first and the
-// credentials path second, block-level gaps between the column's parts and
-// element-level gaps within one path (theme spacing steps).
-const REGISTER_PAGE_SX = { py: { xs: 4, sm: 6 } } as const;
+// Column rhythm shared with the sign-in surface (frame S3): one narrow
+// centered column — 400px at the desktop register — naming at the title
+// register, the shorter federated path first, a hairline "or" seam, the
+// credentials path second. A zone between the column's parts, a block around
+// the seam, the element step within one path.
+const REGISTER_PAGE_SX = { pt: { xs: 4, sm: 3 }, pb: { xs: 4, sm: 6 } } as const;
+const ENTERING_COLUMN_SX = { width: { xs: '100%', sm: '400px' }, mx: 'auto' } as const;
+const ENTERING_TITLE_SX = {
+  fontSize: { xs: '2rem', sm: '3rem' },
+  lineHeight: { xs: '40px', sm: '56px' },
+} as const;
+const CONTROL_SX = { height: 40 } as const;
+// The credentials family's entering fields (frame S3-B3): the raised surface
+// with the hairline edge and the 14px inner register. Scoped here until the
+// form system's owner lifts the same values into the theme's field overrides.
+const FIELD_FAMILY_SX = {
+  '& .MuiOutlinedInput-root': { backgroundColor: 'surface.raised' },
+  '& .MuiInputBase-input': { fontSize: '0.875rem' },
+  '& .MuiInputLabel-root': { fontSize: '0.875rem', color: 'text.disabled' },
+  '& .MuiFormLabel-asterisk': { display: 'none' },
+} as const;
 const PATH_ELEMENT_GAP = 2;
-const PATH_BLOCK_GAP = 3;
+const PATH_ZONE_GAP = 5;
+const SEAM_GAP = 3;
 const STAKE_LINE_SX = { color: 'text.secondary' } as const;
 const REGISTER_EMAIL_INPUT_PROPS = { 'data-testid': 'register-email' } as const;
 const REGISTER_PASSWORD_INPUT_PROPS = { 'data-testid': 'register-password' } as const;
+
+// The seam between the two paths: two hairlines with the "or" reading between
+// them, so the credentials path reads as the second path of one family, not a
+// second form.
+const SEAM_SX = { display: 'flex', alignItems: 'center', gap: 3 } as const;
+const SEAM_LINE_SX = { flex: 1, height: '1px', bgcolor: 'divider' } as const;
+const SEAM_WORD_SX = { color: 'text.disabled' } as const;
 
 // The register offer's accept reach opens this surface with the keeping of
 // the just-made link as the understood stake; the router carries that arrival
@@ -122,14 +146,13 @@ export default function RegisterPage() {
     (e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value),
     [],
   );
-  const handleGoLogin = useCallback(() => navigate('/login'), [navigate]);
 
   return (
     <Container maxWidth="sm" sx={REGISTER_PAGE_SX} data-testid="register-page">
-      <Stack spacing={PATH_BLOCK_GAP}>
+      <Stack sx={ENTERING_COLUMN_SX}>
         <Stack spacing={1}>
-          <Typography variant="h4" component="h1">
-            {t('auth:register')}
+          <Typography variant="title" component="h1" sx={ENTERING_TITLE_SX}>
+            {t('auth:registerTitle')}
           </Typography>
           {fromRegisterOffer && (
             <Typography variant="body2" sx={STAKE_LINE_SX} data-testid="register-kept-link">
@@ -137,11 +160,12 @@ export default function RegisterPage() {
             </Typography>
           )}
         </Stack>
-        <Stack spacing={PATH_ELEMENT_GAP} component="section">
+        <Stack spacing={PATH_ELEMENT_GAP} component="section" sx={{ mt: PATH_ZONE_GAP }}>
           <Button
             variant="outlined"
             onClick={loginWithGithub}
             fullWidth
+            sx={CONTROL_SX}
             data-testid="register-github"
           >
             {t('auth:continueWithGithub')}
@@ -152,9 +176,15 @@ export default function RegisterPage() {
             </Alert>
           )}
         </Stack>
-        <Divider />
+        <Box sx={SEAM_SX} my={SEAM_GAP}>
+          <Box sx={SEAM_LINE_SX} />
+          <Typography variant="caption" sx={SEAM_WORD_SX}>
+            {t('auth:orSeam')}
+          </Typography>
+          <Box sx={SEAM_LINE_SX} />
+        </Box>
         <form onSubmit={handleSubmit} data-testid="register-form">
-          <Stack spacing={PATH_ELEMENT_GAP}>
+          <Stack spacing={PATH_ELEMENT_GAP} sx={FIELD_FAMILY_SX}>
             <TextField
               label={t('auth:email')}
               type="email"
@@ -182,9 +212,10 @@ export default function RegisterPage() {
               variant="contained"
               disabled={loading}
               fullWidth
+              sx={CONTROL_SX}
               data-testid="register-submit"
             >
-              {t('auth:register')}
+              {t('auth:registerSubmit')}
             </Button>
             {errorKey && (
               <Alert severity="error" data-testid="register-server-error">
@@ -193,9 +224,6 @@ export default function RegisterPage() {
             )}
           </Stack>
         </form>
-        <Button variant="text" onClick={handleGoLogin} data-testid="register-to-login">
-          {t('auth:hasAccount')}
-        </Button>
       </Stack>
     </Container>
   );

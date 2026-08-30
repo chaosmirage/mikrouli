@@ -251,19 +251,21 @@ describe('DashboardPage', () => {
       expect(screen.getByTestId('link-row-abc')).toHaveTextContent('http://long.com');
     });
 
-    it('labels the entering once: the standing caption names it, the input carries the accessible name', async () => {
+    it('labels the entering once: the column names it, the input carries the accessible name', async () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: [LINK] })));
       renderDashboard();
       await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
       fireEvent.click(screen.getByTestId('edit-abc'));
 
       const input = screen.getByTestId('edit-url-input-abc');
-      // ONE visible label: the standing's caption. The entering adds no
-      // second one — its TextField renders no InputLabel of its own.
+      // ONE visible label for the column: the set's head names it once. The
+      // entering adds no second one — its TextField renders no InputLabel.
       const control = input.closest('div.MuiFormControl-root');
       expect(control?.querySelector('label')).toBeNull();
-      expect(screen.getByTestId('link-row-abc')).toHaveTextContent('Original URL');
-      // The accessible name survives the dedupe, carried by the input.
+      // The row itself carries no per-row caption; the head carries the name.
+      expect(screen.getByTestId('link-row-abc')).not.toHaveTextContent('Original URL');
+      expect(screen.getByTestId('dashboard-links-head')).toHaveTextContent('Destination');
+      // The accessible name survives, carried by the input.
       expect(input).toHaveAttribute('aria-label', 'Destination');
     });
 
@@ -321,9 +323,7 @@ describe('DashboardPage', () => {
       await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
       fireEvent.click(screen.getByTestId('edit-abc'));
 
-      const entering = screen
-        .getByTestId('edit-url-input-abc')
-        .closest('div.MuiFormControl-root');
+      const entering = screen.getByTestId('edit-url-input-abc').closest('div.MuiFormControl-root');
       expect(entering).not.toBeNull();
       // fullWidth + flex basis + min-width 0: the entering carries no fixed px
       // width, fills the line it is given, and shrinks with the row — so a
@@ -363,11 +363,11 @@ describe('DashboardPage', () => {
       const { members } = readCluster();
       expect(members).toEqual([copy.parentElement, stats, edit, retire]);
 
-      // The copy reach contributes ONLY its button to the cluster's flow: no
-      // reserved statement matter rides beside or under the icon, so the
-      // cluster reads as one tight group with a single shared gap.
+      // The take is a WORD in the act cluster — stated, not iconized — and it
+      // reserves no statement matter beside it: idle, its ground carries the
+      // button alone.
+      expect(copy).toHaveTextContent('Copy');
       expect(copy.parentElement?.childElementCount).toBe(1);
-      expect(copy.parentElement?.textContent).toBe('');
     });
 
     it('keeps the cluster untouched when a take lands: the confirmation floats over it', async () => {
@@ -409,22 +409,21 @@ describe('DashboardPage', () => {
       },
     ];
 
-    it('insets the rows from the set edges, full set and narrowed set alike', async () => {
+    it('spans the rows the set full width, full set and narrowed set alike', async () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse({ data: LINKS })));
       renderDashboard();
       await waitFor(() => expect(screen.getByTestId('link-row-abc')).toBeInTheDocument());
 
+      // The set stands unboxed on the surface: its rows and hairlines span
+      // the set full width, inset from neither edge.
       const rows = screen.getByTestId('dashboard-links-rows');
-      expect(rows).toHaveStyle({ paddingLeft: '16px' });
-      expect(rows).toHaveStyle({ paddingRight: '16px' });
-      expect(rows).toHaveStyle({ paddingBottom: '16px' });
+      expect(rows).not.toHaveStyle({ paddingLeft: '16px' });
+      expect(rows).not.toHaveStyle({ paddingRight: '16px' });
 
-      // The narrowing motion must not trade the inset away: the rows keep
-      // their breathing room while the set narrows.
+      // The narrowing motion must not trade the span away.
       fireEvent.change(screen.getByTestId('narrow-links'), { target: { value: 'long' } });
-      expect(screen.getByTestId('dashboard-links-rows')).toHaveStyle({
+      expect(screen.getByTestId('dashboard-links-rows')).not.toHaveStyle({
         paddingLeft: '16px',
-        paddingRight: '16px',
       });
     });
 
@@ -439,14 +438,19 @@ describe('DashboardPage', () => {
       // generated classes — no row restyles its own columns.
       expect(new Set(rows.map((row) => row.className)).size).toBe(1);
 
-      // The set's single shared template (bounded tracks; the destination
-      // is the widest flexible track) and the subgrid adoption that pins
-      // like-positioned standings to the same x in every row.
+      // The set's single shared template — every track a proportional fr
+      // share, never content-sized — carried IDENTICALLY by the head and by
+      // every row, so like-positioned standings start at the same x in every
+      // row, whatever a row's own matter carries.
       const styles = Array.from(document.querySelectorAll('style'))
         .map((sheet) => sheet.textContent ?? '')
         .join('');
-      expect(styles).toContain('minmax(0, 1fr) minmax(0, 3fr) max-content max-content auto');
-      expect(styles).toContain('grid-template-columns:subgrid');
+      expect(styles).toContain(
+        'minmax(0, 2.2fr) minmax(0, 5fr) minmax(0, 1.5fr) minmax(0, 1.3fr) minmax(180px, 1.1fr)',
+      );
+      // No content-sized track and no per-row adoption: the template alone
+      // fixes every column's x.
+      expect(styles).not.toContain('grid-template-columns:subgrid');
     });
   });
 });

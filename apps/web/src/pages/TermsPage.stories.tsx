@@ -1,19 +1,24 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 import TermsPage from './TermsPage';
+import { createAppTheme } from '../theme';
 import { withStaticPage } from '../../.storybook/decorators';
 
-// Seeds the router history so the return reach at the end of the reading has
-// a real place to restore.
-function reachedFrom(initialEntries: string[]) {
-  return function decorator(Story: () => ReactNode) {
-    return (
-      <MemoryRouter initialEntries={initialEntries}>
+// The reading's whole design is its ink relation, so the dark realization is
+// a primary variant of the same surface, not a second theme.
+function darkReading(Story: () => ReactNode): React.JSX.Element {
+  const theme = createAppTheme('dark');
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <MemoryRouter>
         <Story />
       </MemoryRouter>
-    );
-  };
+    </ThemeProvider>
+  );
 }
 
 const meta: Meta<typeof TermsPage> = {
@@ -26,13 +31,10 @@ export default meta;
 
 type Story = StoryObj<typeof TermsPage>;
 
-// The terms reading: the legal pair at the head, the text at the
-// sustained-reading line height in the reading measure, the return at the
-// end. Renders purely from the legal and common i18n namespaces.
+// The terms reading: the legal pair at the head with the hairline closing it
+// across the zone, the text at the sustained-reading line height inside the
+// reading measure. Renders purely from the legal and common namespaces.
 export const Default: Story = { decorators: [withStaticPage] };
 
-// The same reading reached from the dashboard, so the return at the end of
-// the text restores the journey's place.
-export const ReachedFromDashboard: Story = {
-  decorators: [reachedFrom(['/dashboard', '/terms'])],
-};
+// The same reading in the dark realization of the same ink ladder.
+export const DarkReading: Story = { decorators: [darkReading] };

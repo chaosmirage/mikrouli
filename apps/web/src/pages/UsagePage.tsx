@@ -1,10 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import Alert from '@mui/material/Alert';
-import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
 import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
@@ -12,35 +9,42 @@ import Typography from '@mui/material/Typography';
 import { apiFetch } from '../api/client';
 import type { UsageSummary } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
-import StandingsRow from '../components/StandingsRow';
 import StatementBand from '../components/StatementBand';
 import { formatDate, formatNumber } from '../i18n/format';
 
 const SUPPORT_EMAIL = 'support@mikrou.li';
-const MS_PER_YEAR = 365 * 24 * 60 * 60 * 1000;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-// Zone separation between the statement and the standing review.
+// Zone separation between the statement and the standings.
 const ZONE_SPACING = 5;
 
-const PAGE_SX = { maxWidth: 600 } as const;
-const CARD_SX = { minWidth: 260, flex: 1 } as const;
-const PROGRESS_SX = { height: 8, borderRadius: 1 } as const;
+// The standings read in the measure the account's limits name — the quota
+// meters stand one under the other, each as wide as its own reading.
+const STANDINGS_SX = { maxWidth: 520 } as const;
 
-// The quota rows' ONE shared template, carried by both quota cards: every
-// track is bounded (fr over a zero floor), so a long label folds inside its
-// own track instead of pushing another standing. Both cards adopt the same
-// template over equal widths, so the created/limit/remaining figures of the
-// links and the keys compare at the same x.
-const QUOTA_ROW_COLUMNS = 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)';
+// The fill proportion: a thin meter on the neutral track, the fill in the
+// secondary ink — a reading, never a promotional hue.
+const PROGRESS_SX = {
+  height: 8,
+  borderRadius: 1,
+  backgroundColor: 'secondary.light',
+  '& .MuiLinearProgress-bar': { borderRadius: 1, backgroundColor: 'ink.secondary' },
+} as const;
 
-// One quota card's row set: from md up the standings adopt the shared
-// tracks; below md they keep the content-sized wrap, the readable shape
-// when the card folds.
-const QUOTA_ROW_SET_SX = {
-  display: { xs: 'flex', md: 'grid' },
-  flexDirection: 'column',
-  columnGap: { md: 3 },
-  gridTemplateColumns: { md: QUOTA_ROW_COLUMNS },
+const QUOTA_NAME_SX = { color: 'text.primary' } as const;
+const QUOTA_VALUE_SX = {
+  color: 'text.secondary',
+  fontSize: '0.75rem',
+  fontVariantNumeric: 'tabular-nums',
+} as const;
+
+// The reset and retention meta: one muted line naming what the standings
+// stand against. The line owns the standings' own measure, so the request
+// reach stands past it — beside the meta, under the standings' right edge.
+const META_SX = {
+  color: 'ink.muted',
+  fontSize: '0.75rem',
+  minWidth: { sm: STANDINGS_SX.maxWidth },
 } as const;
 
 function usedPercent(created: number, limit: number): number {
@@ -52,8 +56,8 @@ async function loadUsage(): Promise<UsageSummary> {
   return apiFetch('/api/usage', 'get');
 }
 
-function yearsFromMs(ms: number): number {
-  return Math.round(ms / MS_PER_YEAR);
+function daysFromMs(ms: number): number {
+  return Math.max(0, Math.round(ms / MS_PER_DAY));
 }
 
 /** The surface's own naming and the one line naming the capability. */
@@ -61,78 +65,68 @@ function CapabilityStatement() {
   const { t } = useTranslation('usage');
   return (
     <Stack spacing={1}>
-      <Typography variant="h4" component="h1">
+      <Typography variant="title" component="h1">
         {t('title')}
       </Typography>
-      <Typography color="text.secondary">{t('intro')}</Typography>
+      <Typography variant="body2" color="text.secondary">
+        {t('intro')}
+      </Typography>
     </Stack>
   );
 }
 
-interface StandingCardProps {
+interface StandingZoneProps {
   title: string;
   created: number;
   limit: number;
   remaining: number;
   exhaustedStatement: string;
   createdTestId: string;
-  remainingTestId: string;
   cardTestId: string;
 }
 /**
- * One standing against its limit: the fill proportion first, then the created,
- * limit, and remaining figures as labeled standings. An exhausted allowance is
- * stated as resolved matter with the standing it belongs to.
+ * One standing against its limit: the standing's name, its used-and-limit
+ * reading, and the fill proportion as a thin meter. An exhausted allowance is
+ * stated as resolved matter with the standing it belongs to — never a hidden
+ * gate.
  */
-function StandingCard({
+function StandingZone({
   title,
   created,
   limit,
   remaining,
   exhaustedStatement,
   createdTestId,
-  remainingTestId,
   cardTestId,
-}: StandingCardProps) {
+}: StandingZoneProps) {
   const { t } = useTranslation('usage');
   const percent = usedPercent(created, limit);
   const exhausted = remaining <= 0;
   return (
-    <Card variant="outlined" sx={CARD_SX} data-testid={cardTestId}>
-      <CardContent>
-        <Stack spacing={1.5}>
-          <Typography variant="h6">{title}</Typography>
-          <LinearProgress
-            variant="determinate"
-            value={percent}
-            color={exhausted ? 'error' : 'primary'}
-            data-testid={`${cardTestId}-progress`}
-            aria-label={t('usageProgress', { used: created, total: limit })}
-            sx={PROGRESS_SX}
-          />
-          {exhausted && (
-            <Alert severity="warning" data-testid={`${cardTestId}-exhausted`}>
-              {exhaustedStatement}
-            </Alert>
-          )}
-          <Box sx={QUOTA_ROW_SET_SX}>
-            <StandingsRow
-              aligned
-              rowTestId={`${cardTestId}-row`}
-              standings={[
-                { label: t('created'), value: formatNumber(created), testId: createdTestId },
-                { label: t('limit'), value: formatNumber(limit), testId: `${cardTestId}-limit` },
-                {
-                  label: t('remaining'),
-                  value: formatNumber(remaining),
-                  testId: remainingTestId,
-                },
-              ]}
-            />
-          </Box>
-        </Stack>
-      </CardContent>
-    </Card>
+    <Stack spacing={1} sx={STANDINGS_SX} data-testid={cardTestId}>
+      <Stack spacing={0.5}>
+        <Typography variant="body1" sx={QUOTA_NAME_SX}>
+          {title}
+        </Typography>
+        <Typography sx={QUOTA_VALUE_SX}>
+          <span data-testid={createdTestId}>{formatNumber(created)}</span>
+          {' / '}
+          <span data-testid={`${cardTestId}-limit`}>{formatNumber(limit)}</span>
+        </Typography>
+      </Stack>
+      <LinearProgress
+        variant="determinate"
+        value={percent}
+        data-testid={`${cardTestId}-progress`}
+        aria-label={t('usageProgress', { used: created, total: limit })}
+        sx={PROGRESS_SX}
+      />
+      {exhausted && (
+        <Alert severity="warning" data-testid={`${cardTestId}-exhausted`}>
+          {exhaustedStatement}
+        </Alert>
+      )}
+    </Stack>
   );
 }
 
@@ -147,53 +141,52 @@ function UsageView({ summary, email }: UsageViewProps) {
   const mailtoHref = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
 
   return (
-    <Stack spacing={ZONE_SPACING} sx={PAGE_SX} data-testid="usage-page">
+    <Stack spacing={ZONE_SPACING} data-testid="usage-page">
       <CapabilityStatement />
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-        <StandingCard
+      <Stack spacing={4}>
+        <StandingZone
           title={t('linksQuota')}
           created={summary.linksCreated}
           limit={summary.linkLimit}
           remaining={summary.linksRemaining}
           exhaustedStatement={t('overLimitLinks')}
           createdTestId="links-created"
-          remainingTestId="links-remaining"
           cardTestId="links-quota-card"
         />
-        <StandingCard
+        <StandingZone
           title={t('keysQuota')}
           created={summary.keysCreated}
           limit={summary.keyLimit}
           remaining={summary.keysRemaining}
           exhaustedStatement={t('overLimitKeys')}
           createdTestId="keys-created"
-          remainingTestId="keys-remaining"
           cardTestId="keys-quota-card"
         />
       </Stack>
-      <StandingsRow
-        standings={[
-          {
-            label: t('resetDate'),
-            value: formatDate(summary.resetDate),
-            testId: 'reset-date',
-          },
-          {
-            label: t('retention'),
-            value: t('retentionYears', { count: yearsFromMs(summary.retentionMs) }),
-            testId: 'retention-info',
-          },
-        ]}
-      />
-      <Button
-        component="a"
-        href={mailtoHref}
-        variant="outlined"
-        data-testid="request-more-btn"
-        sx={{ alignSelf: 'flex-start' }}
-      >
-        {t('requestMore')}
-      </Button>
+      {/* The standings' meta and the request reach travel on one row: what
+          the standings stand against, and the one act that changes them. */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ sm: 'center' }}>
+        <Typography sx={META_SX}>
+          <span data-testid="reset-date">
+            {t('resets', { date: formatDate(summary.resetDate) })}
+          </span>
+          {' · '}
+          <span data-testid="retention-info">
+            {t('eventsRetained', {
+              count: daysFromMs(summary.retentionMs),
+            })}
+          </span>
+        </Typography>
+        <Button
+          component="a"
+          href={mailtoHref}
+          variant="outlined"
+          data-testid="request-more-btn"
+          sx={{ alignSelf: 'flex-start', whiteSpace: 'nowrap' }}
+        >
+          {t('requestMore')}
+        </Button>
+      </Stack>
     </Stack>
   );
 }

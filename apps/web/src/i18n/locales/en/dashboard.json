@@ -11,11 +11,17 @@
   "shortUrl": "Short URL",
   "originalUrl": "Original URL",
   "statsLabel": "Stats",
-  "deleteLink": "Delete link?",
-  "deleteLinkBody": "This will permanently delete {{slug}}.",
+  "deleteLink": "Retire {{slug}}?",
+  "deleteLinkBody": "The short link stops working for good. This cannot be undone.",
   "shortenLabel": "Shorten",
   "editLabel": "Edit",
-  "narrowLinks": "Narrow links",
+  "retire": "Retire",
+  "narrowLinks": "Filter links…",
   "narrowedEmpty": "No links match \"{{fragment}}\".",
-  "correctedDestination": "Destination"
+  "correctedDestination": "Destination",
+  "colShortLink": "Short link",
+  "colDestination": "Destination",
+  "colCreated": "Created",
+  "colExpires": "Expires",
+  "colActs": "Acts"
 }

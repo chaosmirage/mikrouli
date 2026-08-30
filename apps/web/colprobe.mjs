@@ -1,0 +1,20 @@
+import { chromium } from '@playwright/test';
+const browser = await chromium.launch();
+const c = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+await c.addInitScript(() => { try { localStorage.setItem('mikrouli.themeMode', 'light'); } catch (e) {} });
+const p = await c.newPage();
+await p.goto('http://localhost:8888/login', { waitUntil: 'networkidle' });
+await p.getByTestId('login-email').fill('shared-e2e@example.com');
+await p.getByTestId('login-password').fill('SharedE2ePass1!');
+await p.getByTestId('login-submit').click();
+await p.waitForURL('**/dashboard', { timeout: 15000 });
+await p.waitForTimeout(800);
+const head = document => null;
+const probe = await p.evaluate(() => {
+  const headEl = document.querySelector('[data-testid="dashboard-links-head"]');
+  const rowEl = document.querySelector('[data-testid^="link-row-"]');
+  const cellX = el => Math.round(el.getBoundingClientRect().x);
+  return { head: headEl ? Array.from(headEl.children).map(cellX) : null, row: rowEl ? Array.from(rowEl.children).map(cellX) : null };
+});
+console.log(JSON.stringify(probe));
+await browser.close();

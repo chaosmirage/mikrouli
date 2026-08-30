@@ -58,6 +58,13 @@ describe('SettingsPanel', () => {
     expect(screen.getByTestId('settings-language-option-el')).toBeInTheDocument();
   });
 
+  it('names the language standings in their own codes', () => {
+    renderPanel();
+    expect(screen.getByTestId('settings-language-option-en')).toHaveTextContent('EN');
+    expect(screen.getByTestId('settings-language-option-de')).toHaveTextContent('DE');
+    expect(screen.getByTestId('settings-language-option-el')).toHaveTextContent('ΕΛ');
+  });
+
   it('marks the current mode choice and the current language choice', () => {
     renderPanel();
     expect(screen.getByTestId('settings-mode-option-follow-system')).toHaveAttribute(
@@ -127,7 +134,7 @@ describe('SettingsPanel', () => {
     renderPanel();
     fireEvent.click(screen.getByTestId('settings-language-option-de'));
     await waitFor(() =>
-      expect(screen.getByTestId('settings-close')).toHaveTextContent('Fertig'),
+      expect(screen.getByTestId('settings-close')).toHaveAccessibleName('Fertig'),
     );
     expect(screen.getByText('Einstellungen')).toBeInTheDocument();
   });

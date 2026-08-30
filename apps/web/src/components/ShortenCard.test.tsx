@@ -31,6 +31,7 @@ function installWorkingClipboard(): void {
 
 function renderCard(props?: {
   namespace?: 'dashboard' | 'landing';
+  bare?: boolean;
   onShortened?: (l: typeof NEW_LINK) => void;
 }) {
   render(
@@ -38,6 +39,7 @@ function renderCard(props?: {
       <MemoryRouter>
         <ShortenCard
           namespace={props?.namespace ?? 'dashboard'}
+          bare={props?.bare}
           onShortened={props?.onShortened}
         />
       </MemoryRouter>
@@ -185,5 +187,51 @@ describe('ShortenCard', () => {
     await submitLongUrl();
 
     expect(screen.queryByTestId('guest-nudge')).not.toBeInTheDocument();
+  });
+
+  describe('guest landing register (bare)', () => {
+    it('the moment replaces the entering row and states the confirmation in the accent ink', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValueOnce(makeResponse(NEW_LINK)),
+      );
+
+      renderCard({ namespace: 'landing', bare: true });
+      await submitLongUrl();
+
+      // The value stands alone: no second act beside it (frame S2).
+      expect(screen.queryByTestId('shorten-url')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('shorten-submit')).not.toBeInTheDocument();
+      expect(screen.getByTestId('new-link-alert')).toBeInTheDocument();
+      expect(screen.getByTestId('result-confirmation')).toHaveTextContent(
+        /link created/i,
+      );
+      expect(screen.getByTestId('result-link')).toHaveTextContent(/GYa6kx/);
+    });
+
+    it('the take is a labeled control whose landed statement stands beside it', async () => {
+      installWorkingClipboard();
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValueOnce(makeResponse(NEW_LINK)),
+      );
+
+      renderCard({ namespace: 'landing', bare: true });
+      await submitLongUrl();
+
+      const take = screen.getByTestId('copy-link');
+      expect(take).toHaveTextContent('Copy');
+
+      fireEvent.click(take);
+      expect(await screen.findByTestId('copy-link-landed')).toBeInTheDocument();
+      expect(screen.getByTestId('copy-link-landed')).toHaveTextContent(
+        /copied to clipboard/i,
+      );
+
+      // The cluster keeps both exports in the same glance.
+      expect(screen.getByTestId('qr-code')).toBeInTheDocument();
+      expect(screen.getByTestId('qr-download')).toBeInTheDocument();
+      expect(screen.getByTestId('qr-download-svg')).toBeInTheDocument();
+    });
   });
 });

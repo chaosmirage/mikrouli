@@ -44,6 +44,11 @@ const CONFIRMATION_FAILED_SX = {
   color: (theme: Theme) => theme.palette.error.main,
 } as const;
 
+// The named take: where a surface states the act as a word, the word stands in
+// the accent ink at the meta scale — the one saturated element on a calm
+// surface, so the act itself is what the eye finds.
+const TAKE_WORD_SX = { color: 'accent.solid', typography: 'meta' } as const;
+
 interface CopyControlProps {
   /// The exact text one activation takes onto the clipboard.
   value: string;
@@ -51,6 +56,10 @@ interface CopyControlProps {
   /// statements derive their addresses from it (`<testId>-landed`), so every
   /// taking in the product stays reachable by its own stable token.
   testId?: string;
+  /// When set, the control states its act as this word (accent ink, meta
+  /// scale) instead of the icon glyph. The word is the control's own visible
+  /// name, so it is not duplicated as an accessible label.
+  label?: string;
 }
 
 /**
@@ -66,19 +75,27 @@ interface CopyControlProps {
  *
  * Identical wherever a takeable string appears (the result moment, the set's
  * rows, the credential secret, the connect examples): one act, one look, one
- * confirmation.
+ * confirmation. Where the surface names the act as a word, the word replaces
+ * the glyph; the act behind it never changes.
  */
-export default function CopyControl({ value, testId = 'copy-link' }: CopyControlProps) {
+export default function CopyControl({ value, testId = 'copy-link', label }: CopyControlProps) {
   const { t } = useTranslation('common');
   const { outcome, copy } = useCopyToClipboard();
 
   const handleTake = useCallback(() => copy(value), [copy, value]);
   const landed = outcome.status === 'landed';
+  const iconOnly = label === undefined;
 
   return (
     <Box sx={TAKE_ROOT_SX}>
-      <IconButton size="small" aria-label={t('copy')} onClick={handleTake} data-testid={testId}>
-        <ContentCopyIcon fontSize="small" />
+      <IconButton
+        size="small"
+        aria-label={iconOnly ? t('copy') : undefined}
+        onClick={handleTake}
+        data-testid={testId}
+        sx={iconOnly ? undefined : TAKE_WORD_SX}
+      >
+        {iconOnly ? <ContentCopyIcon fontSize="small" /> : label}
       </IconButton>
       {/* The floating statement: mounted only once the take resolves, so
           idle leaves the row's flow exactly as it stood. The harness address

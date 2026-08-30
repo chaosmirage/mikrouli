@@ -74,7 +74,7 @@ describe('StatsPage', () => {
     expect(screen.getByTestId('stats-slug')).toHaveTextContent(SLUG);
     const leave = screen.getByTestId('stats-leave');
     expect(leave).toHaveAttribute('href', '/dashboard');
-    expect(leave).toHaveTextContent('Back to dashboard');
+    expect(leave).toHaveTextContent('All links');
   });
 
   it('reads the short address in the fixed-width technical register', async () => {
@@ -90,10 +90,42 @@ describe('StatsPage', () => {
     );
   });
 
+  it('names where the short address resolves in the identity, as meta', async () => {
+    // The stats resource does not carry the destination; the record reads it
+    // from the owner's set, so the identity names both ends of the link.
+    const routeByPath = async (path: string): Promise<unknown> =>
+      String(path).includes('/api/urls')
+        ? {
+            data: [
+              {
+                createdAt: '2026-05-01T00:00:00Z',
+                shortUrl: SLUG,
+                originalUrl: 'https://example.com/the-destination',
+                expiresAt: null,
+              },
+              {
+                createdAt: '2026-05-01T00:00:00Z',
+                shortUrl: 'other',
+                originalUrl: 'https://example.com/unrelated',
+                expiresAt: null,
+              },
+            ],
+          }
+        : STATS_FIXTURE;
+    vi.spyOn(client, 'apiFetch').mockImplementation(
+      routeByPath as unknown as typeof client.apiFetch,
+    );
+    renderStatsAt(SLUG);
+    await waitFor(() => expect(screen.getByTestId('stats-view')).toBeInTheDocument());
+    expect(screen.getByTestId('stats-destination')).toHaveTextContent(
+      'https://example.com/the-destination',
+    );
+  });
+
   it('renders the total as one numeral with its honesty qualification', async () => {
     await renderStatsView();
     expect(screen.getByTestId('stats-total')).toHaveTextContent('42');
-    expect(screen.getByText('Recorded redirects')).toBeVisible();
+    expect(screen.getByText('recorded redirects')).toBeVisible();
   });
 
   it('carries the course over time as the only chart reading', async () => {
@@ -103,21 +135,19 @@ describe('StatsPage', () => {
     expect(screen.queryByTestId('stats-browsers-chart')).not.toBeInTheDocument();
   });
 
-  it('states each breakdown once as ranked labeled rows', async () => {
+  it('states each breakdown once as ranked rows with their honest shares', async () => {
     await renderStatsView();
-    const countries = screen.getByTestId('stats-countries-rows');
-    const rankedCountryNames = within(countries)
-      .getAllByRole('listitem')
+    // Ranked by recorded clicks, each row naming its share of the certain
+    // total: DE 25/42 before US 12/42 before the honest Unknown 5/42.
+    const rankedCountryRows = within(screen.getByTestId('stats-countries-rows'))
+      .getAllByTestId('stats-countries-rows-row')
       .map((row) => row.textContent);
-    // Ranked by recorded clicks: DE 25 before US 12 before the honest Unknown 5.
-    expect(rankedCountryNames).toEqual(['DE25', 'US12', 'Unknown5']);
+    expect(rankedCountryRows).toEqual(['DE60%', 'US29%', 'Unknown12%']);
 
-    const browsers = screen.getByTestId('stats-browsers-rows');
-    expect(
-      within(browsers)
-        .getAllByRole('listitem')
-        .map((row) => row.textContent),
-    ).toEqual(['Chrome30', 'Firefox12']);
+    const rankedBrowserRows = within(screen.getByTestId('stats-browsers-rows'))
+      .getAllByTestId('stats-browsers-rows-row')
+      .map((row) => row.textContent);
+    expect(rankedBrowserRows).toEqual(['Chrome71%', 'Firefox29%']);
   });
 
   it('removes the duplicated drill-down tables under the readings', async () => {
@@ -141,7 +171,7 @@ describe('StatsPage', () => {
   it('reads zero use as the magnitude itself, honest at the same glance', async () => {
     await renderStatsView(ZERO_USE_FIXTURE);
     expect(screen.getByTestId('stats-total')).toHaveTextContent(/^0$/);
-    expect(screen.getByText('Recorded redirects')).toBeVisible();
+    expect(screen.getByText('recorded redirects')).toBeVisible();
     expect(screen.getAllByText('No clicks recorded yet').length).toBeGreaterThan(0);
   });
 

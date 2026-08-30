@@ -156,7 +156,50 @@ describe('LandingPage', () => {
       expect(screen.queryByTestId('guest-nudge')).not.toBeInTheDocument();
     });
 
-    it('after a successful shorten, the nudge names the account additions and reaches register', async () => {
+    it('after a successful shorten, the moment is the composition and the offer band reaches register', async () => {
+      const newLink = {
+        shortUrl: 'abc123',
+        originalUrl: 'http://long.com',
+        createdAt: '2026-01-01T00:00:00Z',
+        expiresAt: null,
+      };
+      vi.stubGlobal(
+        'fetch',
+        vi
+          .fn()
+          .mockResolvedValueOnce(
+            makeConfigResponse('window.__MIKROULI_CONFIG__ = { guestShortenEnabled: true };\n'),
+          )
+          .mockResolvedValueOnce({ ok: true, status: 201, json: () => Promise.resolve(newLink) }),
+      );
+      renderLanding();
+      await waitFor(() => expect(screen.getByTestId('shorten-url')).toBeInTheDocument());
+      fireEvent.change(screen.getByTestId('shorten-url'), {
+        target: { value: 'http://long.com' },
+      });
+      fireEvent.click(screen.getByTestId('shorten-submit'));
+
+      // The frame's result moment IS the page (S2): the first-sight stack —
+      // statement, claims band, footer — stands down, and the entering row
+      // gives way to the value it produced.
+      await waitFor(() => expect(screen.getByTestId('guest-nudge')).toBeInTheDocument());
+      expect(screen.queryByTestId('landing-statement')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('landing-claims')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('footer-terms')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('shorten-url')).not.toBeInTheDocument();
+      expect(screen.getByTestId('result-confirmation')).toHaveTextContent(
+        /Link created/i,
+      );
+
+      // The register offer stands after the value as one raised band naming the
+      // account additions, with its accept reaching register.
+      expect(screen.getByTestId('guest-nudge-feature-kept-link')).toBeInTheDocument();
+      expect(screen.getByTestId('guest-nudge-feature-dashboard')).toBeInTheDocument();
+      expect(screen.getByTestId('guest-nudge-feature-api-keys')).toBeInTheDocument();
+      expect(screen.getByTestId('guest-nudge-cta')).toHaveAttribute('href', '/register');
+    });
+
+    it('declining the offer retires the band alone — the moment keeps what it granted', async () => {
       const newLink = {
         shortUrl: 'abc123',
         originalUrl: 'http://long.com',
@@ -179,10 +222,12 @@ describe('LandingPage', () => {
       });
       fireEvent.click(screen.getByTestId('shorten-submit'));
       await waitFor(() => expect(screen.getByTestId('guest-nudge')).toBeInTheDocument());
-      expect(screen.getByTestId('guest-nudge-feature-kept-link')).toBeInTheDocument();
-      expect(screen.getByTestId('guest-nudge-feature-dashboard')).toBeInTheDocument();
-      expect(screen.getByTestId('guest-nudge-feature-api-keys')).toBeInTheDocument();
-      expect(screen.getByTestId('guest-nudge-cta')).toHaveAttribute('href', '/register');
+
+      fireEvent.click(screen.getByTestId('guest-nudge-decline'));
+
+      expect(screen.queryByTestId('guest-nudge')).not.toBeInTheDocument();
+      expect(screen.getByTestId('result-confirmation')).toBeInTheDocument();
+      expect(screen.getByTestId('result-link')).toBeInTheDocument();
     });
   });
 });

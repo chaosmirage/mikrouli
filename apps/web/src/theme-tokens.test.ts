@@ -184,11 +184,21 @@ describe('theme token surface relations', () => {
     );
   });
 
-  it('dark mode: raised sits clearly above canvas (>= 1.2:1) so rows and cards read', () => {
+  // The dark raised ground is the drawn one: channels as decimal so the test
+  // states the value without restating a color literal.
+  it('dark mode: raised is the drawn ground (18, 18, 18) over the black canvas', () => {
+    const t = createAppTheme('dark');
+    expect(hexToRgb(t.palette.surface.raised)).toEqual([18, 18, 18]);
+    expect(hexToRgb(t.palette.background.paper)).toEqual([18, 18, 18]);
+  });
+
+  // A 4.5%-grey step over pure black is the whole separation the drawing
+  // states, so the "clearly above" floor is 1.1:1, not the light mode's 1.2:1.
+  it('dark mode: raised sits above the black canvas (>= 1.1:1) so rows and cards read', () => {
     const t = createAppTheme('dark');
     expect(
       contrastRatio(t.palette.surface.raised, t.palette.surface.canvas),
-    ).toBeGreaterThanOrEqual(1.2);
+    ).toBeGreaterThanOrEqual(1.1);
   });
 
   it.each(BOTH_MODES)('%s mode: veil is a translucent canvas scrim', (mode) => {
@@ -243,6 +253,44 @@ describe('theme token typographic scale', () => {
   it.each(BOTH_MODES)('%s mode: body matter is set at one-and-a-half line height', (mode) => {
     const t = createAppTheme(mode);
     expect(Number(t.typography.body.lineHeight)).toBe(1.5);
+  });
+
+  // The drawn steps of the scale: a page title reads at 34, the standing and
+  // row labels at 10, and the panel title keeps its own 24 step -- so the
+  // page-title register and the panel-title register can never be mistaken for
+  // one another.
+  it.each(BOTH_MODES)('%s mode: page titles read at 34 on the title step', (mode) => {
+    const t = createAppTheme(mode);
+    expect(toPx(t.typography.title.fontSize)).toBe(34);
+    expect(toPx(t.typography.h3.fontSize)).toBe(34);
+  });
+
+  it.each(BOTH_MODES)('%s mode: the panel title keeps its own 24 step', (mode) => {
+    expect(toPx(createAppTheme(mode).typography.h4.fontSize)).toBe(24);
+  });
+
+  it.each(BOTH_MODES)(
+    '%s mode: standing and row labels read at 10 in the label register',
+    (mode) => {
+      const t = createAppTheme(mode);
+      expect(toPx(t.typography.meta.fontSize)).toBe(10);
+      expect(toPx(t.typography.caption.fontSize)).toBe(10);
+      expect(toPx(t.typography.overline.fontSize)).toBe(10);
+      expect(t.typography.overline.fontWeight).toBe(700);
+      expect(t.typography.overline.textTransform).toBe('uppercase');
+    },
+  );
+
+  // Two control registers, one step apart: a standing pill names its choice
+  // (13), a button calls for an act (14) -- the size alone tells them apart.
+  it.each(BOTH_MODES)('%s mode: the button register stays at 14', (mode) => {
+    expect(toPx(createAppTheme(mode).typography.button.fontSize)).toBe(14);
+  });
+
+  it.each(BOTH_MODES)('%s mode: standing pills read the compact register at 13', (mode) => {
+    const t = createAppTheme(mode);
+    const standing = styleOverridesOf(t, 'MuiToggleButton').root as Record<string, unknown>;
+    expect(toPx(standing.fontSize as string)).toBe(13);
   });
 });
 

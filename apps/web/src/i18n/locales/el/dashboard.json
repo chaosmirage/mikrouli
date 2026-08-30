@@ -11,11 +11,17 @@
   "shortUrl": "Σύντομο URL",
   "originalUrl": "Αρχικό URL",
   "statsLabel": "Στατιστικά",
-  "deleteLink": "Διαγραφή συνδέσμου;",
-  "deleteLinkBody": "Αυτή η ενέργεια θα διαγράψει οριστικά το {{slug}}.",
+  "deleteLink": "Απόσυρση {{slug}};",
+  "deleteLinkBody": "Ο σύντομος σύνδεσμος θα σταματήσει να λειτουργεί οριστικά. Αυτό δεν μπορεί να αναιρεθεί.",
   "shortenLabel": "Σύντμηση",
   "editLabel": "Επεξεργασία",
-  "narrowLinks": "Φιλτράρισμα συνδέσμων",
+  "retire": "Απόσυρση",
+  "narrowLinks": "Φιλτράρισμα συνδέσμων…",
   "narrowedEmpty": "Κανείς σύνδεσμος δεν ταιριάζει με «{{fragment}}».",
-  "correctedDestination": "Προορισμός"
+  "correctedDestination": "Προορισμός",
+  "colShortLink": "Σύντομος σύνδεσμος",
+  "colDestination": "Προορισμός",
+  "colCreated": "Δημιουργήθηκε",
+  "colExpires": "Λήγει",
+  "colActs": "Πράξεις"
 }

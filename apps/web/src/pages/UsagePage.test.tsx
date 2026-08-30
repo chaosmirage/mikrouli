@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
 import { TestQueryClientProvider } from '../test/queryClient';
 import { AuthContext } from '../auth/AuthContext';
 import type { AuthContextValue } from '../auth/AuthContext';
 import i18next from '../i18n';
 import UsagePage from './UsagePage';
+import { createAppTheme } from '../theme';
 import * as client from '../api/client';
 import { ApiError } from '../api/client';
 import type { UsageSummary } from '../api/types';
@@ -30,15 +32,24 @@ const USAGE_FIXTURE: UsageSummary = {
   retentionMs: 94_608_000_000,
 };
 
+const LIGHT_THEME = createAppTheme('light');
+
+/** A theme hex lowercased, the way the emitted stylesheets carry it. */
+function hexOf(value: string): string {
+  return value.toLowerCase();
+}
+
 function renderUsagePage() {
   render(
-    <TestQueryClientProvider>
-      <MemoryRouter>
-        <AuthContext.Provider value={mockAuth}>
-          <UsagePage />
-        </AuthContext.Provider>
-      </MemoryRouter>
-    </TestQueryClientProvider>,
+    <ThemeProvider theme={LIGHT_THEME}>
+      <TestQueryClientProvider>
+        <MemoryRouter>
+          <AuthContext.Provider value={mockAuth}>
+            <UsagePage />
+          </AuthContext.Provider>
+        </MemoryRouter>
+      </TestQueryClientProvider>
+    </ThemeProvider>,
   );
 }
 
@@ -58,9 +69,7 @@ describe('UsagePage', () => {
     renderUsagePage();
     await waitFor(() => expect(screen.getByTestId('usage-page')).toBeInTheDocument());
     expect(screen.getByRole('heading', { level: 1, name: 'Usage' })).toBeInTheDocument();
-    expect(
-      screen.getByText(/monthly standing against its link and key limits/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/standing against its limits/i)).toBeInTheDocument();
   });
 
   it('renders the usage page with link quota information', async () => {
@@ -75,18 +84,18 @@ describe('UsagePage', () => {
     expect(screen.getByTestId('keys-quota-card')).toBeInTheDocument();
   });
 
-  it('shows linksCreated and linksRemaining from the response', async () => {
+  it('shows the link standing as used against its limit', async () => {
     renderUsagePage();
     await waitFor(() => expect(screen.getByTestId('usage-page')).toBeInTheDocument());
     expect(screen.getByTestId('links-created')).toHaveTextContent('12');
-    expect(screen.getByTestId('links-remaining')).toHaveTextContent('88');
+    expect(screen.getByTestId('links-quota-card-limit')).toHaveTextContent('100');
   });
 
-  it('shows keysCreated and keysRemaining from the response', async () => {
+  it('shows the key standing as used against its limit', async () => {
     renderUsagePage();
     await waitFor(() => expect(screen.getByTestId('usage-page')).toBeInTheDocument());
     expect(screen.getByTestId('keys-created')).toHaveTextContent('3');
-    expect(screen.getByTestId('keys-remaining')).toHaveTextContent('7');
+    expect(screen.getByTestId('keys-quota-card-limit')).toHaveTextContent('10');
   });
 
   it('renders a determinate progress bar for each quota with the used percentage', async () => {
@@ -99,7 +108,7 @@ describe('UsagePage', () => {
     expect(keysBar).toHaveAttribute('aria-valuenow', '30');
   });
 
-  it('renders a full, error-colored progress bar when the allowance is exhausted', async () => {
+  it('renders a full meter when the allowance is exhausted, as a reading', async () => {
     vi.spyOn(client, 'apiFetch').mockResolvedValue({
       ...USAGE_FIXTURE,
       linksCreated: 100,
@@ -109,7 +118,10 @@ describe('UsagePage', () => {
     await waitFor(() => expect(screen.getByTestId('usage-page')).toBeInTheDocument());
     const linksBar = screen.getByTestId('links-quota-card-progress');
     expect(linksBar).toHaveAttribute('aria-valuenow', '100');
-    expect(linksBar.className).toMatch(/colorError/);
+    // The fill proportion stays a neutral reading — no accent, no error hue;
+    // the exhaustion itself is stated as resolved matter beside it.
+    expect(linksBar.className).not.toMatch(/colorError/);
+    expect(screen.getByTestId('links-quota-card-exhausted')).toBeInTheDocument();
   });
 
   it('states the exhausted standing as resolved matter beside its fill proportion', async () => {
@@ -132,26 +144,28 @@ describe('UsagePage', () => {
     expect(screen.getByTestId('reset-date')).toHaveTextContent('Jul 1, 2026');
   });
 
-  it('keeps both quota rows on one shared bounded track template so their standings compare', async () => {
+  it('keeps both standings on one shared shape so their meters compare', async () => {
     renderUsagePage();
-    await waitFor(() => expect(screen.getByTestId('links-quota-card-row')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('links-quota-card')).toBeInTheDocument());
 
-    // The two quota cards' rows adopt the SAME row style: their
-    // created/limit/remaining standings stand on one shared template, so
-    // like-positioned figures compare at the same x in both cards.
-    const linksRow = screen.getByTestId('links-quota-card-row');
-    const keysRow = screen.getByTestId('keys-quota-card-row');
-    expect(linksRow.className).toBe(keysRow.className);
+    // The two standings carry the SAME standing style: name over its
+    // used-and-limit reading over its fill meter, so the two compare at the
+    // same glance in the same measure.
+    const linksZone = screen.getByTestId('links-quota-card');
+    const keysZone = screen.getByTestId('keys-quota-card');
+    expect(linksZone.className).toBe(keysZone.className);
 
-    // The shared template: every track bounded (fr with a zero floor), so a
-    // long label folds inside its own track instead of pushing another
-    // standing — and the subgrid adoption that carries the template into
-    // each row.
+    // The meter is the neutral reading's own: the track in the neutral track
+    // ink and the fill in the secondary ink — never an accent hue.
     const styles = Array.from(document.querySelectorAll('style'))
       .map((sheet) => sheet.textContent ?? '')
       .join('');
-    expect(styles).toContain('minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)');
-    expect(styles).toContain('grid-template-columns:subgrid');
+    expect(styles.toLowerCase()).toContain(
+      `background-color:${hexOf(LIGHT_THEME.palette.secondary.light)}`,
+    );
+    expect(styles.toLowerCase()).toContain(
+      `background-color:${hexOf(LIGHT_THEME.palette.ink.secondary)}`,
+    );
   });
 
   it('renders the retention period in the active locale', async () => {
@@ -160,7 +174,7 @@ describe('UsagePage', () => {
     });
     renderUsagePage();
     await waitFor(() => expect(screen.getByTestId('retention-info')).toBeInTheDocument());
-    expect(screen.getByTestId('retention-info')).toHaveTextContent('3 Jahre');
+    expect(screen.getByTestId('retention-info')).toHaveTextContent('Ereignisse 1095 Tage');
   });
 
   it('renders a contact support button linking to mailto:support@mikrou.li', async () => {
