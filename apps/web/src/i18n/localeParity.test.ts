@@ -16,6 +16,7 @@ import enLanding from './locales/en/landing.json';
 import enConnect from './locales/en/connect.json';
 import enUsage from './locales/en/usage.json';
 import enLegal from './locales/en/legal.json';
+import enNotFound from './locales/en/notFound.json';
 
 import deCommon from './locales/de/common.json';
 import deAuth from './locales/de/auth.json';
@@ -27,6 +28,7 @@ import deLanding from './locales/de/landing.json';
 import deConnect from './locales/de/connect.json';
 import deUsage from './locales/de/usage.json';
 import deLegal from './locales/de/legal.json';
+import deNotFound from './locales/de/notFound.json';
 
 import elCommon from './locales/el/common.json';
 import elAuth from './locales/el/auth.json';
@@ -38,6 +40,7 @@ import elLanding from './locales/el/landing.json';
 import elConnect from './locales/el/connect.json';
 import elUsage from './locales/el/usage.json';
 import elLegal from './locales/el/legal.json';
+import elNotFound from './locales/el/notFound.json';
 
 const NAMESPACES = [
   { name: 'common',    en: enCommon,    de: deCommon,    el: elCommon },
@@ -50,6 +53,7 @@ const NAMESPACES = [
   { name: 'connect',   en: enConnect,   de: deConnect,   el: elConnect },
   { name: 'usage',     en: enUsage,     de: deUsage,     el: elUsage },
   { name: 'legal',     en: enLegal,     de: deLegal,     el: elLegal },
+  { name: 'notFound',  en: enNotFound,  de: deNotFound,  el: elNotFound },
 ];
 
 function keysOf(obj: Record<string, unknown>): string[] {

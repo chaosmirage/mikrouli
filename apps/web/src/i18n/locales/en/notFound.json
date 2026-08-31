@@ -1,0 +1,5 @@
+{
+  "action": "Back to the shortener",
+  "statement": "This page does not exist at <address>{{address}}</address>.",
+  "title": "Page not found"
+}

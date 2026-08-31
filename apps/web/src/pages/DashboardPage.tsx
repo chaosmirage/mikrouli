@@ -2,29 +2,22 @@ import { Fragment, useCallback, useMemo, useReducer, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
-import IconButton from '@mui/material/IconButton';
 import MuiLink from '@mui/material/Link';
-import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
+import Alert from '@mui/material/Alert';
 import type { Theme } from '@mui/material/styles';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
 import { apiFetch, extractErrorMessage } from '../api/client';
 import { resolveFullShortUrl } from '../api/short-url';
 import type { PublicLink } from '../api/types';
 import ConfirmDialog from '../components/ConfirmDialog';
-import CopyControl from '../components/CopyControl';
 import ShortenCard from '../components/ShortenCard';
-import StandingsRow from '../components/StandingsRow';
+import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
 import { formatDate } from '../i18n/format';
 
 async function loadUserLinks(): Promise<PublicLink[]> {
@@ -43,6 +36,12 @@ async function attemptUpdate(slug: string, url: string): Promise<void> {
 function extractSlug(shortUrl: string): string {
   const parts = shortUrl.split('/');
   return parts[parts.length - 1] ?? shortUrl;
+}
+
+// The row reads the address as its owner shares it — host and slug, the
+// scheme implied — while the link itself still resolves the full URL.
+function displayAddress(fullUrl: string): string {
+  return fullUrl.replace(/^https?:\/\//, '');
 }
 
 // The narrowing is a pure derivation over the cached list: a remembered
@@ -103,10 +102,9 @@ interface DestinationCorrectionProps {
 // The destination cell while correcting: the entering opens on the
 // destination as it stands, and it travels on one line with its confirm
 // whenever the row has room — folding onto separate lines only when the row
-// is narrow. The standing's caption is the entering's ONE visible label;
-// the input carries its accessible name itself. A refused destination is
-// stated in place so the owner can correct and confirm again — never
-// silently lost.
+// is narrow. The entering's accessible name rides on the input element
+// itself (the set's head names the column). A refused destination is stated
+// in place so the owner can correct and confirm again — never silently lost.
 function DestinationCorrection({
   slug,
   currentUrl,
@@ -118,9 +116,6 @@ function DestinationCorrection({
   const { t } = useTranslation('dashboard');
   const { t: tCommon } = useTranslation('common');
   const [draft, setDraft] = useState(currentUrl);
-  // The entering renders no label of its own (the standing's caption
-  // "Original URL" is the one visible label); the input's accessible name
-  // rides along on the input element itself.
   const inputProps = useMemo(
     () => ({ 'data-testid': `edit-url-input-${slug}`, 'aria-label': t('correctedDestination') }),
     [slug, t],
@@ -133,12 +128,7 @@ function DestinationCorrection({
   const handleConfirm = useCallback(() => onConfirm(draft), [onConfirm, draft]);
 
   return (
-    <Stack
-      direction="row"
-      sx={CORRECTION_SX}
-      useFlexGap
-      data-testid={`edit-correction-${slug}`}
-    >
+    <Stack direction="row" sx={CORRECTION_SX} useFlexGap data-testid={`edit-correction-${slug}`}>
       <TextField
         size="small"
         fullWidth
@@ -182,6 +172,42 @@ function DestinationCorrection({
   );
 }
 
+// --- The row's take ---------------------------------------------------------
+
+// The take as the set's frame states it: a word in the accent ink, one
+// activation, and the landing confirmed over it in the same glance — never a
+// silent write. The confirmation floats above the word, so no landing ever
+// shifts the row it stands in.
+interface CopyActProps {
+  value: string;
+  testId: string;
+}
+
+function CopyAct({ value, testId }: CopyActProps) {
+  const { t } = useTranslation('common');
+  const { outcome, copy } = useCopyToClipboard();
+
+  const handleTake = useCallback(() => copy(value), [copy, value]);
+  const landed = outcome.status === 'landed';
+
+  return (
+    <Box sx={TAKE_ROOT_SX}>
+      <Button size="small" onClick={handleTake} data-testid={testId} sx={COPY_ACT_SX}>
+        {t('copy')}
+      </Button>
+      {outcome.status !== 'idle' && (
+        <Box
+          role="status"
+          sx={landed ? CONFIRMATION_LANDED_SX : CONFIRMATION_FAILED_SX}
+          data-testid={landed ? `${testId}-landed` : `${testId}-failed`}
+        >
+          {landed ? t('copied') : t('copyFailed')}
+        </Box>
+      )}
+    </Box>
+  );
+}
+
 // --- The set rows ----------------------------------------------------------
 
 interface LinkSetRowProps {
@@ -205,8 +231,8 @@ function LinkSetRow({
 }: LinkSetRowProps) {
   const slug = extractSlug(link.shortUrl);
   const fullUrl = resolveFullShortUrl(link.shortUrl);
-  const { t } = useTranslation('common');
-  const { t: tDashboard } = useTranslation('dashboard');
+  const address = displayAddress(fullUrl);
+  const { t } = useTranslation('dashboard');
 
   const handleStats = useCallback(() => onStats(slug), [onStats, slug]);
   const handleRetire = useCallback(() => onRetire(slug), [onRetire, slug]);
@@ -219,7 +245,7 @@ function LinkSetRow({
   const activeCorrection = correction?.slug === slug ? correction : null;
   const destinationValue =
     activeCorrection === null ? (
-      <Typography component="span" sx={DESTINATION_SX} title={link.originalUrl}>
+      <Typography component="span" variant="body2" sx={DESTINATION_SX} title={link.originalUrl}>
         {link.originalUrl}
       </Typography>
     ) : (
@@ -235,73 +261,74 @@ function LinkSetRow({
     );
 
   return (
-    <StandingsRow
-      aligned
-      rowTestId={`link-row-${slug}`}
-      identity={
-        <MuiLink
-          href={fullUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          underline="hover"
-          sx={TECHNICAL_LINK_SX}
-          title={fullUrl}
+    <Box sx={ROW_SX} data-testid={`link-row-${slug}`}>
+      <MuiLink
+        href={fullUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        underline="hover"
+        sx={TECHNICAL_LINK_SX}
+        title={fullUrl}
+      >
+        {address}
+      </MuiLink>
+      {destinationValue}
+      <Typography variant="body2" sx={META_SX} data-testid={`created-${slug}`}>
+        {formatDate(link.createdAt)}
+      </Typography>
+      <Typography variant="body2" sx={META_SX} data-testid={`expires-${slug}`}>
+        {formatDate(link.expiresAt)}
+      </Typography>
+      <Box sx={ACTS_SX}>
+        <CopyAct value={fullUrl} testId={`copy-${slug}`} />
+        <Button
+          size="small"
+          onClick={handleStats}
+          data-testid={`stats-${slug}`}
+          sx={SECONDARY_ACT_SX}
         >
-          {fullUrl}
-        </MuiLink>
-      }
-      standings={[
-        { label: tDashboard('originalUrl'), value: destinationValue },
-        {
-          label: tDashboard('createdAt'),
-          value: formatDate(link.createdAt),
-          testId: `created-${slug}`,
-        },
-        {
-          label: tDashboard('expiresAt'),
-          value: formatDate(link.expiresAt),
-          testId: `expires-${slug}`,
-        },
-      ]}
-      acts={
-        <>
-          {/* The row's take: one CopyControl per row, so each take's landed
-              confirmation stands inside its own row under a per-row address
-              derived from the slug. */}
-          <CopyControl value={fullUrl} testId={`copy-${slug}`} />
-          <Tooltip title={tDashboard('statsLabel')}>
-            <IconButton
-              size="small"
-              onClick={handleStats}
-              data-testid={`stats-${slug}`}
-              aria-label={tDashboard('statsLabel')}
-            >
-              <BarChartIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={tDashboard('editLabel')}>
-            <IconButton
-              size="small"
-              onClick={handleCorrect}
-              data-testid={`edit-${slug}`}
-              aria-label={tDashboard('editLabel')}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={t('delete')}>
-            <IconButton
-              size="small"
-              onClick={handleRetire}
-              data-testid={`delete-${slug}`}
-              aria-label={t('delete')}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </>
-      }
-    />
+          {t('statsLabel')}
+        </Button>
+        <Button
+          size="small"
+          onClick={handleCorrect}
+          data-testid={`edit-${slug}`}
+          sx={SECONDARY_ACT_SX}
+        >
+          {t('editLabel')}
+        </Button>
+        <Button
+          size="small"
+          onClick={handleRetire}
+          data-testid={`delete-${slug}`}
+          sx={MUTED_ACT_SX}
+        >
+          {t('retire')}
+        </Button>
+      </Box>
+    </Box>
+  );
+}
+
+// --- The set's head: one column-naming row ----------------------------------
+
+interface SetHeadProps {
+  columns: string[];
+}
+
+function SetHead({ columns }: SetHeadProps) {
+  return (
+    <Box sx={HEAD_ROW_SX} data-testid="dashboard-links-head">
+      {columns.map((column, index) => (
+        <Typography
+          key={column}
+          variant="overline"
+          sx={index === columns.length - 1 ? HEAD_ACTS_SX : HEAD_CELL_SX}
+        >
+          {column}
+        </Typography>
+      ))}
+    </Box>
   );
 }
 
@@ -354,18 +381,16 @@ function LinksSet({
     return <Typography data-testid="no-links-message">{t('noLinks')}</Typography>;
 
   return (
-    <Paper variant="outlined" data-testid="dashboard-links-set">
-      <Box sx={SET_HEAD_SX}>
-        <TextField
-          size="small"
-          fullWidth
-          label={t('narrowLinks')}
-          value={fragment}
-          onChange={handleFragmentChange}
-          inputProps={NARROW_INPUT_PROPS}
-        />
-      </Box>
-      <Divider />
+    <Box data-testid="dashboard-links-set">
+      <TextField
+        size="small"
+        hiddenLabel
+        placeholder={t('narrowLinks')}
+        value={fragment}
+        onChange={handleFragmentChange}
+        inputProps={NARROW_INPUT_PROPS}
+        sx={NARROW_FIELD_SX}
+      />
       {narrowed.length === 0 ? (
         <Box sx={SET_BODY_SX}>
           <Alert severity="info" data-testid="narrowed-empty">
@@ -373,28 +398,39 @@ function LinksSet({
           </Alert>
         </Box>
       ) : (
-        <Box
-          key={fragment.toLowerCase()}
-          sx={isNarrowing ? narrowedSetSx : ROWS_SX}
-          data-testid="dashboard-links-rows"
-        >
-          {narrowed.map((link, index) => (
-            <Fragment key={link.shortUrl}>
-              {index > 0 ? <Divider component="div" sx={ROW_DIVIDER_SX} /> : null}
-              <LinkSetRow
-                link={link}
-                correction={correction}
-                onOpenCorrection={onOpenCorrection}
-                onConfirmCorrection={onConfirmCorrection}
-                onCancelCorrection={onCancelCorrection}
-                onStats={onStats}
-                onRetire={onRetire}
-              />
-            </Fragment>
-          ))}
-        </Box>
+        <>
+          <SetHead
+            columns={[
+              t('colShortLink'),
+              t('colDestination'),
+              t('colCreated'),
+              t('colExpires'),
+              t('colActs'),
+            ]}
+          />
+          <Box
+            key={fragment.toLowerCase()}
+            sx={isNarrowing ? narrowedSetSx : ROWS_SX}
+            data-testid="dashboard-links-rows"
+          >
+            {narrowed.map((link, index) => (
+              <Fragment key={link.shortUrl}>
+                {index > 0 ? <Divider component="div" flexItem /> : null}
+                <LinkSetRow
+                  link={link}
+                  correction={correction}
+                  onOpenCorrection={onOpenCorrection}
+                  onConfirmCorrection={onConfirmCorrection}
+                  onCancelCorrection={onCancelCorrection}
+                  onStats={onStats}
+                  onRetire={onRetire}
+                />
+              </Fragment>
+            ))}
+          </Box>
+        </>
       )}
-    </Paper>
+    </Box>
   );
 }
 
@@ -442,6 +478,14 @@ export default function DashboardPage() {
   const handleStats = useCallback((slug: string) => navigate(`/stats/${slug}`), [navigate]);
   const handleCancelRetire = useCallback(() => setRetireCandidate(null), []);
 
+  // The confirmation names the address as its owner shares it — host and
+  // slug — the same reading the row itself carries.
+  const retireCandidateAddress = useMemo(() => {
+    if (retireCandidate === null) return '';
+    const link = links.find((candidate) => extractSlug(candidate.shortUrl) === retireCandidate);
+    return link ? displayAddress(resolveFullShortUrl(link.shortUrl)) : retireCandidate;
+  }, [retireCandidate, links]);
+
   const handleOpenCorrection = useCallback((slug: string) => {
     dispatchCorrection({ type: 'open', slug });
   }, []);
@@ -485,9 +529,9 @@ export default function DashboardPage() {
       />
       <ConfirmDialog
         open={!!retireCandidate}
-        title={t('deleteLink')}
-        description={t('deleteLinkBody', { slug: retireCandidate ?? '' })}
-        confirmLabel={t('delete', { ns: 'common' })}
+        title={t('deleteLink', { slug: retireCandidateAddress })}
+        description={t('deleteLinkBody')}
+        confirmLabel={t('retire')}
         onConfirm={handleRetireConfirm}
         onCancel={handleCancelRetire}
         dialogTestId="delete-dialog"
@@ -507,14 +551,15 @@ export default function DashboardPage() {
 
 const NARROW_ANIMATION_NAME = 'mikrouli-set-narrow';
 
-// The set's ONE shared row template: the short link and the destination are
-// the only flexible tracks (fr shares over a zero floor, so their widths
-// never depend on any row's content), the destination is the widest and the
-// only track whose matter wraps; the dates size to their strings and the
-// acts end the row. Every row of the set adopts these exact tracks, so
-// like-positioned standings — and the acts — start at the same x in every
-// row, whatever a destination carries, editor open or closed.
-const LINK_ROW_COLUMNS = 'minmax(0, 1fr) minmax(0, 3fr) max-content max-content auto';
+// The set's ONE shared row template: every track is a proportional fr share
+// over a zero floor, so a track's width never depends on any row's (or the
+// head's) own content — except the acts track, whose floor is a fixed
+// measure (never its content), wide enough that the row's four act reaches
+// hold one line at every width without driving the page wide. The head and
+// every row carry this IDENTICAL template at the identical width and gap,
+// so each column keeps one x from its head through every row.
+const LINK_ROW_COLUMNS =
+  'minmax(0, 2.2fr) minmax(0, 5fr) minmax(0, 1.5fr) minmax(0, 1.3fr) minmax(180px, 1.1fr)';
 
 // The narrowing's own motion: each further fragment re-mounts the rows so
 // the shrinking set itself reads as the progress. The box rhythm rides
@@ -533,37 +578,135 @@ const narrowedSetSx = (theme: Theme) => ({
   },
 });
 
-// The set's rows: inset from the set's edges on every side the head already
-// breathes on (the head carries the same sides), with the rows' vertical
-// rhythm between. From md up the rows become one grid carrying the shared
-// template — each row adopts its tracks, so the columns hold one line.
-// Below md the rows fold individually, which is the readable shape there.
+// The set's rows: a plain column of rows below md and at md alike — each
+// ROW itself carries the head's identical template at the identical width,
+// so the columns hold one line and like-positioned matter starts at the
+// same x in every row. The row gap is the set's rhythm below md: rows apart
+// by more than the label line height (Hermann separation); at md the rows
+// carry their own vertical padding between the hairlines.
 const ROWS_SX = {
-  px: 2,
   pt: 1.5,
-  pb: 2,
-  display: { xs: 'flex', md: 'grid' },
+  display: 'flex',
   flexDirection: 'column',
-  rowGap: 1.5,
+  rowGap: { xs: 3, md: 0 },
+} as const;
+
+// A row divider is the set's plain hairline between rows at md, and the
+// cluster separator below md — never a grid participant.
+
+// The set's head carries the same tracks the rows adopt, so each name sits
+// over its column. The head stands at the set's head only from md up; the
+// folded rows below md name nothing (each cluster reads by its matter).
+const HEAD_ROW_SX = {
+  display: { xs: 'none', md: 'grid' },
+  gridTemplateColumns: { md: LINK_ROW_COLUMNS },
   columnGap: { md: 3 },
+  alignItems: 'end',
+  pb: 1,
+  mt: 3,
+} as const;
+
+const HEAD_CELL_SX = { color: 'ink.secondary' } as const;
+const HEAD_ACTS_SX = { color: 'ink.secondary', textAlign: 'right' } as const;
+
+// One row of the set: from md up it carries the head's own identical
+// template (same string, same gap, same width), so its matter reads on one
+// line in the columns the head names; below md it folds into a cluster under
+// the row's own matter, the readable shape when the row is narrow. The row's
+// padding carries the set's vertical rhythm at md (rows apart beyond the
+// label line height).
+const ROW_SX = {
+  display: { xs: 'flex', md: 'grid' },
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  columnGap: 3,
+  rowGap: 1.5,
+  width: '100%',
+  py: 2,
   gridTemplateColumns: { md: LINK_ROW_COLUMNS },
 } as const;
 
-// A row divider spans every track of the shared template at md; below md it
-// is the set's plain hairline.
-const ROW_DIVIDER_SX = { gridColumn: { md: '1 / -1' } } as const;
+// The row's meta standings (created, expiry) read at the meta size in the
+// muted ink, in tabular figures.
+const META_SX = {
+  color: 'ink.muted',
+  fontSize: '0.75rem',
+  fontVariantNumeric: 'tabular-nums',
+  whiteSpace: 'nowrap',
+} as const;
 
-const SET_HEAD_SX = { p: 2, pb: 1.5 } as const;
-const SET_BODY_SX = { p: 2 } as const;
+// The row's act reaches: words, not icons — the take in the accent ink (the
+// one accent-colored matter on the surface), the visits and the correction
+// in the secondary ink, the retire in the muted ink. They end the row.
+const ACTS_SX = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 1,
+  marginLeft: 'auto',
+} as const;
+
+const ACT_BASE_SX = { minWidth: 0, px: 0, py: 0.25 } as const;
+const COPY_ACT_SX = { ...ACT_BASE_SX, color: 'primary.main' } as const;
+const SECONDARY_ACT_SX = { ...ACT_BASE_SX, color: 'ink.secondary' } as const;
+const MUTED_ACT_SX = { ...ACT_BASE_SX, color: 'ink.muted' } as const;
+
+// The take's own ground: the control IS its word. The root's one job is to
+// anchor the floating statement, so it takes a positioning context and
+// sizes itself to the word alone — no confirmation matter ever widens or
+// heightens the row the take stands in.
+const TAKE_ROOT_SX = { position: 'relative', display: 'inline-flex' } as const;
+
+// The confirmation's floating shape: the confirmed reading's quiet-bold
+// weight on the raised surface, hairline edge, and the family's radius.
+// Anchored above the word and stripped of pointer events, so it states the
+// landing without occupying flow space or covering a sibling's click target.
+const CONFIRMATION_BASE_SX = {
+  position: 'absolute',
+  bottom: (theme: Theme) => `calc(100% + ${theme.spacing(0.75)})`,
+  left: 0,
+  zIndex: 1,
+  pointerEvents: 'none',
+  whiteSpace: 'nowrap',
+  typography: 'body2',
+  fontWeight: 600,
+  padding: (theme: Theme) => theme.spacing(0.5, 1.25),
+  borderRadius: (theme: Theme) => theme.shape.borderRadius,
+  border: (theme: Theme) => `1px solid ${theme.palette.line.hairline}`,
+  backgroundColor: (theme: Theme) => theme.palette.surface.raised,
+  boxShadow: (theme: Theme) => theme.depth.hover,
+} as const;
+
+// The two readings of one take: the landed statement in the success ink, the
+// refused statement in the error ink — one floating shape, two inks.
+const CONFIRMATION_LANDED_SX = {
+  ...CONFIRMATION_BASE_SX,
+  color: (theme: Theme) => theme.palette.success.main,
+} as const;
+const CONFIRMATION_FAILED_SX = {
+  ...CONFIRMATION_BASE_SX,
+  color: (theme: Theme) => theme.palette.error.main,
+} as const;
+
+// The narrowing entering stands bare at the set's head, named by its
+// placeholder alone: the filled control ground, the hairline edge, the
+// control radius — the same entering the create act carries.
+const NARROW_FIELD_SX = {
+  width: { xs: '100%', md: '360px' },
+  mt: 3,
+  '& .MuiOutlinedInput-root': { backgroundColor: 'surface.raised' },
+} as const;
+
+const SET_BODY_SX = { pt: 2 } as const;
 
 // The in-row correction lays out on one line — entering beside confirm —
 // whenever the destination's track has room for both, and wraps each onto
 // its own line only when the track is narrow. It is never a fixed-width
 // island: the form is bounded by the track it renders in. The top margin is
-// the ladder's inline step, so the standing's caption and the entering's
-// input never glue together.
+// the ladder's inline step, so the entering's input never glues to the row
+// line above it.
 const CORRECTION_SX = {
   mt: 1,
+  mb: 1,
   gap: 1,
   width: '100%',
   minWidth: 0,
@@ -584,16 +727,18 @@ const CORRECTION_ACTS_SX = { flexShrink: 0 } as const;
 // severity by ink step, never a second hue.
 const CORRECTION_ERROR_SX = { color: 'error.main', flexBasis: '100%' } as const;
 
-// The standing destination wraps inside the row it occupies: a spaceless
-// URL breaks anywhere rather than overflowing the row (or being clipped
-// into a fixed-width island), with the full string still at hand on hover.
-const DESTINATION_SX = { overflowWrap: 'anywhere' } as const;
+// The standing destination reads in the secondary ink and wraps inside the
+// row it occupies: a spaceless URL breaks anywhere rather than overflowing
+// the row (or being clipped into a fixed-width island), with the full string
+// still at hand on hover.
+const DESTINATION_SX = { color: 'ink.secondary', overflowWrap: 'anywhere' } as const;
 
 // The short link reads in the fixed-width register so the character-exact
 // string is read character-exactly. (The optional chain keeps the link
 // legible under a theme that predates the register.)
 const TECHNICAL_LINK_SX = {
   fontFamily: (theme: Theme) => theme.typography.technical?.fontFamily,
+  color: 'ink.primary',
   wordBreak: 'break-all',
 } as const;
 

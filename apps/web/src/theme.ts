@@ -156,10 +156,10 @@ const LIGHT_CANVAS = '#f8fafc';
 const LIGHT_RAISED = '#ecf0f5';
 const LIGHT_VEIL_ALPHA = 0.86;
 // Dark mode: the canvas is the darkest surface; raised sits one step lighter —
-// far enough above the canvas that rows and cards read at a glance, still a
-// calm neutral (zero chroma).
+// the drawn ground, a low-grey step above pure black that keeps rows and cards
+// calm (zero chroma) while still reading against the canvas.
 const DARK_CANVAS = '#000000';
-const DARK_RAISED = '#1e1e1e';
+const DARK_RAISED = '#121212';
 const DARK_VEIL_ALPHA = 0.72;
 // How opaque the floating dialog paper is over the veil: translucent, so the
 // kept place beneath stays present.
@@ -363,7 +363,7 @@ const DISPLAY_STEP: TypographyStyle = {
 };
 const TITLE_STEP: TypographyStyle = {
   fontFamily: FONT_FAMILY,
-  fontSize: '2rem',
+  fontSize: '2.125rem',
   fontWeight: 700,
   letterSpacing: '-0.02em',
   lineHeight: 1.2,
@@ -376,10 +376,18 @@ const BODY_STEP: TypographyStyle = {
 };
 const META_STEP: TypographyStyle = {
   fontFamily: FONT_FAMILY,
-  fontSize: '0.75rem',
+  fontSize: '0.625rem',
   fontWeight: 500,
   letterSpacing: '0.01em',
   lineHeight: 1.5,
+};
+// The standing/row label register: the meta step's size in the label's own
+// weight and case, so every standing label (settings groups, machine terms,
+// table heads, totals) reads at one size wherever it stands.
+const LABEL_STEP: TypographyStyle = {
+  fontSize: META_STEP.fontSize,
+  fontWeight: 700,
+  textTransform: 'uppercase',
 };
 const TECHNICAL_STEP: TypographyStyle = {
   fontFamily: TECHNICAL_FAMILY,
@@ -391,6 +399,10 @@ const TECHNICAL_STEP: TypographyStyle = {
 // Tabular figures for every standing and total, so comparable values align
 // across rows in every locale.
 const NUMERALS_STEP: TypographyStyle = { fontVariantNumeric: 'tabular-nums' };
+// The compact standing register: the pill's own text reads one step below the
+// button register (13 against 14), the size every standing pill and row
+// control draws — the act named beside its matter, never mistaken for a CTA.
+const STANDING_TEXT_SIZE = '0.8125rem';
 
 const typography: ThemeOptions['typography'] = {
   fontFamily: FONT_FAMILY,
@@ -416,6 +428,7 @@ const typography: ThemeOptions['typography'] = {
   body1: BODY_STEP,
   body2: { fontFamily: FONT_FAMILY, fontSize: '0.875rem', fontWeight: 400, lineHeight: 1.5 },
   caption: META_STEP,
+  overline: LABEL_STEP,
   button: { fontWeight: 600, textTransform: 'none' },
   // Named roles -- the variants every surface consumes.
   display: DISPLAY_STEP,
@@ -484,7 +497,19 @@ function componentsFor(t: Theme): ThemeOptions['components'] {
   const TABLE_HEAD_ROOT = { '& .MuiTableCell-head': TABLE_HEAD_CELL };
   const TABLE_CELL_ROOT = { borderBottom: `1px solid ${hairline}` };
   const ALERT_ROOT = { borderRadius: CONTROL_RADIUS };
+  // Every aftermath statement stands in ONE look: the paper ground, a
+  // hairline edge, and the primary ink. The kind of aftermath is said by the
+  // register of the words and by the small status icon alone — the severity
+  // hue never buys a second color field behind the words, in either mode.
+  const ALERT_STANDARD = {
+    backgroundColor: raised,
+    border: `1px solid ${hairline}`,
+    color: inkPrimary,
+  };
   const CHIP_ROOT = { borderRadius: PILL_RADIUS };
+  // The standing pill reads the compact register, not the button register, so
+  // a selection pill and a call to act never read as the same thing.
+  const TOGGLE_BUTTON_ROOT = { fontSize: STANDING_TEXT_SIZE };
 
   return {
     MuiCssBaseline: {
@@ -524,8 +549,9 @@ function componentsFor(t: Theme): ThemeOptions['components'] {
     MuiTextField: { defaultProps: { variant: 'outlined', size: 'small' } },
     MuiTableHead: { styleOverrides: { root: TABLE_HEAD_ROOT } },
     MuiTableCell: { styleOverrides: { root: TABLE_CELL_ROOT } },
-    MuiAlert: { styleOverrides: { root: ALERT_ROOT } },
+    MuiAlert: { styleOverrides: { root: ALERT_ROOT, standard: ALERT_STANDARD } },
     MuiChip: { styleOverrides: { root: CHIP_ROOT } },
+    MuiToggleButton: { styleOverrides: { root: TOGGLE_BUTTON_ROOT } },
   };
 }
 

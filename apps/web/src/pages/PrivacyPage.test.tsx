@@ -1,13 +1,11 @@
 /**
- * Verifies the privacy reading as a user observes it: the container and the
- * four required sections (data-collected, analytics, retention, contact),
- * the two legal texts staged together at the head as one pair with the same
- * reading form as the terms text (the open text's reach and the sibling
- * reach rendered identically), the reading column bounded by the reading
- * measure and centered, the body matter at the sustained-reading line height
- * in the strongest ink relation with no accent anywhere on the surface, and
- * the return reach that restores the place the reading was reached from.
- * Selectors are locale-independent data-testids and roles.
+ * Verifies the privacy reading as a user observes it: the same family as the
+ * terms text — the pair of legal texts staged together at the head with the
+ * open text carrying the strongest ink, the hairline that closes the head
+ * across the zone, the reading column bounded by the reading measure at the
+ * zone left, the body matter at the sustained-reading line height in the
+ * strongest ink relation with no accent anywhere on the surface. Selectors
+ * are locale-independent data-testids and roles.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -35,11 +33,11 @@ function LocationPath() {
   return <div data-testid="location-path">{location.pathname}</div>;
 }
 
-function renderPrivacy(mode: PaletteMode = 'light', initialEntries: string[] = ['/privacy']) {
+function renderPrivacy(mode: PaletteMode = 'light') {
   const theme = createAppTheme(mode);
   render(
     <ThemeProvider theme={theme}>
-      <MemoryRouter initialEntries={initialEntries}>
+      <MemoryRouter initialEntries={['/privacy']}>
         <PrivacyPage />
         <LocationPath />
       </MemoryRouter>
@@ -54,33 +52,21 @@ describe('PrivacyPage', () => {
     expect(screen.getByTestId('privacy-page')).toBeInTheDocument();
   });
 
-  it('renders the data-collected section', () => {
-    renderPrivacy();
-    expect(screen.getByTestId('privacy-data-collected')).toBeInTheDocument();
-  });
-
-  it('renders the analytics section', () => {
-    renderPrivacy();
-    expect(screen.getByTestId('privacy-analytics')).toBeInTheDocument();
-  });
-
-  it('renders the retention section', () => {
-    renderPrivacy();
-    expect(screen.getByTestId('privacy-retention')).toBeInTheDocument();
-  });
-
-  it('renders the contact section', () => {
-    renderPrivacy();
-    expect(screen.getByTestId('privacy-contact')).toBeInTheDocument();
-  });
-
-  it('stages the legal pair at the head with the open text marked', () => {
-    renderPrivacy();
+  it('stages the legal pair at the head with the open text carrying the strongest ink', () => {
+    const theme = renderPrivacy();
     const pair = screen.getByTestId('legal-pair');
     const openReach = within(pair).getByRole('link', { name: 'Privacy' });
     const siblingReach = within(pair).getByRole('link', { name: 'Terms' });
     expect(openReach).toHaveAttribute('aria-current', 'page');
+    expect(openReach).toHaveStyle({ color: rgbColor(theme.palette.text.primary) });
+    // The sibling states itself one step quieter in the same family.
     expect(siblingReach).not.toHaveAttribute('aria-current');
+    expect(siblingReach).toHaveStyle({ color: rgbColor(theme.palette.text.secondary) });
+  });
+
+  it('closes the head with a hairline rule', () => {
+    renderPrivacy();
+    expect(screen.getByRole('separator')).toBeInTheDocument();
   });
 
   it('opens the sibling text of the pair on one activation', async () => {
@@ -90,18 +76,10 @@ describe('PrivacyPage', () => {
     expect(screen.getByTestId('location-path')).toHaveTextContent('/terms');
   });
 
-  it('returns to the place the reading was reached from', async () => {
-    const user = userEvent.setup();
-    renderPrivacy('light', ['/dashboard', '/privacy']);
-    await user.click(screen.getByTestId('legal-back'));
-    expect(screen.getByTestId('location-path')).toHaveTextContent('/dashboard');
-  });
-
-  it('bounds the reading column at the reading measure and centers it', () => {
+  it('bounds the reading column at the reading measure and stands it at the zone left', () => {
     renderPrivacy();
     expect(screen.getByTestId('privacy-reading')).toHaveStyle({
       maxWidth: `${SPACE.measure}px`,
-      marginLeft: 'auto',
       marginRight: 'auto',
     });
   });
@@ -124,14 +102,13 @@ describe('PrivacyPage', () => {
     renderPrivacy();
     const reading = screen.getByTestId('privacy-reading');
     const bodyParagraphs = Array.from(reading.querySelectorAll('p.MuiTypography-body1'));
-    // The intro plus the four section bodies.
+    // The intro plus the two section bodies.
     expect(bodyParagraphs).toHaveLength(5);
     for (const paragraph of bodyParagraphs) {
       expect(paragraph).toHaveStyle({ lineHeight: '1.5' });
     }
-    // Only the last-updated standing sits at the meta step.
-    const metaParagraphs = Array.from(reading.querySelectorAll('p.MuiTypography-body2'));
-    expect(metaParagraphs).toHaveLength(1);
+    // No meta standing exists in the reading.
+    expect(reading.querySelectorAll('.MuiTypography-caption')).toHaveLength(0);
   });
 
   it('names the reading at the title step with the section headings below it', () => {

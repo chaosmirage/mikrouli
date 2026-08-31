@@ -15,9 +15,11 @@ Swagger UI (non-production only), then starts the HTTP server.
   `ValidationPipe` and `ProblemDetailsFilter`, and conditionally mounts Swagger
   only outside production.
 - `app.module.ts` -- `AppModule`. Wires TypeORM (requires `DB_PASS` via
-  `getOrThrow`), a global `ThrottlerGuard` over the four named buckets
-  (`default`, `auth`, `redirect`, `data`) built by `buildThrottlerOptions()`
-  from `common/throttler-policy.ts`, and all feature modules. The throttle
+  `getOrThrow`), the global `CredentialedRequestThrottlerGuard`
+  (`common/credentialed-request-throttler.guard.ts`) over the four named
+  buckets (`default`, `auth`, `redirect`, `data`) built by
+  `buildThrottlerOptions()` from `common/throttler-policy.ts`, and all
+  feature modules. The throttle
   names and budgets are exported from that leaf, not from here --
   `app.module.ts` exports only `AppModule` -- so controllers can reference
   them without string literals and without importing the module graph back.

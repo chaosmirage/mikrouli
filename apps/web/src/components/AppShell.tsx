@@ -12,7 +12,7 @@ import Link from '@mui/material/Link';
 import MenuIcon from '@mui/icons-material/Menu';
 import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined';
 import LanguageIcon from '@mui/icons-material/Language';
-import { Outlet, useNavigate, Link as RouterLink } from 'react-router-dom';
+import {Outlet, useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 import SettingsPanel from './SettingsPanel';
@@ -108,6 +108,7 @@ export default function AppShell() {
   const { user, logout } = useAuth();
   const { t } = useTranslation('common');
   const navigate = useNavigate();
+  const pathname = useLocation().pathname;
 
   const handleLogin = useCallback(() => navigate('/login'), [navigate]);
   const handleRegister = useCallback(() => navigate('/register'), [navigate]);
@@ -154,7 +155,6 @@ export default function AppShell() {
           label: t('register'),
           testId: 'nav-register',
           onClick: handleRegister,
-          variant: 'contained',
           color: 'primary',
         },
       ];
@@ -243,7 +243,7 @@ export default function AppShell() {
       <Box component="main" data-testid="page-content" sx={MAIN_SX}>
         <Outlet />
       </Box>
-      <Footer />
+      {pathname !== '/' && <Footer />}
       <SettingsPanel open={settingsOpen} onClose={closeSettings} />
     </Box>
   );

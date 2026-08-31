@@ -1,23 +1,16 @@
-import { Fragment, FormEvent, ReactNode, useCallback, useState } from 'react';
+import { Fragment, FormEvent, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
-import IconButton from '@mui/material/IconButton';
-import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import BlockIcon from '@mui/icons-material/Block';
 import type { Theme } from '@mui/material/styles';
 import { apiFetch } from '../api/client';
 import type { ApiKeyCreated, ApiKeySummary } from '../api/types';
-import CopyControl from '../components/CopyControl';
-import StandingsRow from '../components/StandingsRow';
 import StatementBand from '../components/StatementBand';
 import type { StatementBandState } from '../components/StatementBand';
 import { formatDate } from '../i18n/format';
@@ -40,39 +33,86 @@ const ZONE_SPACING = 5;
 
 const KEY_LABEL_INPUT_PROPS = { 'data-testid': 'key-label' } as const;
 const CREATE_BUTTON_SX = { whiteSpace: 'nowrap' } as const;
-const CREATE_FIELD_SX = { flex: 1 } as const;
 
-// The secret reads in the theme's fixed-width register: a character-exact
-// string must be read character-exactly, because a mistyped key fails late.
-// (The optional chain keeps the value legible under a theme that predates
-// the register.)
+// The issuing entering stands bare beside its act, named by its placeholder
+// alone: the filled control ground, the hairline edge, the control radius —
+// the same entering every act on the surface carries.
+const CREATE_FIELD_SX = {
+  flex: { sm: '0 0 auto' },
+  width: { xs: '100%', sm: '360px' },
+  '& .MuiOutlinedInput-root': { backgroundColor: 'surface.raised' },
+} as const;
+
+// The secret's one showing stands on the accent family's quiet tint — the one
+// place the accent is spent as a ground rather than as a mark — at the
+// control radius, holding only what the moment must not miss.
+const SECRET_SURFACE_SX = {
+  backgroundColor: 'primary.light',
+  borderRadius: 1,
+  px: 3,
+  py: 2.25,
+  maxWidth: 560,
+  alignSelf: 'flex-start',
+} as const;
+
+// The secret reads in the theme's fixed-width register at its own step: a
+// character-exact string must be read character-exactly, because a mistyped
+// key fails late. (The optional chain keeps the value legible under a theme
+// that predates the register.)
 const SECRET_VALUE_SX = {
   fontFamily: (theme: Theme) => theme.typography.technical?.fontFamily,
-  fontSize: '0.875rem',
+  fontSize: '1rem',
+  color: 'text.primary',
   wordBreak: 'break-all',
 } as const;
 
-const SECRET_ACTS_SX = { display: 'flex', alignItems: 'center', gap: 0.5 } as const;
+// The receipt is the moment's one accent reading: the aftermath statement in
+// the accent ink, at the meta size.
+const SECRET_RECEIPT_SX = { color: 'primary.main', fontSize: '0.75rem' } as const;
 
-const REVIEW_LIST_SX = { p: 2 } as const;
+// The review's ONE shared row template: the credential's name is the only
+// flexible track and it is bounded (fr over a zero floor, so its width never
+// depends on any row's content — a longer name folds inside its own track),
+// the standings size to their strings, and the retire reach ends the row.
+// The review's head names these same tracks, so every column keeps one x
+// from its head through every row.
+const KEY_ROW_COLUMNS = 'minmax(0, 1fr) max-content max-content auto';
 
-// The review's ONE shared row template: the key name is the only flexible
-// track and it is bounded (fr over a zero floor, so its width never depends
-// on any row's content — a longer name folds inside its own track), the
-// prefix/dates/status size to their strings, and the acts end the row. Every
-// review row adopts these exact tracks, so like-positioned standings — and
-// the acts — start at the same x in every row, whatever a credential is
-// named.
-const KEY_ROW_COLUMNS = 'minmax(0, 1fr) max-content max-content max-content max-content auto';
-
-// The review's rows: from md up they become one grid carrying the shared
-// template — each row adopts its tracks, so the columns hold one line.
-// Below md the rows fold individually, which is the readable shape there.
+// The review's rows: one grid carrying the shared template from md up — each
+// row adopts its tracks (subgrid), so like-positioned standings start at the
+// same x in every row, whatever a credential is named. Below md the rows
+// fold individually, which is the readable shape there.
 const REVIEW_ROWS_SX = {
   display: { xs: 'flex', md: 'grid' },
   flexDirection: 'column',
+  rowGap: { xs: 3, md: 0 },
   columnGap: { md: 3 },
   gridTemplateColumns: { md: KEY_ROW_COLUMNS },
+} as const;
+
+const HEAD_ROW_SX = {
+  display: { xs: 'none', md: 'grid' },
+  gridTemplateColumns: { md: KEY_ROW_COLUMNS },
+  columnGap: { md: 3 },
+  alignItems: 'end',
+  pb: 1,
+} as const;
+
+const HEAD_CELL_SX = { color: 'ink.secondary' } as const;
+const HEAD_ACTS_SX = { color: 'ink.secondary', textAlign: 'right' } as const;
+
+// One review row adopts the shared tracks (subgrid) from md up; below md it
+// folds into a cluster under the credential's name.
+const KEY_ROW_SX = {
+  display: { xs: 'flex', md: 'grid' },
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  columnGap: 3,
+  rowGap: 1.5,
+  width: '100%',
+  py: 2,
+  gridTemplateColumns: { md: 'subgrid' },
+  gridColumn: { md: '1 / -1' },
 } as const;
 
 // A row divider spans every track of the shared template at md; below md it
@@ -82,7 +122,21 @@ const ROW_DIVIDER_SX = { gridColumn: { md: '1 / -1' } } as const;
 // The credential's name is bounded matter: it can shrink below its content
 // inside its track and folds there (a spaceless name breaks anywhere),
 // never widening the track or pushing another column's x.
-const KEY_NAME_SX = { minWidth: 0, overflowWrap: 'anywhere' } as const;
+const KEY_NAME_SX = { minWidth: 0, overflowWrap: 'anywhere', fontWeight: 600 } as const;
+
+// The review's standings (created, last used) read at the meta size in the
+// muted ink, in tabular figures.
+const META_SX = {
+  color: 'ink.muted',
+  fontSize: '0.75rem',
+  fontVariantNumeric: 'tabular-nums',
+  whiteSpace: 'nowrap',
+} as const;
+
+// The retire reach: a word in the muted ink that ends the row. A retired
+// credential's standing is stated beside it, never hidden.
+const RETIRE_ACT_SX = { minWidth: 0, px: 0, py: 0.25, color: 'ink.muted' } as const;
+const REVOKED_SX = { ...META_SX } as const;
 
 /**
  * The issuing act's whole aftermath, one state at a time: idle, under way,
@@ -107,10 +161,12 @@ function CapabilityStatement() {
   const { t } = useTranslation('apiKeys');
   return (
     <Stack spacing={1}>
-      <Typography variant="h4" component="h1">
+      <Typography variant="title" component="h1">
         {t('title')}
       </Typography>
-      <Typography color="text.secondary">{t('intro')}</Typography>
+      <Typography variant="body2" color="text.secondary">
+        {t('intro')}
+      </Typography>
     </Stack>
   );
 }
@@ -121,6 +177,8 @@ interface IssueZoneProps {
   onLabelChange: (v: string) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
 }
+// The issuing zone: least ceremony — the entering beside its one act, both
+// standing bare on the surface.
 function IssueZone({ label, outcome, onLabelChange, onSubmit }: IssueZoneProps) {
   const { t } = useTranslation('apiKeys');
   const handleChange = useCallback(
@@ -128,67 +186,54 @@ function IssueZone({ label, outcome, onLabelChange, onSubmit }: IssueZoneProps) 
     [onLabelChange],
   );
   return (
-    <Card data-testid="create-key-card">
-      <CardContent>
-        <form onSubmit={onSubmit} data-testid="create-key-form">
-          <Stack spacing={1.5}>
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={1.5}
-              alignItems={{ sm: 'center' }}
-            >
-              <TextField
-                label={t('label')}
-                value={label}
-                onChange={handleChange}
-                inputProps={KEY_LABEL_INPUT_PROPS}
-                required
-                sx={CREATE_FIELD_SX}
-              />
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={outcome.kind === 'underway'}
-                data-testid="key-create"
-                sx={CREATE_BUTTON_SX}
-              >
-                {t('create')}
-              </Button>
-            </Stack>
-            <StatementBand state={issueBandState(outcome)} />
-          </Stack>
-        </form>
-      </CardContent>
-    </Card>
+    <form onSubmit={onSubmit} data-testid="create-key-form">
+      <Stack spacing={1.5}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+          <TextField
+            hiddenLabel
+            placeholder={t('label')}
+            value={label}
+            onChange={handleChange}
+            inputProps={KEY_LABEL_INPUT_PROPS}
+            required
+            sx={CREATE_FIELD_SX}
+          />
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={outcome.kind === 'underway'}
+            data-testid="key-create"
+            sx={CREATE_BUTTON_SX}
+          >
+            {t('create')}
+          </Button>
+        </Stack>
+        <StatementBand state={issueBandState(outcome)} />
+      </Stack>
+    </form>
   );
 }
 
 interface SecretShowingProps {
   apiKey: ApiKeyCreated;
-  onDismiss: () => void;
 }
 /**
- * The secret's one showing: the receipt stated as the aftermath of the issuing
- * act, and the value itself standing in its own glance to be carried onward —
- * takeable in one activation with the landing confirmed beside it.
+ * The secret's one showing: the value itself standing in its own glance to be
+ * carried onward, and the receipt stating what the moment is — both on the
+ * accent-tinted surface, the one place the accent family is spent as a ground
+ * rather than as a mark.
  */
-function SecretShowing({ apiKey, onDismiss }: SecretShowingProps) {
+function SecretShowing({ apiKey }: SecretShowingProps) {
   const { t } = useTranslation('apiKeys');
   return (
-    <Stack data-testid="key-secret-once" spacing={1.5}>
-      <StatementBand state={{ kind: 'landed' }} landedKey="apiKeys:secretReceipt" />
-      <Stack direction="row" spacing={1} alignItems="center">
+    <Box sx={SECRET_SURFACE_SX} data-testid="key-secret-once">
+      <Stack spacing={1}>
         <Box sx={SECRET_VALUE_SX} data-testid="key-secret-value">
           {apiKey.key}
         </Box>
-        <Box sx={SECRET_ACTS_SX}>
-          <CopyControl value={apiKey.key} testId="copy-key-secret" />
-          <Button size="small" onClick={onDismiss} data-testid="dismiss-key-alert">
-            {t('dismiss')}
-          </Button>
-        </Box>
+        <Typography sx={SECRET_RECEIPT_SX}>{t('secretReceipt')}</Typography>
       </Stack>
-    </Stack>
+    </Box>
   );
 }
 
@@ -196,46 +241,37 @@ interface KeyReviewRowProps {
   apiKey: ApiKeySummary;
   onRevoke: (id: string) => void;
 }
-/** One issued credential as a labeled row: its standings, its retire reach. */
+/** One issued credential as a review row: its standings, its retire reach. */
 function KeyReviewRow({ apiKey, onRevoke }: KeyReviewRowProps) {
   const { t } = useTranslation('apiKeys');
   const isRevoked = apiKey.revokedAt !== null;
   const lastUsed = apiKey.lastUsedAt ? formatDate(apiKey.lastUsedAt) : t('neverUsed');
   const handleRevoke = useCallback(() => onRevoke(apiKey.id), [onRevoke, apiKey.id]);
   return (
-    <StandingsRow
-      aligned
-      rowTestId={`key-row-${apiKey.id}`}
-      identity={
-        <Typography variant="subtitle1" component="span" fontWeight={600} sx={KEY_NAME_SX}>
-          {apiKey.label}
-        </Typography>
-      }
-      standings={[
-        {
-          label: t('prefix'),
-          value: `${apiKey.keyPrefix}…`,
-          testId: `key-prefix-${apiKey.id}`,
-        },
-        { label: t('created'), value: formatDate(apiKey.createdAt) },
-        { label: t('lastUsed'), value: lastUsed },
-        {
-          label: t('status'),
-          value: isRevoked ? t('revoked') : t('active'),
-        },
-      ]}
-      acts={
-        <IconButton
+    <Box sx={KEY_ROW_SX} data-testid={`key-row-${apiKey.id}`}>
+      <Typography variant="body2" component="span" sx={KEY_NAME_SX}>
+        {apiKey.label}
+      </Typography>
+      <Typography variant="body2" sx={META_SX}>
+        {formatDate(apiKey.createdAt)}
+      </Typography>
+      <Typography variant="body2" sx={META_SX}>
+        {lastUsed}
+      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, marginLeft: 'auto' }}>
+        {isRevoked ? <Typography sx={REVOKED_SX}>{t('revoked')}</Typography> : null}
+        <Button
           size="small"
           onClick={handleRevoke}
           disabled={isRevoked}
           aria-label={`${t('revoke')} ${apiKey.label}`}
           data-testid={`revoke-${apiKey.id}`}
+          sx={RETIRE_ACT_SX}
         >
-          <BlockIcon fontSize="small" />
-        </IconButton>
-      }
-    />
+          {t('revoke')}
+        </Button>
+      </Box>
+    </Box>
   );
 }
 
@@ -247,12 +283,27 @@ interface ReviewZoneProps {
 }
 /** What stands: the issued credentials as review rows, or the honest states. */
 function ReviewZone({ keys, loading, fetchError, onRevoke }: ReviewZoneProps) {
+  const { t } = useTranslation('apiKeys');
   if (loading) return <CircularProgress data-testid="keys-loading" />;
   if (fetchError !== null) return <StatementBand state={{ kind: 'failure', cause: fetchError }} />;
   if (keys.length === 0)
     return <StatementBand state={{ kind: 'empty' }} emptyKey="apiKeys:noKeys" />;
   return (
-    <Paper variant="outlined" sx={REVIEW_LIST_SX} data-testid="api-keys-table">
+    <Box data-testid="api-keys-table">
+      <Box sx={HEAD_ROW_SX} data-testid="api-keys-head">
+        <Typography variant="overline" sx={HEAD_CELL_SX}>
+          {t('colName')}
+        </Typography>
+        <Typography variant="overline" sx={HEAD_CELL_SX}>
+          {t('created')}
+        </Typography>
+        <Typography variant="overline" sx={HEAD_CELL_SX}>
+          {t('lastUsed')}
+        </Typography>
+        <Typography variant="overline" sx={HEAD_ACTS_SX}>
+          {t('revoke')}
+        </Typography>
+      </Box>
       <Box sx={REVIEW_ROWS_SX} data-testid="api-keys-rows">
         {keys.map((k, index) => (
           <Fragment key={k.id}>
@@ -261,7 +312,7 @@ function ReviewZone({ keys, loading, fetchError, onRevoke }: ReviewZoneProps) {
           </Fragment>
         ))}
       </Box>
-    </Paper>
+    </Box>
   );
 }
 
@@ -309,13 +360,9 @@ export default function ApiKeysPage() {
     [queryClient],
   );
 
-  const handleDismissSecret = useCallback(() => setIssueOutcome({ kind: 'idle' }), []);
-
   const fetchError = keysError ?? null;
-  const secretShowing: ReactNode =
-    issueOutcome.kind === 'issued' ? (
-      <SecretShowing apiKey={issueOutcome.key} onDismiss={handleDismissSecret} />
-    ) : null;
+  const secretShowing =
+    issueOutcome.kind === 'issued' ? <SecretShowing apiKey={issueOutcome.key} /> : null;
 
   return (
     <Stack spacing={ZONE_SPACING} data-testid="api-keys-page">

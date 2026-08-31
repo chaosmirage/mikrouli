@@ -15,13 +15,18 @@ import type { ThrottlerModuleOptions } from '@nestjs/throttler';
  * Governing mechanic (@nestjs/throttler 6.x ThrottlerGuard): every declared
  * throttler is evaluated for every route. A route's effective budget is the
  * MINIMUM over all non-skipped names — `@Throttle` replaces one name's budget
- * on that route, `@SkipThrottle({ name: true })` sheds one name. The policy is
- * therefore shaped fail-safe: liberal module floors, route-level tightenings
- * where the attack surface is (credential entry, guest-admissible creation),
- * and skip-to-select so authenticated data routes run under the generous
- * `data` budget alone. A future route that forgets a skip degrades to the
- * liberal floor; one that forgets a tightening still gets the floor — never an
- * unbounded route, and never the historical per-IP tax on data traffic.
+ * on that route, `@SkipThrottle({ name: true })` sheds one name, and
+ * `@SkipThrottleWhenCredentialed({ name: true })` (realized by the
+ * CredentialedRequestThrottlerGuard the app boots) sheds one name for a
+ * request carrying a credential. The policy is therefore shaped fail-safe:
+ * liberal module floors, route-level tightenings where the attack surface is
+ * (credential entry, guest-admissible creation), and skip-to-select so
+ * authenticated data routes run under the generous `data` budget alone — a
+ * tightening that exists to bound GUEST admission is declared guest-only and
+ * never taxes the registered user behind the same route. A future route that
+ * forgets a skip degrades to the liberal floor; one that forgets a tightening
+ * still gets the floor — never an unbounded route, and never the historical
+ * per-IP tax on data traffic.
  *
  * Counters are in-memory per pod; effective budgets multiply by pod count.
  */
@@ -42,15 +47,25 @@ export const REDIRECT_MODULE_BUDGET = { limit: 120, ttl: 10_000 } as const;
  * (~<=450 API calls/min worst case) sit far below it. */
 export const DATA_MODULE_BUDGET = { limit: 1000, ttl: 60_000 } as const;
 
-/** Credential entry (register / login / refresh / github / github-callback):
- * brute force gets 10 attempts per minute per IP. */
+/** Credential entry (register / login / github / github-callback): brute
+ * force gets 10 attempts per minute per IP. */
 export const AUTH_CREDENTIAL_BUDGET = { limit: 10, ttl: 60_000 } as const;
+/** Session rotation (POST /api/auth/refresh): the presented credential is a
+ * server-issued HttpOnly cookie, not a guessable password, so rotation does
+ * not share the brute-force bound. Its own per-IP counter keeps scripted
+ * rotation bounded while staying far above what real clients need — an access
+ * token lives 15 minutes, so many sessions behind one address rotate a handful
+ * of times per minute at most. */
+export const AUTH_REFRESH_BUDGET = { limit: 60, ttl: 60_000 } as const;
 /** The redirect hot path's route override — sheds the stricter names via
  * `@SkipThrottle` so this budget alone governs. */
 export const REDIRECT_HOT_PATH_BUDGET = { limit: 120, ttl: 10_000 } as const;
 /** Anonymous link creation: guest POST /api/urls skips the quota check and the
  * origin check is spoofable, so this per-IP override is the ONLY abuse bound
- * on that route — a deliberate bound, kept at today's effective value. */
+ * on that route for the anonymous visitor — a deliberate bound, kept at
+ * today's effective value. The route sheds it (and the other public names) for
+ * credentialed requests, whose creations are quota-checked and run under the
+ * `data` budget like any other authenticated write. */
 export const GUEST_CREATE_BUDGET = { limit: 30, ttl: 60_000 } as const;
 
 /** Builds the module options both the app and the guard-driven specs consume —

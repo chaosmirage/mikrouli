@@ -11,11 +11,17 @@
   "shortUrl": "Kurz-URL",
   "originalUrl": "Original-URL",
   "statsLabel": "Statistik",
-  "deleteLink": "Link löschen?",
-  "deleteLinkBody": "{{slug}} wird unwiderruflich entfernt.",
+  "deleteLink": "{{slug}} stilllegen?",
+  "deleteLinkBody": "Der Kurzlink funktioniert dauerhaft nicht mehr. Das kann nicht rückgängig gemacht werden.",
   "shortenLabel": "Kürzen",
   "editLabel": "Bearbeiten",
-  "narrowLinks": "Links eingrenzen",
+  "retire": "Stilllegen",
+  "narrowLinks": "Links filtern…",
   "narrowedEmpty": "Keine Links entsprechen „{{fragment}}“.",
-  "correctedDestination": "Ziel"
+  "correctedDestination": "Ziel",
+  "colShortLink": "Kurzlink",
+  "colDestination": "Ziel",
+  "colCreated": "Erstellt",
+  "colExpires": "Läuft ab",
+  "colActs": "Akte"
 }

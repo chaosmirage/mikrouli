@@ -29,6 +29,26 @@ describe('App', () => {
     expect(screen.getByTestId('stub')).toBeInTheDocument();
   });
 
+  it('renders the not-found statement for an unknown path instead of an empty document', async () => {
+    // A visitor at an address no route answers still gets the shell with the
+    // resolved statement inside it — navigation survives, the document is
+    // never blank. The auth bootstrap probe resolves before the route
+    // settles, hence findBy.
+    render(
+      <ThemeModeProvider>
+        <ThemeProvider theme={createAppTheme('light')}>
+          <MemoryRouter initialEntries={['/no-such-address']}>
+            <App />
+          </MemoryRouter>
+        </ThemeProvider>
+      </ThemeModeProvider>,
+    );
+    const statement = await screen.findByTestId('not-found-statement');
+    expect(statement).toBeInTheDocument();
+    // The statement stands inside the shell, so the app bar survives it.
+    expect(screen.getByTestId('app-bar')).toBeInTheDocument();
+  });
+
   it('bounds the contained layout at the wide content token, never the reading measure', async () => {
     // A user opening any contained page (here /login) sees the shared content
     // column: the wide zone the dashboard set scans, not the reading measure

@@ -1,271 +1,159 @@
 import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
+import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
-import Link from '@mui/material/Link';
-import type { Theme } from '@mui/material/styles';
 import CopyControl from '../components/CopyControl';
-import StandingsRow from '../components/StandingsRow';
 
-const PAGE_SX = { py: { xs: 4, md: 8 } } as const;
+// The connect surface: one statement head, the credential's terms and the
+// machine's terms as labeled rows in the technical register, and one takeable
+// example call. Everything a machine needs to connect, nothing a human has to
+// read twice -- the register's credibility is the calm.
 
-const SECTION_SX = {
-  p: { xs: 3, md: 4 },
+// The page zone: the whole content zone at the standing page inset, so the
+// head, the ruled rows, and the example all stand where the reference frame
+// places them.
+const ZONE_SX = { px: { xs: 3, md: 15 } } as const;
+
+const PAGE_SX = { pt: { xs: 3, md: 7 }, pb: { xs: 8, md: 10 } } as const;
+
+/** The label column's width: the value's standing edge inside the zone. */
+const LABEL_COLUMN = 280;
+
+// One F4 labeled row: the standing label in the row register, the machine
+// value beside it in the fixed-width register, a hairline rule closing the
+// row. The label holds a fixed column so every value starts on one edge and
+// comparable terms compare as one register.
+const TERM_ROW_SX = {
+  py: 1.75,
+  display: 'flex',
+  alignItems: 'baseline',
+  columnGap: { xs: 2, md: 0 },
+  flexDirection: { xs: 'column', md: 'row' },
 } as const;
 
-const LIST_SX = { pl: 3, m: 0 } as const;
-
-// The machine strings read in the theme's fixed-width register: a
-// character-exact string must be read character-exactly, because a mistyped
-// key or address fails late. (The optional chain keeps the strings legible
-// under a theme that predates the register.)
-const CODE_SX = {
-  fontFamily: (theme: Theme) => theme.typography.technical?.fontFamily,
-  fontSize: '0.875rem',
-  bgcolor: 'action.hover',
-  px: 1,
-  py: 0.25,
-  borderRadius: 0.5,
-  display: 'inline',
+const TERM_LABEL_SX = {
+  width: { xs: 'auto', md: `${LABEL_COLUMN}px` },
+  flexShrink: 0,
+  color: 'ink.muted',
+  lineHeight: 1.5,
 } as const;
 
-const CODE_BLOCK_SX = {
-  fontFamily: (theme: Theme) => theme.typography.technical?.fontFamily,
-  fontSize: '0.8125rem',
-  bgcolor: 'action.hover',
-  p: 2,
+// The takeable example: the exact text on the raised ground inside a hairline
+// edge, the take standing flush at its right end -- one activation puts it on
+// the clipboard, no transcription by hand.
+const EXAMPLE_BLOCK_SX = {
+  mt: 3,
+  p: 3,
+  pb: 4,
+  backgroundColor: 'surface.raised',
+  border: '1px solid',
+  borderColor: 'line.hairline',
   borderRadius: 1,
+} as const;
+
+const EXAMPLE_TEXT_SX = {
+  flex: '1 1 auto',
+  minWidth: 0,
   whiteSpace: 'pre' as const,
   overflowX: 'auto' as const,
-  minWidth: 0,
 } as const;
 
-const EXAMPLE_BLOCK_ROW_SX = { alignItems: 'flex-start' } as const;
+// One connected call, stated exactly as it is taken.
+const MCP_CURL_EXAMPLE = `curl -X POST https://mikrou.li/api/mcp \\
+  -H "x-api-key: $MIKROULI_KEY" \\
+  -d '{"url": "https://example.com/launch"}'`;
 
-const REST_CURL_EXAMPLE = `curl -s -X POST https://mikrou.li/api/urls \\
-  -H "Content-Type: application/json" \\
-  -H "x-api-key: mk_<your-key>" \\
-  -d '{"url":"https://example.com/long-url"}' | jq .`;
+// --- Data structures ---------------------------------------------------------
 
-const REST_RESPONSE_EXAMPLE = `{
-  "shortUrl": "abc123",
-  "originalUrl": "https://example.com/long-url",
-  "createdAt": "2026-01-01T00:00:00.000Z",
-  "expiresAt": null
-}`;
-
-const MCP_EXAMPLE = `curl -s -X POST https://mikrou.li/api/mcp \\
-  -H "Content-Type: application/json" \\
-  -H "x-api-key: mk_<your-key>" \\
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "initialize",
-    "id": 1,
-    "params": {
-      "protocolVersion": "2024-11-05",
-      "capabilities": {},
-      "clientInfo": { "name": "my-agent", "version": "1" }
-    }
-  }'`;
-
-// Exact verified command for wiring mikrouli into Claude Code as an MCP server.
-// --scope user: persists across projects; --transport http: Streamable HTTP.
-const CLAUDE_MCP_ADD_COMMAND = `claude mcp add --scope user --transport http mikrouli \\
-  https://mikrou.li/api/mcp \\
-  --header "x-api-key: mk_<your-key>"`;
-
-interface ExampleCallProps {
+/** One machine term as the surface states it: a standing label in the
+ *  product's register and the machine value that stands beside it. */
+interface MachineTerm {
   label: string;
-  command: string;
-  testId: string;
-  copyTestId: string;
+  value: string;
 }
+
+interface TermSectionProps {
+  testId: string;
+  terms: readonly MachineTerm[];
+}
+
 /**
- * A takeable example call: the exact text stands in the technical register and
- * one activation takes it onto the clipboard, the landing confirmed beside it —
- * no transcription by hand.
+ * The credential's terms and the machine's terms rendered through one row
+ * shape: every row is a label, a value in the technical register, and the
+ * hairline that closes it, so the two sections read as one register.
  */
-function ExampleCall({ label, command, testId, copyTestId }: ExampleCallProps) {
+function TermSection({ testId, terms }: TermSectionProps) {
   return (
-    <Stack spacing={1}>
-      <Typography variant="subtitle1" fontWeight={600}>
-        {label}
-      </Typography>
-      <Stack direction="row" spacing={1} sx={EXAMPLE_BLOCK_ROW_SX}>
-        <Box sx={CODE_BLOCK_SX} data-testid={testId}>
-          {command}
+    <Box data-testid={testId}>
+      {terms.map((term) => (
+        <Box key={term.label}>
+          <Box sx={TERM_ROW_SX}>
+            <Typography variant="overline" component="span" sx={TERM_LABEL_SX}>
+              {term.label}
+            </Typography>
+            <Typography variant="technical" component="span">
+              {term.value}
+            </Typography>
+          </Box>
+          <Divider />
         </Box>
-        <CopyControl value={command} testId={copyTestId} />
-      </Stack>
-    </Stack>
+      ))}
+    </Box>
   );
 }
 
-/** What connecting does, stated in the capability's own register. */
+/** The statement head: what connecting is, in one line of description. */
 function ConnectionStatement() {
   const { t } = useTranslation('connect');
   return (
-    <Stack spacing={1}>
-      <Typography variant="h3" component="h1" fontWeight={700}>
+    <Stack spacing={1.75}>
+      <Typography variant="h3" component="h1">
         {t('pageTitle')}
       </Typography>
       <Typography variant="body1" color="text.secondary">
         {t('pageDescription')}
       </Typography>
-      <Box>
-        <Link href="/llms.txt" underline="hover" variant="body2">
-          {t('llmsFileLink')}
-        </Link>
-      </Box>
     </Stack>
   );
 }
 
-/** Where the credential comes from and how it is borne on every machine call. */
-function AuthorizationTerms() {
-  const { t } = useTranslation('connect');
-  return (
-    <Paper variant="outlined" sx={SECTION_SX} data-testid="connect-apikey-section">
-      <Stack spacing={2}>
-        <Typography variant="h5" component="h2">
-          {t('apiKeySectionTitle')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {t('apiKeySectionDesc')}
-        </Typography>
-        <Box component="ol" sx={LIST_SX}>
-          <Box component="li">
-            <Typography variant="body2">{t('apiKeySignIn')}</Typography>
-          </Box>
-          <Box component="li">
-            <Typography variant="body2">{t('apiKeyNavigate')}</Typography>
-          </Box>
-          <Box component="li">
-            <Typography variant="body2">{t('apiKeyCreate')}</Typography>
-          </Box>
-        </Box>
-        <StandingsRow
-          standings={[
-            {
-              label: t('restAuthHeader'),
-              value: (
-                <Box component="span" sx={CODE_SX}>
-                  x-api-key: mk_&lt;your-key&gt;
-                </Box>
-              ),
-            },
-            {
-              label: t('keyFormatLabel'),
-              value: (
-                <Box component="span" sx={CODE_SX}>
-                  mk_&lt;your-key&gt;
-                </Box>
-              ),
-            },
-          ]}
-        />
-        <Typography variant="body2" color="text.secondary">
-          {t('apiKeyNote')}
-        </Typography>
-      </Stack>
-    </Paper>
-  );
-}
-
-/** The machine terms of the direct REST path: endpoint and example call. */
-function RestTerms() {
-  const { t } = useTranslation('connect');
-  return (
-    <Paper variant="outlined" sx={SECTION_SX} data-testid="connect-rest-section">
-      <Stack spacing={2}>
-        <Typography variant="h5" component="h2">
-          {t('restSectionTitle')}
-        </Typography>
-        <Typography variant="subtitle1" fontWeight={600}>
-          {t('restEndpoint')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {t('restEndpointDesc')}
-        </Typography>
-        <ExampleCall
-          label={t('exampleCallLabel')}
-          command={REST_CURL_EXAMPLE}
-          testId="connect-example-direct"
-          copyTestId="copy-direct-call"
-        />
-        <Typography variant="body2" color="text.secondary">
-          {t('restResponseDesc')}
-        </Typography>
-        <Box sx={CODE_BLOCK_SX}>{REST_RESPONSE_EXAMPLE}</Box>
-      </Stack>
-    </Paper>
-  );
-}
-
-/** The machine terms of the MCP path: address, protocol, and harness wiring. */
-function McpTerms() {
-  const { t } = useTranslation('connect');
-  return (
-    <Paper variant="outlined" sx={SECTION_SX} data-testid="connect-mcp-section">
-      <Stack spacing={2}>
-        <Typography variant="h5" component="h2">
-          {t('mcpSectionTitle')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {t('mcpSectionDesc')}
-        </Typography>
-        <StandingsRow
-          standings={[
-            {
-              label: t('mcpEndpoint'),
-              value: (
-                <Box component="span" sx={CODE_SX}>
-                  /api/mcp
-                </Box>
-              ),
-            },
-          ]}
-        />
-        <Typography variant="body2" color="text.secondary">
-          {t('mcpProtocol')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {t('mcpAuthNote')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {t('mcpToolDesc')}
-        </Typography>
-        <Box sx={CODE_BLOCK_SX}>{MCP_EXAMPLE}</Box>
-        <Typography variant="subtitle1" fontWeight={600}>
-          {t('mcpClaudeCodeTitle')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {t('mcpClaudeCodeDesc')}
-        </Typography>
-        <ExampleCall
-          label={t('exampleCallLabel')}
-          command={CLAUDE_MCP_ADD_COMMAND}
-          testId="connect-example-harness"
-          copyTestId="copy-harness-add"
-        />
-      </Stack>
-    </Paper>
-  );
-}
-
 export default function ConnectPage() {
+  const { t } = useTranslation('connect');
+
+  // The credential's terms: where the credential is issued and how it is
+  // named. Machine values stay in their own register, never translated.
+  const credentialTerms: readonly MachineTerm[] = [
+    { label: t('apiKeyLabel'), value: t('apiKeyValue') },
+    { label: t('headerLabel'), value: 'x-api-key: mk_…' },
+    { label: t('keyFormatLabel'), value: 'mk_ + 32 base62 chars' },
+  ];
+
+  // The machine's terms: where the protocol listens and what it speaks.
+  const machineTerms: readonly MachineTerm[] = [
+    { label: t('endpointLabel'), value: 'https://mikrou.li/api/mcp' },
+    { label: t('protocolLabel'), value: t('protocolValue') },
+  ];
+
   return (
-    <Box component="main" data-testid="connect-page">
-      <Container maxWidth="sm" sx={PAGE_SX}>
-        <Stack spacing={5}>
+    <Box component="main" data-testid="connect-page" sx={PAGE_SX}>
+      <Box sx={ZONE_SX}>
+        <Stack spacing={7}>
           <ConnectionStatement />
-          <AuthorizationTerms />
-          <RestTerms />
-          <McpTerms />
+          <Stack spacing={3}>
+            <TermSection testId="connect-credential-terms" terms={credentialTerms} />
+            <TermSection testId="connect-machine-terms" terms={machineTerms} />
+            <Box sx={EXAMPLE_BLOCK_SX} data-testid="connect-example-mcp">
+              <Stack direction="row" spacing={2} alignItems="flex-start">
+                <Typography variant="technical" component="div" sx={EXAMPLE_TEXT_SX}>
+                  {MCP_CURL_EXAMPLE}
+                </Typography>
+                <CopyControl value={MCP_CURL_EXAMPLE} testId="copy-mcp-call" label="copy" />
+              </Stack>
+            </Box>
+          </Stack>
         </Stack>
-      </Container>
+      </Box>
     </Box>
   );
 }

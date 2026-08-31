@@ -4,6 +4,7 @@ import type { Request } from 'express';
 import { BearerOrApiKeyGuard } from './bearer-or-api-key.guard';
 import { UsersService } from '../users/users.service';
 import type { AuthenticatedRequest } from '../common/authenticated-request';
+import { carriesApiCredential } from '../common/credential-presence';
 
 // The env var name and its default value (mirrors the wish: default on).
 const GUEST_FLAG_ENV_KEY = 'GUEST_SHORTEN_ENABLED';
@@ -11,16 +12,6 @@ const GUEST_FLAG_DEFAULT = 'true';
 
 function isTruthyFlag(raw: string | undefined): boolean {
   return String(raw ?? GUEST_FLAG_DEFAULT).toLowerCase() === 'true';
-}
-
-// Detects whether the request carries any credential the existing
-// BearerOrApiKeyGuard would recognise. When no credential is present, the
-// Guest branch decides admission based on the runtime flag.
-function hasCredential(req: Request): boolean {
-  if (req.headers.authorization?.startsWith('Bearer ')) return true;
-  if (req.headers['x-api-key']) return true;
-  const cookies = req.cookies as Record<string, string | undefined> | undefined;
-  return Boolean(cookies?.['mikrouli_access']);
 }
 
 // Extract the hostname from a URL string, ignoring port and protocol.
@@ -90,7 +81,7 @@ export class GuestOrAuthenticatedGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
 
-    if (hasCredential(request)) {
+    if (carriesApiCredential(request)) {
       return this.bearerOrApiKeyGuard.canActivate(context);
     }
 

@@ -337,11 +337,18 @@ The following controls are applied at startup in `apps/api/src/main.ts`:
   (300 req/min, kept equal to the default so it only tightens at route level),
   `redirect` (120 req/10 s on the hot path), and `data` (1000 req/min, which
   authenticated data routes select by skipping the other names). Route-level
-  tightenings cover credential entry (10 req/min) and anonymous link creation
-  (30 req/min per IP — the only abuse bound on guest creation). A route's effective
-  budget is the minimum over all non-skipped names, so a route that forgets a
-  declaration degrades to the liberal floor rather than running unbounded. See
-  ADR 0019.
+  tightenings cover credential entry (register, login, and GitHub sign-in at
+  10 req/min per IP), session rotation (`POST /api/auth/refresh` at 60 req/min
+  per IP), and anonymous link creation (30 req/min per IP — the only abuse
+  bound on guest creation). Budgets that bound guest admission are guest-only:
+  the app boots `CredentialedRequestThrottlerGuard`
+  (`apps/api/src/common/credentialed-request-throttler.guard.ts`), so a
+  credentialed request sheds the names its route marks with
+  `@SkipThrottleWhenCredentialed` — on `POST /api/urls` a credentialed creation
+  runs under the `data` budget like any other authenticated write. A route's
+  effective budget is the minimum over all non-skipped names, so a route that
+  forgets a declaration degrades to the liberal floor rather than running
+  unbounded. See ADR 0019 and ADR 0020.
 
 nginx (`nginx/nginx.conf`, `k8s/base/web/configmap-nginx.yaml`) sets
 `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, and
