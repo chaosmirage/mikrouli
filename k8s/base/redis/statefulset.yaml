@@ -24,7 +24,7 @@ spec:
         app.kubernetes.io/part-of: mikrouli
     spec:
       nodeSelector:
-        node-role.kubernetes.io/control-plane: "true"
+        node-role.kubernetes.io/control-plane: 'true'
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
@@ -68,12 +68,13 @@ spec:
             - name: data
               mountPath: /data
           resources:
+            # Slug cache with allkeys-lru; live usage is single-digit MiB.
             requests:
               memory: 64Mi
               cpu: 50m
             limits:
-              memory: 256Mi
-              cpu: 200m
+              memory: 128Mi
+              cpu: 100m
           livenessProbe:
             exec:
               command:
@@ -172,12 +173,13 @@ spec:
             - name: data
               mountPath: /data
           resources:
+            # Slug cache with allkeys-lru; live usage is single-digit MiB.
             requests:
               memory: 64Mi
               cpu: 50m
             limits:
-              memory: 256Mi
-              cpu: 200m
+              memory: 128Mi
+              cpu: 100m
           livenessProbe:
             exec:
               command:

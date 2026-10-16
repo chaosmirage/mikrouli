@@ -70,12 +70,13 @@ spec:
             - name: var-run
               mountPath: /var/run
           resources:
+            # Static-asset nginx; live usage is single-digit MiB.
             requests:
               memory: 64Mi
               cpu: 50m
             limits:
-              memory: 256Mi
-              cpu: 200m
+              memory: 128Mi
+              cpu: 100m
           livenessProbe:
             httpGet:
               path: /

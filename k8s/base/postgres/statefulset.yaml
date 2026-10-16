@@ -19,7 +19,7 @@ spec:
         app.kubernetes.io/part-of: mikrouli
     spec:
       nodeSelector:
-        node-role.kubernetes.io/control-plane: "true"
+        node-role.kubernetes.io/control-plane: 'true'
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
@@ -77,12 +77,14 @@ spec:
             - name: data
               mountPath: /var/lib/postgresql/data
           resources:
+            # Tiny relational footprint (a few dozen MiB live); the generous
+            # requests/limits starved the single 4GB node for other tenants.
             requests:
-              memory: 512Mi
+              memory: 256Mi
               cpu: 250m
             limits:
-              memory: 1Gi
-              cpu: 1000m
+              memory: 768Mi
+              cpu: 500m
           livenessProbe:
             exec:
               command:

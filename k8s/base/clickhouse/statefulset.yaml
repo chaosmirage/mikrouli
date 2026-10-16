@@ -19,7 +19,7 @@ spec:
         app.kubernetes.io/part-of: mikrouli
     spec:
       nodeSelector:
-        node-role.kubernetes.io/control-plane: "true"
+        node-role.kubernetes.io/control-plane: 'true'
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
@@ -111,9 +111,12 @@ spec:
             requests:
               memory: 512Mi
               cpu: 250m
+            # 1536Mi cap: the users.d profile already bounds per-query memory
+            # at 1GiB (max_memory_usage), leaving ~0.5Gi for caches/merges.
+            # Keeps the single 4GB node out of node-level OOM storms.
             limits:
-              memory: 2Gi
-              cpu: 1000m
+              memory: 1536Mi
+              cpu: 750m
           livenessProbe:
             httpGet:
               path: /ping
