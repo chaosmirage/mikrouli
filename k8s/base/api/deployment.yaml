@@ -12,10 +12,8 @@ spec:
     matchLabels:
       app.kubernetes.io/name: api
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+    type: Recreate        # single replica on a memory-full node: a surge pod cannot
+                          # schedule (2026-10-20); in-place replace, brief gap accepted
   template:
     metadata:
       labels:
