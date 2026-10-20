@@ -5,20 +5,19 @@ All manifests live under `k8s/` and are managed via Kustomize overlays.
 
 ## Cost and topology
 
-The cluster runs on Hetzner Cloud (Nuremberg, `nbg1`) and is designed for low steady-state cost with on-demand burst capacity.
+The cluster runs on Hetzner Cloud (Nuremberg, `nbg1`) and is designed for low steady-state cost with a fixed single-node topology (no autoscaling).
 
 ### Topology
 
 | Role | Instance | Always on |
 | ---- | -------- | --------- |
 | Control-plane (runs all workloads) | cax11 (ARM, 2 vCPU / 4 GB) | yes |
-| Burst worker pool | cax11 (ARM, 2 vCPU / 4 GB) | no — autoscales 0 → 1 |
 
 - `schedule_workloads_on_masters: true` is set; the control-plane node runs all pods at steady state.
-- The burst worker pool is managed by hetzner-k3s built-in autoscaling (hard cap: 2 nodes total, i.e. 1 control-plane + 1 burst worker at most).
-- **Stateful pods** (postgres, clickhouse, redis) and the **cooking tenant** are pinned to the control-plane node via node affinity. Only stateless `api` and `web` pods overflow to the burst worker.
+- No worker pools and no cluster autoscaling: everything runs on the control-plane node; pods that do not fit stay Pending.
+- **Stateful pods** (postgres, clickhouse, redis) and the **cooking tenant** are pinned to the control-plane node via node affinity.
 - Both `mikrou.li` and `cooking.mikrou.li` route through the same lb11 load balancer.
-- **metrics-server** is the k3s-bundled one; it enables HPA. Cluster autoscaling is provided by hetzner-k3s built-in autoscaling — no separate cluster-autoscaler deployment is needed.
+- **metrics-server** is the k3s-bundled one; it enables pod-level HPA.
 
 ### Cost breakdown (gross, incl. VAT)
 
@@ -29,8 +28,6 @@ The cluster runs on Hetzner Cloud (Nuremberg, `nbg1`) and is designed for low st
 | 1 × IPv4 primary                              |      EUR 0.60 |
 | Volumes (postgres + clickhouse + redis)       |      EUR 2.83 |
 | **Baseline total**                            |  **~EUR 17.7** |
-| + 1 × cax11 burst worker (worst case)         |      EUR 5.34 |
-| **Worst-case total**                          |  **~EUR 23.0** |
 
 **Replica policy** (cost-capped):
 
@@ -68,7 +65,7 @@ brew install vitobotta/tap/hetzner-k3s   # or download from GitHub releases
 # Set your Hetzner Cloud API token
 export HCLOUD_TOKEN=your-hetzner-api-token
 
-# Provision 1 cax11 control-plane node in Nuremberg (burst worker pool autoscales from 0)
+# Provision 1 cax11 control-plane node in Nuremberg
 hetzner-k3s create --config k8s/cluster/hetzner-k3s.yaml
 ```
 
