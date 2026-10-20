@@ -107,7 +107,7 @@ durable even if downstream consumers are unavailable at creation time.
 provides sub-millisecond reads for cached slugs without hitting Postgres on every request.
 The cache is populated on first miss, written through on destination edits
 (`PATCH /api/urls/{slug}`, `links.controller.ts`), and invalidated explicitly on deletion
-and expiry cleanup. A read-replica (`redis-replica --replicaof redis-primary`) is available
+and expiry cleanup. A read-replica (`redis-replica --replicaof redis-primary`) WAS available until 2026-10-20 (removed: single-node cluster, no real redundancy; replication NetworkPolicies retained)
 in compose for horizontal read scaling.
 
 **Why ClickHouse for analytics.** Click data is append-only and query patterns are

@@ -32,7 +32,7 @@ The cluster runs on Hetzner Cloud (Nuremberg, `nbg1`) and is designed for low st
 **Replica policy** (cost-capped):
 
 - `api` Deployment: **1 replica** (single-node cluster: a second replica adds no node-failure HA; cut 2026-10-20).
-- `web`, `postgres`, `redis-primary`, `redis-replica`, `clickhouse`: **1 replica each**.
+- `web`, `postgres`, `redis-primary`, `clickhouse`: **1 replica each** (redis-replica removed 2026-10-20: on a single node it added no real redundancy).
 
 ---
 
