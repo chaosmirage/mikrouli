@@ -304,15 +304,20 @@ are not sent to cross-origin requests.
 
 In Kubernetes the `OTEL_EXPORTER_OTLP_ENDPOINT` env var on the API Deployment points to
 `http://otel-collector.observability.svc.cluster.local:4318`; operators supply their own
-collector (Jaeger, Tempo, SigNoz, etc.) -- see `k8s/README.md`. The default in-cluster
-backend is a single-replica Jaeger all-in-one (`k8s/observability/jaeger-deployment.yaml`)
-that opens an on-disk Badger span store (`BADGER_EPHEMERAL=false`) on an `emptyDir` mounted
-at `/badger/data`. Because Badger's startup and steady-state working set scale with the
-retention window, memory sizing and span retention are sized together: the pod is granted a
-256Mi request / 1Gi limit and `BADGER_SPAN_STORAGE_TTL` is capped at `24h` so the working
-set stays inside the memory ceiling rather than OOM-killing the pod into a crashloop. The
-pod runs under the `restricted` Pod Security Standard enforced on the `observability`
-namespace.
+collector (Jaeger, Tempo, SigNoz, etc.) -- see `k8s/README.md`.
+
+**Status: tracing backend PAUSED in-cluster (2026-10-21).** The single-replica Jaeger
+all-in-one (`k8s/observability/jaeger-deployment.yaml`) is deployed at `replicas: 0` and
+the API exports with `OTEL_ENABLED=false`. The pod's real-world footprint (~767Mi RSS:
+all-in-one collector+query+UI in one Go process, on-disk Badger span store, and 100%
+unsampled span ingestion) does not fit the current single cx23 node's memory budget
+(full-estate headroom ~150Mi); its 24h retention + 256Mi/1Gi sizing (which had already
+been tuned once to stop a solo OOM crashloop) still left it the largest non-production
+consumer on the node, and on 2026-10-21 it memory-starved the whole cluster. Re-enabling
+is an operator decision gated on capacity (node resize or moving an estate off the node)
+AND on the re-shape pinned in the deployment's comment: in-memory span storage with
+`memory.max-traces`, `GOMEMLIMIT`, api-side sampling, and a <=512Mi limit. The
+`restricted` Pod Security Standard on the `observability` namespace stays as-is.
 
 ---
 
