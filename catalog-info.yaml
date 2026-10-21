@@ -24,8 +24,26 @@ metadata:
       title: CI
       icon: run
 spec:
+  providesApis:
+    - api:default/mikrouli-api
   type: service
   lifecycle: production
   owner: group:default/platform
   dependsOn:
     - resource:default/k3s-hetzner
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: mikrouli-api
+  description: >-
+    mikrou.li REST API — shortening, redirects, analytics, API keys
+    (contract-first: TypeSpec, compiled to OpenAPI 3, RFC 9457 errors).
+spec:
+  providesApis:
+    - api:default/mikrouli-api
+  type: openapi
+  lifecycle: production
+  owner: group:default/platform
+  belongsTo: component:default/mikrouli
+  definition: $text: ./apps/api/spec/tsp-output/@typespec/openapi3/openapi.json
