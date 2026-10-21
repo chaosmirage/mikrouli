@@ -82,3 +82,12 @@ nginx       prod and dev reverse-proxy configs
 - Never tag deployment images `:latest`; pin them to the git SHA instead.
 - Never hand-edit the generated OpenAPI or TypeScript output; change `main.tsp`
   and regenerate instead.
+
+## Backstage portal binding
+
+`catalog-info.yaml` (root) is this repo's entity in the local Backstage
+portal (backstage-portal repo); `mkdocs.yml` builds `docs/` into the
+portal's Docs tab. The portal ingests both from GitHub — changes land
+within a minute of a push. Update catalog-info.yaml when the deployment
+namespace/labels or repo links change; new architecture docs belong in
+`docs/` and appear in the portal automatically.
