@@ -1,0 +1,31 @@
+# Backstage software-catalog entity (dev portal phase 2).
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: mikrouli
+  description: >-
+    mikrou.li — URL shortener (registered users, 6-char short links with 302
+    redirects, per-link click analytics, API keys). NestJS + React + MUI,
+    PostgreSQL + Redis (primary/replica) + ClickHouse, Nginx.
+  annotations:
+    github.com/project-slug: chaosmirage/mikrouli
+    backstage.io/techdocs-ref: dir:.
+    backstage.io/kubernetes-namespace: mikrouli
+    backstage.io/kubernetes-label-selector: app.kubernetes.io/name in (api, web)
+  tags: [product, url-shortener, nestjs, react]
+  links:
+    - url: https://mikrou.li
+      title: Live
+      icon: catalog
+    - url: https://github.com/chaosmirage/mikrouli
+      title: Repo
+      icon: github
+    - url: https://github.com/chaosmirage/mikrouli/actions
+      title: CI
+      icon: run
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/platform
+  dependsOn:
+    - resource:default/k3s-hetzner

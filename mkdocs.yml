@@ -1,0 +1,8 @@
+# TechDocs (Backstage portal): builds docs/ (architecture + ADRs) into the
+# portal's Docs tab. Nav is generated automatically.
+site_name: mikrouli
+site_description: >-
+  URL shortener with click analytics — architecture and architecture
+  decision records.
+plugins:
+  - techdocs-core
