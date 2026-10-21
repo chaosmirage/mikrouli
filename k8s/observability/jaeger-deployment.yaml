@@ -7,7 +7,14 @@ metadata:
     app.kubernetes.io/name: jaeger
     app.kubernetes.io/part-of: observability
 spec:
-  replicas: 1
+  # PAUSED 2026-10-21: all-in-one (badger, no sampling) holds ~767Mi RSS and does
+  # not fit the cx23 budget (full estate headroom ~150Mi); its 2026-10-20 live-only
+  # pause was resurrected by the next kustomize apply (this file still said 1) and
+  # memory-starved the node into a kswapd thrash loop (cluster-down 2026-10-21).
+  # Re-enable ONLY after a node resize (or moving an estate off cx23) AND with:
+  # SPAN_STORAGE_TYPE=memory + memory.max-traces, GOMEMLIMIT, api-side sampling,
+  # limits <= 512Mi. Operator ruling 2026-10-20: restore is an operator decision.
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: jaeger

@@ -78,7 +78,10 @@ spec:
             - name: TRUST_PROXY_HOPS
               value: '2'
             - name: OTEL_ENABLED
-              value: 'true'
+              # 2026-10-21: off while jaeger is paused (replicas: 0 in
+              # k8s/observability/) — exporting to a dead collector only burns
+              # api memory on exporter queues and retries.
+              value: 'false'
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: 'http://otel-collector.observability.svc.cluster.local:4318'
             - name: OTEL_SERVICE_NAME
