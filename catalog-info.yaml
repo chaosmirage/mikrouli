@@ -10,6 +10,7 @@ metadata:
   annotations:
     github.com/project-slug: chaosmirage/mikrouli
     backstage.io/techdocs-ref: dir:.
+    dev.mikrou.li/local-path: /Users/adel/Development/mikrouli
     backstage.io/kubernetes-namespace: mikrouli
     backstage.io/kubernetes-label-selector: app.kubernetes.io/name in (api, web)
   tags: [product, url-shortener, nestjs, react]
@@ -44,4 +45,5 @@ spec:
   lifecycle: production
   owner: group:default/platform
   belongsTo: component:default/mikrouli
-  definition: $text: ./apps/api/spec/tsp-output/@typespec/openapi3/openapi.json
+  definition:
+    $text: ./apps/api/spec/tsp-output/@typespec/openapi3/openapi.json
