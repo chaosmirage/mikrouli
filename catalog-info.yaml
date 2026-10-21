@@ -40,8 +40,6 @@ metadata:
     mikrou.li REST API — shortening, redirects, analytics, API keys
     (contract-first: TypeSpec, compiled to OpenAPI 3, RFC 9457 errors).
 spec:
-  providesApis:
-    - api:default/mikrouli-api
   type: openapi
   lifecycle: production
   owner: group:default/platform
